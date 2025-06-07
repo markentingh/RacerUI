@@ -2,7 +2,7 @@
 #### A web-based user interface for managing your racing simulator game library
 Import your racing simulator game libraries and customize your gaming experience using a UI built using HTML, CSS, & JavaScript
 
-![Racer UI logo](https://raw.githubusercontent.com/markentingh/RacerUI/refs/heads/main/Images/Logo/RaceUI_Logo_640x244.png)
+![Racer UI logo](https://raw.githubusercontent.com/markentingh/RacerUI/refs/heads/main/Images/Logo/RaceUI_Logo_Light_640x244.png)
 
 ### Installation
 1. Build or publish the `App/RacerUI` application
