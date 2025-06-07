@@ -2,6 +2,8 @@
 #### A web-based user interface for managing your racing simulator game library
 Import your racing simulator game libraries and customize your gaming experience using a UI built using HTML, CSS, & JavaScript
 
+![Racer UI logo](https://raw.githubusercontent.com/markentingh/RacerUI/refs/heads/main/Images/Logo/RaceUI_Logo_640x244.png)
+
 ### Installation
 1. Build or publish the `App/RacerUI` application
 2. Within PowerShell, run `.\RacerUI.exe` after navigating to the published folder to start the RacerUI web server.
