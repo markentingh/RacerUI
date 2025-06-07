@@ -1,0 +1,72 @@
+body {
+    font-family: "Noto Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings: "wdth" 87.5;
+}
+
+.row, .col {
+    box-sizing: border-box;
+}
+
+.row {
+    width: 100%;
+    display: block;
+}
+
+.row.hover:hover {
+    background: #c7f4eb;
+}
+
+.col {
+    display: inline-block;
+}
+
+.col.field {
+    text-align: right;
+    padding: 0.5em;
+    width: 8em;
+    cursor: default;
+}
+
+.col.field.long {
+    width: 12em;
+}
+
+.col.input {
+    padding: 0.5em;
+    width: calc(100% - 8.5em);
+}
+
+.col.input.short {
+    width: calc(100% - 12.5em);
+}
+
+input {
+    padding: 0.5em;
+    border-radius: 0.25em;
+    outline: none;
+    border: solid 2px #2facad;
+    background: #effcf9;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+button, .button {
+    background: #5cd5d6;
+    color: #00586c;
+    border: 0;
+    border-radius: 0.5em;
+    padding: 0.5em 1em;
+    cursor:pointer;
+}
+
+button:hover, .button:hover{
+    background: #13ccd8;
+}
+
+.buttons {
+    text-align: right;
+    padding: 1em 0 0 0;
+}

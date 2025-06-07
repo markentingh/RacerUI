@@ -1,0 +1,26 @@
+﻿@{
+    ViewData["Title"] = "Log In";
+}
+
+<link href="/css/login.css" rel="stylesheet"/>
+
+<div class="login-title">
+    <div class="logo"><img src="/images/raceui-logo-med.png" /></div>
+    <p>Learn about <a href="https://github.com/markentingh/racerUI">RacerUI</a> on GitHub.</p>
+</div>
+
+<div class="login-box">
+    <form method="post">
+        <div class="row hover">
+            <div class="col field">Username</div>
+            <div class="col input"><input type="text" name="username" /></div>
+        </div>
+        <div class="row hover">
+            <div class="col field">Password</div>
+            <div class="col input"><input type="password" name="password" /></div>
+        </div>
+        <div class="row buttons">
+            <button type="submit" class="login">Login</button>
+        </div>
+    </form>
+</div>
