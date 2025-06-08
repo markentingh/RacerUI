@@ -61,6 +61,7 @@ button:hover,
   padding: 1em 0 0 0;
 }
 .toggle {
+  display: inline-block;
   width: 3.5em;
   height: 1.5em;
   border: 2px solid #fafafa;
@@ -69,6 +70,7 @@ button:hover,
   background: #3eafe6;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
   animation: toggle-off 0.3s ease-in;
 }
 .toggle .switch {
@@ -80,10 +82,6 @@ button:hover,
   position: relative;
   box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
   animation: toggle-switch-off 0.3s ease-in;
-  cursor: pointer;
-}
-.toggle .switch > * {
-  cursor: default;
 }
 .toggle .switch .light {
   position: absolute;
@@ -104,6 +102,17 @@ button:hover,
 .toggle.on .switch {
   left: 2em;
   animation: toggle-switch-on 0.3s ease-in;
+}
+.toggle-dark-mode {
+  width: 10em;
+}
+.toggle-dark-mode > span {
+  display: inline-block;
+  vertical-align: super;
+  padding-right: 0.5em;
+}
+.toggle-dark-mode .toggle {
+  margin: 0 auto;
 }
 @keyframes toggle-switch-on {
   from {
@@ -160,6 +169,30 @@ body.dark-mode input {
 body.dark-mode .row.hover:hover {
   background: #335b64;
 }
+a:link {
+  color: #8d00f0;
+}
+a:hover {
+  color: #f512ff;
+}
+a:active {
+  color: #e257ff;
+}
+a:visited {
+  color: #eb7d1c;
+}
+body.dark-mode a:link {
+  color: #0fe4f3;
+}
+body.dark-mode a:hover {
+  color: #2af6ff;
+}
+body.dark-mode a:active {
+  color: #2af6ff;
+}
+body.dark-mode a:visited {
+  color: #793d84;
+}
 @keyframes darkmode-on {
   from {
     background: #fafafa;
@@ -182,7 +215,7 @@ body.dark-mode .row.hover:hover {
 }
 @keyframes darkmode-input-on {
   from {
-    background: #fafafa;
+    background: #effcf9;
     color: #333;
   }
   to {
@@ -190,15 +223,54 @@ body.dark-mode .row.hover:hover {
     color: #fff;
   }
 }
-@keyframes darkmode-off {
+@keyframes darkmode-input-off {
   from {
     background: #444;
     color: #fff;
   }
   to {
-    background: #fafafa;
+    background: #effcf9;
     color: #333;
   }
+}
+body {
+  background-color: transparent !important;
+}
+body.dark-mode {
+  background-color: transparent !important;
+}
+.bg-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: #fafafa;
+  animation: bg-overlay-light-mode 0.5s ease-in-out;
+}
+.dark-mode .bg-overlay {
+  background: rgba(0, 0, 0, 0.8);
+  animation: bg-overlay-dark-mode 0.5s ease-in-out;
+}
+@keyframes bg-overlay-dark-mode {
+  from {
+    background: #fafafa;
+  }
+  to {
+    background: rgba(0, 0, 0, 0.8);
+  }
+}
+@keyframes bg-overlay-light-mode {
+  from {
+    background: rgba(0, 0, 0, 0.8);
+  }
+  to {
+    background: #fafafa;
+  }
+}
+.login-section {
+  position: relative;
+  z-index: 1;
 }
 .login-title {
   margin: 0 auto;
@@ -206,7 +278,7 @@ body.dark-mode .row.hover:hover {
   max-width: 50em;
   width: 100%;
   box-sizing: border-box;
-  padding: 4em;
+  padding: 4em 4em 0 4em;
 }
 .login-title .logo {
   display: block;
@@ -274,7 +346,7 @@ body.dark-mode .login-title .logo .dark {
   margin: 0 auto;
 }
 .toggle-dark-mode {
-  width: 5em;
+  padding: 3em 0 0 0;
   margin: 0 auto;
   text-align: center;
 }
@@ -284,4 +356,59 @@ body.dark-mode .login-title .logo .dark {
 button.login {
   padding: 0.75em 2em;
   font-size: 1.075em;
+  position: relative;
+}
+button.login img {
+  position: absolute;
+  right: 5px;
+  height: 100%;
+}
+button.login .tire-tracks {
+  width: 0;
+  height: 100%;
+  left: 0;
+  top: 0;
+  position: absolute;
+}
+button.login .tire-tracks img:first-child {
+  opacity: 1;
+  right: -4px;
+  animation: button-login 0.3s ease-in-out;
+}
+button.login .tire-tracks img:last-child {
+  position: relative;
+  opacity: 0;
+  left: -151px;
+  animation: button-login-hover 0.3s ease-in-out;
+}
+button.login:hover .tire-tracks img:first-child {
+  opacity: 0;
+  animation: button-login-hover 0.3s ease-in-out;
+}
+button.login:hover .tire-tracks img:last-child {
+  opacity: 1;
+  animation: button-login 0.3s ease-in-out;
+}
+@keyframes button-login {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes button-login-hover {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.login-footer {
+  width: 100%;
+  max-width: 50em;
+  margin: 0 auto;
+  padding-top: 2em;
+  text-align: center;
 }

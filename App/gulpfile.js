@@ -21,11 +21,13 @@ paths.working = {
         app: paths.scripts + 'app.js',
         app_files: [
             paths.scripts + 'app/*.js',
+            paths.scripts + 'components/ui/*.js',
             paths.scripts + 'utils/*.js',
         ],
         login_files: [
             paths.scripts + 'app/dark-mode.js',
             paths.scripts + 'app/toggle.js',
+            paths.scripts + 'components/ui/darkmode-toggle.js',
             paths.scripts + 'login.js',
         ]
     },
@@ -37,9 +39,9 @@ paths.working = {
         ],
         login: paths.css + 'login.less',
         login_files: [
-            paths.css + 'dark-mode.less',
             paths.css + 'app/core.less',
-            paths.css + 'app/toggle.less'
+            paths.css + 'app/toggle.less',
+            paths.css + 'dark-mode.less',
         ]
     }
 };
@@ -52,6 +54,18 @@ paths.compiled = {
         login: paths.webroot + 'js/login.js',
     }
 };
+
+
+//tasks for compiling javascript //////////////////////////////////////////////////////////////
+const makeAppJs = (files, output) => {
+    var app = fs.readFileSync(paths.working.js.app, 'utf8');
+    var appParts = app.split('/*[js libraries goes here]*/');
+    var p = gulp.src(files, { base: '.' })
+        .pipe(concat(output))
+        .pipe(headerfooter(appParts[0], appParts[1]));
+    return p.pipe(gulp.dest('.', { overwrite: true }));
+};
+
 //tasks for compiling LESS & CSS /////////////////////////////////////////////////////////////////////
 gulp.task('less:app', function () {
     var p = gulp.src(paths.working.less.app)
@@ -65,17 +79,7 @@ gulp.task('less:login', function () {
     return p.pipe(gulp.dest(paths.compiled.css, { overwrite: true }));
 });
 
-gulp.task('less', gulp.series(['less:app']));
-
-//tasks for compiling javascript //////////////////////////////////////////////////////////////
-const makeAppJs = (files, output) => {
-    var app = fs.readFileSync(paths.working.js.app, 'utf8');
-    var appParts = app.split('/*[js libraries goes here]*/');
-    var p = gulp.src(files, { base: '.' })
-        .pipe(concat(output))
-        .pipe(headerfooter(appParts[0], appParts[1]));
-    return p.pipe(gulp.dest('.', { overwrite: true }));
-};
+gulp.task('less', gulp.series(['less:app', 'less:login']));
 
 gulp.task('js:app', function () {
     return makeAppJs(paths.working.js.app_files, paths.compiled.js.app);

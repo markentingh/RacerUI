@@ -1,4 +1,5 @@
 .toggle {
+    display: inline-block;
     width: 3.5em;
     height: 1.5em;
     border: 2px solid #fafafa;
@@ -7,6 +8,7 @@
     background: #3eafe6;
     position: relative;
     overflow: hidden;
+    cursor: pointer;
     animation: toggle-off 0.3s ease-in;
 
     .switch {
@@ -18,11 +20,6 @@
         position: relative;
         box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
         animation: toggle-switch-off 0.3s ease-in;
-        cursor: pointer;
-
-        & > * {
-            cursor: default;
-        }
 
         .light {
             position: absolute;
@@ -48,6 +45,23 @@
             animation: toggle-switch-on 0.3s ease-in;
         }
     }
+}
+
+.toggle-dark-mode {
+    width: 10em;
+
+    & > span {
+        display: inline-block;
+        vertical-align: super;
+        padding-right:0.5em;
+    }
+
+    .toggle {
+        margin: 0 auto;
+    }
+}
+
+.toggle-dark-mode{
 }
 
 @keyframes toggle-switch-on {

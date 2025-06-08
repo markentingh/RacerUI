@@ -1,9 +1,12 @@
 ﻿(() => {
-const ui = {
-    utils: {}
-};
+    const ui = {
+        utils: {}
+    };
 
-/*[js libraries goes here]*/
+    /*[js libraries goes here]*/
 
-window.RacerUI = ui;
+    //load dark mode setting from local storage
+    ui.darkmode.load();
+
+    window.RacerUI = ui;
 })();

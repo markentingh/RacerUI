@@ -2,13 +2,59 @@
 @import "app/toggle.less";
 @import "dark-mode.less";
 
+body {
+    background-color: transparent !important;
+}
+body.dark-mode {
+    background-color: transparent !important;
+}
+.bg-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: #fafafa;
+    animation: bg-overlay-light-mode 0.5s ease-in-out;
+}
+
+.dark-mode .bg-overlay {
+    background: rgba(0,0,0,0.8);
+    animation: bg-overlay-dark-mode 0.5s ease-in-out;
+}
+
+@keyframes bg-overlay-dark-mode {
+    from {
+        background: #fafafa;
+    }
+
+    to {
+        background: rgba(0,0,0,0.8);
+    }
+}
+
+@keyframes bg-overlay-light-mode {
+    from {
+        background: rgba(0,0,0,0.8);
+    }
+
+    to {
+        background: #fafafa;
+    }
+}
+
+.login-section {
+    position: relative;
+    z-index: 1;
+}
+
 .login-title {
     margin: 0 auto;
     text-align: center;
     max-width: 50em;
     width: 100%;
     box-sizing: border-box;
-    padding: 4em;
+    padding: 4em 4em 0 4em;
 }
 
 .login-title .logo {
@@ -95,7 +141,7 @@ body.dark-mode .login-title .logo {
 }
 
 .toggle-dark-mode {
-    width: 5em;
+    padding:3em 0 0 0;
     margin: 0 auto;
     text-align: center;
 
@@ -107,4 +153,76 @@ body.dark-mode .login-title .logo {
 button.login {
     padding: 0.75em 2em;
     font-size: 1.075em;
+    position: relative;
+
+    img {
+        position: absolute;
+        right: 5px;
+        height: 100%;
+    }
+
+    .tire-tracks {
+        width: 0;
+        height: 100%;
+        left: 0;
+        top: 0;
+        position: absolute;
+
+        img:first-child {
+            opacity: 1;
+            right: -4px;
+            animation: button-login 0.3s ease-in-out;
+        }
+
+        img:last-child {
+            position: relative;
+            opacity: 0;
+            left: -151px;
+            animation: button-login-hover 0.3s ease-in-out;
+        }
+    }
+}
+
+button.login:hover {
+    .tire-tracks {
+        img:first-child {
+            opacity: 0;
+            animation: button-login-hover 0.3s ease-in-out; 
+        }
+
+        img:last-child {
+            opacity: 1;
+            animation: button-login 0.3s ease-in-out;
+        }
+    }
+}
+
+
+
+@keyframes button-login {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes button-login-hover {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+.login-footer {
+    width: 100%;
+    max-width: 50em;
+    margin:0 auto;
+    padding-top:2em;
+    text-align:center;
 }

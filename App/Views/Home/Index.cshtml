@@ -4,43 +4,51 @@
 
 @section Head {
     <link href="/css/login.css" rel="stylesheet" />
+    <style type="text/css">
+        body{
+            background-image:url(/images/login/bg-001.png) !important;
+        }
+    </style>
 }
 
 @section Scripts {
     <script src="/js/login.js"></script>
 }
 
-
-<div class="login-title">
-    <div class="logo">
-        <img src="/images/raceui-logo-med.png" class="light" />
-        <img src="/images/raceui-logo-med-darkmode.png" class="dark" />
+<div class="bg-overlay"></div>
+<div class="login-section">
+    <div class="login-title">
+        <div class="logo">
+            <img src="/images/raceui-logo-med.png" class="light" />
+            <img src="/images/raceui-logo-med-darkmode.png" class="dark" />
+        </div>
+        <darkmode-toggle></darkmode-toggle>
     </div>
-    <p>Learn about <a href="https://github.com/markentingh/racerUI">RacerUI</a> on GitHub.</p>
-    <div class="toggle-dark-mode">
-        <span>Dark Mode</span>
-        <div class="toggle for-darkmode">
-            <div class="switch">
-                <span class="light material-symbols-outlined">light_mode</span>
-                <span class="dark material-symbols-outlined">dark_mode</span>
+
+    <div class="login-box">
+        <form method="post">
+            <div class="row hover">
+                <div class="col field">Username</div>
+                <div class="col input"><input type="text" name="username" /></div>
             </div>
-        </div>
+            <div class="row hover">
+                <div class="col field">Password</div>
+                <div class="col input"><input type="password" name="password" /></div>
+            </div>
+            <div class="row buttons">
+                <button type="submit" class="login">
+                    <span class="tire-tracks">
+                        <img src="/images/button-tire-track.png" />
+                        <img src="/images/button-tire-track-blue.png" class="hover" />
+                    </span>
+                    Login
+                </button>
+            </div>
+        </form>
     </div>
-    
+
+    <div class="login-footer">
+        <p>Learn more about RacerUI at <a href="https://www.racerui.com" target="_blank">RacerUI.com</a> or on <a href="https://github.com/markentingh/racerUI">GitHub</a>.</p>
+    </div>
 </div>
 
-<div class="login-box">
-    <form method="post">
-        <div class="row hover">
-            <div class="col field">Username</div>
-            <div class="col input"><input type="text" name="username" /></div>
-        </div>
-        <div class="row hover">
-            <div class="col field">Password</div>
-            <div class="col input"><input type="password" name="password" /></div>
-        </div>
-        <div class="row buttons">
-            <button type="submit" class="login">Login</button>
-        </div>
-    </form>
-</div>
