@@ -1,0 +1,110 @@
+﻿@import "app/core.less";
+@import "app/toggle.less";
+@import "dark-mode.less";
+
+.login-title {
+    margin: 0 auto;
+    text-align: center;
+    max-width: 50em;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4em;
+}
+
+.login-title .logo {
+    display: block;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 400px;
+    position: relative;
+
+    .light {
+        position: absolute;
+        opacity: 1;
+        animation: logo-light-on 0.5s ease-in-out;
+    }
+
+    .dark {
+        opacity: 0;
+        animation: logo-dark-off 0.5s ease-in-out;
+    }
+}
+
+body.dark-mode .login-title .logo {
+
+    .light {
+        opacity: 0;
+        animation: logo-light-off 0.5s ease-in-out;
+    }
+
+    .dark {
+        opacity: 1;
+        animation: logo-dark-on 0.5s ease-in-out;
+    }
+}
+
+@keyframes logo-light-on {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes logo-light-off {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes logo-dark-on {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes logo-dark-off {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+.login-title .logo img {
+    width: 100%;
+}
+
+.login-box {
+    padding: 50px 20px;
+    max-width: 25em;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.toggle-dark-mode {
+    width: 5em;
+    margin: 0 auto;
+    text-align: center;
+
+    .toggle {
+        margin: 0 auto;
+    }
+}
+
+button.login {
+    padding: 0.75em 2em;
+    font-size: 1.075em;
+}

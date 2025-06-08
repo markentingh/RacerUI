@@ -1,32 +1,34 @@
-﻿//dashboard 
-var dashboardHub = null;
+﻿
+let dashHub = null;
+ui.hub = {};
 
-function LoadDashboardHub() {
+ui.hub.load = () => {
     var consl = document.querySelector('.console');
     if (consl.className.indexOf('show') >= 0) {
         //hide console
         consl.classList.remove('show');
         consl.classList.add('hide');
-        //dashboardHub.stop();
+        //dashHub.stop();
     } else {
         //show console and load SignalR hub
         consl.classList.remove('hide');
         consl.classList.add('show');
-        if (dashboardHub == null) {
-            dashboardHub = new signalR.HubConnectionBuilder().withUrl('/dashboardhub').build();
-            dashboardHub.on('update', logEvent);
-            dashboardHub.start().catch(hubError);
-            setTimeout(() => { dashboardHub.invoke('handshake'); }, 500);
+        if (dashHub == null) {
+            dashHub = new signalR.HubConnectionBuilder().withUrl('/dashboardhub').build();
+            dashHub.on('update', ui.hub.log);
+            dashHub.start().catch(ui.hub.error);
+            setTimeout(() => { dashHub.invoke('handshake'); }, 500);
         }
     }
-}
+};
 
-function hubError(e) {
+ui.hub.error = (e) => {
     console.log(e);
-}
+};
 
-function logEvent(msg) {
+ui.hub.log = (msg) => {
     var div = document.createElement("div");
     div.innerHTML = msg;
     document.querySelectorAll('.console .scrollable')[0].appendChild(div);
 }
+};

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RacerUI.Models;
 using System.Diagnostics;
-using System.Text;
 
 namespace RacerUI.Controllers
 {

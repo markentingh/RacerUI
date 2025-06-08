@@ -2,11 +2,31 @@
     ViewData["Title"] = "Log In";
 }
 
-<link href="/css/login.css" rel="stylesheet"/>
+@section Head {
+    <link href="/css/login.css" rel="stylesheet" />
+}
+
+@section Scripts {
+    <script src="/js/login.js"></script>
+}
+
 
 <div class="login-title">
-    <div class="logo"><img src="/images/raceui-logo-med.png" /></div>
+    <div class="logo">
+        <img src="/images/raceui-logo-med.png" class="light" />
+        <img src="/images/raceui-logo-med-darkmode.png" class="dark" />
+    </div>
     <p>Learn about <a href="https://github.com/markentingh/racerUI">RacerUI</a> on GitHub.</p>
+    <div class="toggle-dark-mode">
+        <span>Dark Mode</span>
+        <div class="toggle for-darkmode">
+            <div class="switch">
+                <span class="light material-symbols-outlined">light_mode</span>
+                <span class="dark material-symbols-outlined">dark_mode</span>
+            </div>
+        </div>
+    </div>
+    
 </div>
 
 <div class="login-box">

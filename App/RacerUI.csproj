@@ -18,6 +18,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="CSS\dark-mode.less" />
+    <Content Include="CSS\login.less" />
+    <Content Include="CSS\app.less" />
+    <Content Include="Scripts\signalr.js" />
+    <Content Include="Scripts\signalr.js.map" />
+    <Content Include="Scripts\signalr.min.js" />
+    <Content Include="Scripts\signalr.min.js.map" />
+    <Content Include="Scripts\app\navigation.js" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="6.0.11" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.0" />
     <PackageReference Include="System.ServiceModel.Http" Version="4.10.0" />
@@ -28,10 +39,6 @@
     <None Include="web.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="wwwroot\js\signalr.js" />
-    <None Include="wwwroot\js\signalr.js.map" />
-    <None Include="wwwroot\js\signalr.min.js" />
-    <None Include="wwwroot\js\signalr.min.js.map" />
   </ItemGroup>
 
   <ItemGroup>
@@ -56,6 +63,12 @@
     <Content Update="Views\_ViewStart.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="CSS\app\" />
+    <Folder Include="wwwroot\css\" />
+    <Folder Include="wwwroot\js\" />
   </ItemGroup>
 
 </Project>
