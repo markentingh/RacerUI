@@ -11,22 +11,30 @@ ui.darkmode.load = () => {
 
 ui.darkmode.toggle = (on) => {
     if (on === false) {
+        //light mode
         document.body.classList.remove('dark-mode');
-        const elems = [...document.querySelectorAll('.toggle.for-darkmode')];
+        const elems = [...document.querySelectorAll('.toggle-dark-mode')];
         if (elems) elems.forEach(a => {
-            a.classList.remove('on');
-            a.querySelector('> span').innerHTML = 'Dark Mode';
+            a.querySelector('.toggle.for-darkmode').classList.remove('on');
+            console.log(a, a.firstChild);
         });
+        [...document.querySelectorAll('.toggle-dark-mode > span')]?.forEach(a => {
+            a.innerHTML = 'Light Mode';
+        })
         localStorage.setItem('darkmode', false);
         ui.darkmode.enabled = false;
 
     } else {
+        //dark mode
         document.body.classList.add('dark-mode');
-        const elems = [...document.querySelectorAll('.toggle.for-darkmode')];
+        const elems = [...document.querySelectorAll('.toggle-dark-mode')];
         if (elems) elems.forEach(a => {
-            a.classList.add('on');
-            a.querySelector('> span').innerHTML = 'Light Mode';
+            a.querySelector('.toggle.for-darkmode').classList.add('on');
+            console.log(a, a.firstChild);
         });
+        [...document.querySelectorAll('.toggle-dark-mode > span')]?.forEach(a => {
+            a.innerHTML = 'Dark Mode';
+        })
         localStorage.setItem('darkmode', true);
         ui.darkmode.enabled = true;
     }
@@ -65,6 +73,11 @@ ui.hub.log = (msg) => {
     document.querySelectorAll('.console .scrollable')[0].appendChild(div);
 }
 };
+setTimeout(() => {
+    const init = document.querySelector('.init');
+    init.classList.add('fade');
+    setTimeout(() => init.remove(), 600);
+}, 500);
 ui.nav.toggleDarkMode = (darkmode) => {
     if (document.body.classList.contains('dark-mode')) {
         document.body.classList.remove('dark-mode');

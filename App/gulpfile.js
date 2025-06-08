@@ -28,6 +28,7 @@ paths.working = {
             paths.scripts + 'app/dark-mode.js',
             paths.scripts + 'app/toggle.js',
             paths.scripts + 'components/ui/darkmode-toggle.js',
+            paths.scripts + 'app/init.js',
             paths.scripts + 'login.js',
         ]
     },

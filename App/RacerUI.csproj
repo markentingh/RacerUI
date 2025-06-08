@@ -66,7 +66,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="CSS\app\" />
     <Folder Include="wwwroot\css\" />
     <Folder Include="wwwroot\js\" />
   </ItemGroup>
