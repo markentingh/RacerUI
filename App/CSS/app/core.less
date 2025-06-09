@@ -1,3 +1,5 @@
+@import '../colors/light.less';
+
 body {
     font-family: "Noto Sans", sans-serif;
     font-optical-sizing: auto;
@@ -16,7 +18,7 @@ body {
 }
 
 .row.hover:hover {
-    background: #c7f4eb;
+    background: @light-row-hover;
 }
 
 .col {
@@ -47,14 +49,14 @@ input {
     padding: 0.5em;
     border-radius: 0.25em;
     outline: none;
-    border: solid 2px #2facad;
+    border: solid 2px @light-input-border;
     width: 100%;
     box-sizing: border-box;
 }
 
 button, .button {
-    background: #5cd5d6;
-    color: #00586c;
+    background: @light-button-bg;
+    color: @light-button-color;
     border: 0;
     border-radius: 0.5em;
     padding: 0.5em 1em;
@@ -62,7 +64,8 @@ button, .button {
 }
 
 button:hover, .button:hover {
-    background: #13ccd8;
+    background: @light-button-hover-bg;
+    color: @light-button-hover-color;
 }
 
 .buttons {

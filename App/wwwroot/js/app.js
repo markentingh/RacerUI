@@ -76,7 +76,7 @@ ui.hub.log = (msg) => {
 setTimeout(() => {
     const init = document.querySelector('.init');
     init.classList.add('fade');
-    setTimeout(() => init.remove(), 600);
+    setTimeout(() => init.remove(), 1000);
 }, 500);
 ui.nav.toggleDarkMode = (darkmode) => {
     if (document.body.classList.contains('dark-mode')) {

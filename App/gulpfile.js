@@ -36,13 +36,12 @@ paths.working = {
         app: paths.css + 'app.less',
         app_files: [
             paths.css + 'app/*.less',
-            paths.css + 'dark-mode.less',
         ],
         login: paths.css + 'login.less',
         login_files: [
             paths.css + 'app/core.less',
             paths.css + 'app/toggle.less',
-            paths.css + 'dark-mode.less',
+            paths.css + 'app/dark-mode.less',
         ]
     }
 };

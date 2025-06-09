@@ -55,6 +55,7 @@ button,
 button:hover,
 .button:hover {
   background: #13ccd8;
+  color: #00586c;
 }
 .buttons {
   text-align: right;

@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="CSS\dark-mode.less" />
+    <Content Include="CSS\app\dark-mode.less" />
     <Content Include="CSS\login.less" />
     <Content Include="CSS\app.less" />
     <Content Include="Scripts\signalr.js" />

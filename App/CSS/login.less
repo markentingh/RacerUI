@@ -1,7 +1,9 @@
 ﻿@import "app/core.less";
 @import "app/init.less";
 @import "app/toggle.less";
-@import "dark-mode.less";
+@import "app/dark-mode.less";
+@import "colors/dark.less";
+@import "colors/light.less";
 
 body {
     background-color: transparent !important;
@@ -15,7 +17,7 @@ body.dark-mode {
     right: 0;
     bottom: 0;
     left: 0;
-    background: #fafafa;
+    background: @light-bg;
     animation: bg-overlay-light-mode 0.5s ease-in-out;
 }
 
@@ -26,21 +28,21 @@ body.dark-mode {
 
 @keyframes bg-overlay-dark-mode {
     from {
-        background: #fafafa;
+        background: @light-bg;
     }
 
     to {
-        background: rgba(0,0,0,0.8);
+        background: @dark-bg-glass;
     }
 }
 
 @keyframes bg-overlay-light-mode {
     from {
-        background: rgba(0,0,0,0.8);
+        background: @dark-bg-glass;
     }
 
     to {
-        background: #fafafa;
+        background: @light-bg;
     }
 }
 
@@ -197,8 +199,6 @@ button.login:hover {
         }
     }
 }
-
-
 
 @keyframes button-login {
     from {

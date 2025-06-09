@@ -73,7 +73,7 @@ customElements.define('darkmode-toggle', DarkModeToggle);
 setTimeout(() => {
     const init = document.querySelector('.init');
     init.classList.add('fade');
-    setTimeout(() => init.remove(), 600);
+    setTimeout(() => init.remove(), 1000);
 }, 500);
 const toggle = document.querySelector('.toggle.for-darkmode');
 if (toggle) {
