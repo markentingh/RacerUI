@@ -31,6 +31,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="6.0.11" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.0" />
+    <PackageReference Include="SQLite" Version="3.13.0" />
     <PackageReference Include="System.ServiceModel.Http" Version="4.10.0" />
   </ItemGroup>
 
@@ -66,6 +67,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="SQL\" />
     <Folder Include="wwwroot\css\" />
     <Folder Include="wwwroot\js\" />
   </ItemGroup>
