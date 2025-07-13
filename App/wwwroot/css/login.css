@@ -61,6 +61,12 @@ button:hover,
   text-align: right;
   padding: 1em 0 0 0;
 }
+.logo {
+  position: relative;
+}
+.logo svg {
+  width: 100%;
+}
 .init {
   position: fixed;
   top: 0;
@@ -179,7 +185,7 @@ body {
   animation: darkmode-off 0.5s ease-in-out;
 }
 body.dark-mode {
-  background: #333;
+  background: #101010;
   color: #fafafa;
   animation: darkmode-on 0.5s ease-in-out;
 }
@@ -259,6 +265,45 @@ body.dark-mode a:visited {
     background: #effcf9;
     color: #333;
   }
+}
+.logo .light {
+  position: absolute;
+  opacity: 1;
+  animation: opacity-1 0.5s ease-in-out;
+}
+.logo .dark {
+  opacity: 0;
+  animation: opacity-0 0.5s ease-in-out;
+}
+body.dark-mode .logo .light {
+  opacity: 0;
+  animation: opacity-0 0.5s ease-in-out;
+}
+body.dark-mode .logo .dark {
+  opacity: 1;
+  animation: opacity-1 0.5s ease-in-out;
+}
+@keyframes opacity-1 {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes opacity-0 {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+nav ul.menu {
+  color: #cd71eb;
+}
+nav ul.menu li:hover {
+  color: #cd71eb;
 }
 body {
   background-color: transparent !important;

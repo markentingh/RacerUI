@@ -23,12 +23,14 @@ paths.working = {
             paths.scripts + 'app/*.js',
             paths.scripts + 'components/ui/*.js',
             paths.scripts + 'utils/*.js',
+            paths.scripts + 'init.js',
         ],
         login_files: [
             paths.scripts + 'app/dark-mode.js',
+            paths.scripts + 'app/ajax.js',
             paths.scripts + 'app/toggle.js',
             paths.scripts + 'components/ui/darkmode-toggle.js',
-            paths.scripts + 'app/init.js',
+            paths.scripts + 'init.js',
             paths.scripts + 'login.js',
         ]
     },

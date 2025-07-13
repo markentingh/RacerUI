@@ -21,10 +21,6 @@
     <Content Include="CSS\app\dark-mode.less" />
     <Content Include="CSS\login.less" />
     <Content Include="CSS\app.less" />
-    <Content Include="Scripts\signalr.js" />
-    <Content Include="Scripts\signalr.js.map" />
-    <Content Include="Scripts\signalr.min.js" />
-    <Content Include="Scripts\signalr.min.js.map" />
     <Content Include="Scripts\app\navigation.js" />
   </ItemGroup>
 

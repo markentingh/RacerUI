@@ -10,12 +10,42 @@
     @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
-    <div class="init" style="position:fixed; top:0; right:0; left:0; bottom:0; background-color:#000;"></div>
-    <header>
-        <div class="logo"><img src="/images/raceui-logo-med.png" /></div>
-        <darkmode-toggle></darkmode-toggle>
-    </header>
-    @RenderBody()
+    <div class="init"></div>
+    <div class="dash">
+        <nav>
+            <div class="logo">
+                <svg viewBox="0 0 1850 705" class="light">
+                    <use xlink:href="#racerui-logo" x="0" y="0" width="1850" height="705" class="svg-nocolor"></use>
+                </svg>
+                <svg viewBox="0 0 1850 705" class="dark">
+                    <use xlink:href="#racerui-logo-light" x="0" y="0" width="1850" height="705" class="svg-nocolor"></use>
+                </svg>
+            </div>
+            <ul class="menu">
+                <li class="item-cars">
+                    <svg viewBox="0 0 1850 705" class="dark">
+                        <use xlink:href="#icon-race-car" x="0" y="0" width="1850" height="705"></use>
+                    </svg>
+                    <span>Cars</span>
+                </li>
+                <li class="item-cars">
+                    <svg viewBox="0 0 1850 705" class="dark">
+                        <use xlink:href="#icon-track" x="0" y="0" width="1850" height="705"></use>
+                    </svg>
+                    <span>Tracks</span>
+                </li>
+            </ul>
+            <darkmode-toggle></darkmode-toggle>
+            <div class="dropdown-menu">
+                <div class="hamburger">
+                    <span class="material-symbols-outlined">menu</span>
+                </div>
+                <ul>
+                </ul>
+            </div>
+        </nav>
+        @RenderBody()
+    </div>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

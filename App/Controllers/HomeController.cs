@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using RacerUI.Models;
-using System.Diagnostics;
 
 namespace RacerUI.Controllers
 {
     public class HomeController : BaseController
     {
+        [Route("/")]
         public IActionResult Index()
         {
             if(Request.HasFormContentType)
@@ -23,12 +22,6 @@ namespace RacerUI.Controllers
                 }
             }
             return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }

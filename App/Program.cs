@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,7 +28,18 @@ if (!app.Environment.IsDevelopment())
 
 app.UseSession();
 //app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+//handle static files
+var provider = new FileExtensionContentTypeProvider();
+
+// Add static file mappings
+provider.Mappings[".svg"] = "image/svg";
+var options = new StaticFileOptions
+{
+    ContentTypeProvider = provider
+};
+app.UseStaticFiles(options);
+
 app.UseRouting();
 app.UseAuthorization();
 

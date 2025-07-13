@@ -31,4 +31,3 @@ ui.hub.log = (msg) => {
     div.innerHTML = msg;
     document.querySelectorAll('.console .scrollable')[0].appendChild(div);
 }
-};

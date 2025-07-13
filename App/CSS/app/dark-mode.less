@@ -8,12 +8,12 @@ body {
 }
 
 body.dark-mode {
-    background: #333;
-    color: #fafafa;
+    background: @dark-bg;
+    color: @dark-color;
     animation: darkmode-on 0.5s ease-in-out;
 }
 
-input {
+input { 
     background: @light-input-bg;
     color: @light-input-color;
     animation: darkmode-input-off 0.5s ease-in-out;
@@ -108,5 +108,53 @@ a:active {
     to {
         background: #effcf9;
         color: #333;
+    }
+}
+
+.logo .light{
+    position:absolute;
+    opacity:1;
+    animation: opacity-1 0.5s ease-in-out;
+}
+
+.logo .dark{
+    opacity:0;
+    animation: opacity-0 0.5s ease-in-out;
+}
+
+body.dark-mode .logo .light{
+    opacity:0;
+    animation: opacity-0 0.5s ease-in-out;
+}
+
+body.dark-mode .logo .dark{
+    opacity:1;
+    animation: opacity-1 0.5s ease-in-out;
+}
+
+@keyframes opacity-1 {
+    from {
+        opacity:0
+    }
+
+    to {
+        opacity:1
+    }
+}
+
+@keyframes opacity-0 {
+    from {
+        opacity:1
+    }
+
+    to {
+        opacity:0
+    }
+}
+
+nav ul.menu{
+    color:@dark-nav-color;
+    li:hover{
+        color:@dark-nav-color-hover;
     }
 }
