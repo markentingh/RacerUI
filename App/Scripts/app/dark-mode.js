@@ -11,7 +11,6 @@ ui.darkmode.toggle = (on) => {
         const elems = [...document.querySelectorAll('.toggle-dark-mode')];
         if (elems) elems.forEach(a => {
             a.querySelector('.toggle.for-darkmode').classList.remove('on');
-            console.log(a, a.firstChild);
         });
         [...document.querySelectorAll('.toggle-dark-mode > span')]?.forEach(a => {
             a.innerHTML = 'Light Mode';
@@ -25,7 +24,6 @@ ui.darkmode.toggle = (on) => {
         const elems = [...document.querySelectorAll('.toggle-dark-mode')];
         if (elems) elems.forEach(a => {
             a.querySelector('.toggle.for-darkmode').classList.add('on');
-            console.log(a, a.firstChild);
         });
         [...document.querySelectorAll('.toggle-dark-mode > span')]?.forEach(a => {
             a.innerHTML = 'Dark Mode';

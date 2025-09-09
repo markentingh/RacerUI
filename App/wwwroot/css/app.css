@@ -7,10 +7,19 @@ body {
   font-weight: normal;
   font-style: normal;
   font-variation-settings: "wdth" 87.5;
-  transform-origin: top left;
-  max-width: 1920px;
   min-height: 100vh;
   overflow: hidden;
+}
+.scale-ui {
+  transform-origin: top left;
+  max-width: 1920px;
+}
+.svg-assets {
+  display: fixed;
+  top: -99em;
+  left: -99em;
+  width: 0;
+  height: 0;
 }
 * {
   transition: all 0.25s ease-in-out;
@@ -104,6 +113,10 @@ button:hover,
     background: rgba(0, 0, 0, 0);
   }
 }
+darkmode-toggle.scale-us {
+  width: calc(160px * var(--scale-factor));
+  max-height: calc(24px * var(--scale-factor));
+}
 .toggle {
   display: inline-block;
   width: 3.5em;
@@ -152,7 +165,8 @@ button:hover,
   animation: toggle-switch-on 0.3s ease-in;
 }
 .toggle-dark-mode {
-  width: 10em;
+  width: calc(10em * var(--scale-factor));
+  height: calc(1.5em * var(--scale-factor));
 }
 .toggle-dark-mode > span {
   display: inline-block;
@@ -194,9 +208,21 @@ button:hover,
     background: #3eafe6;
   }
 }
+body {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 100vh;
+  line-height: 0;
+}
+.dash {
+  grid-row: 1;
+}
 .dash nav {
-  width: 100%;
+  width: calc(1920px * var(--scale-factor));
+  max-width: 100vw;
+  max-height: calc(60px * var(--scale-factor));
   display: block;
+  line-height: 1.35;
 }
 .dash nav > * {
   display: inline-block;
@@ -265,6 +291,48 @@ button:hover,
 .dash nav > ul.menu li.item-history svg {
   width: 1.3em;
 }
+.dash nav > ul.menu li.item-profile svg {
+  width: 1.4em;
+}
+.dash nav > ul.menu li.item-settings svg {
+  width: 1.3em;
+}
+.footer {
+  grid-row: 2;
+  padding: 1em 1em 2em 1em;
+  max-width: 100vw;
+}
+.footer darkmode-toggle {
+  float: right;
+  margin: 0 0 0 1em;
+}
+@media screen and (max-width: 1480px) {
+  .dash > nav {
+    font-size: 0.8em;
+  }
+  .dash > nav ul.menu li {
+    padding: 0.5em 0.5em;
+  }
+}
+@media screen and (max-width: 1070px) {
+  .dash > nav {
+    font-size: 0.6em;
+  }
+  .dash > nav ul.menu li {
+    padding: 0.5em 0.25em;
+  }
+}
+@media screen and (max-width: 760px) {
+  .dash > nav {
+    font-size: 0.4em;
+  }
+  .dash > nav ul.menu li {
+    padding: 0.5em 0.15em;
+  }
+}
+.content.game {
+  padding: 2em;
+}
 /* nav menu item */
 /* hovered nav menu item */
 /* selected nav menu item */
@@ -273,7 +341,7 @@ body {
   color: #333;
   animation: darkmode-off 0.5s ease-in-out;
   background-image: url('/images/footer.png');
-  background-size: contain;
+  background-size: cover;
   background-position: bottom left;
   background-repeat: no-repeat;
 }

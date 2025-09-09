@@ -1,5 +1,6 @@
-﻿//initialize the app after all scripts are defined
+//initialize the app after all scripts are defined
 console.log('initializing app');
+
 //load SVG files for logo & icons
 var svg = document.createElement('div');
 svg.classList.add('svg-assets');
@@ -31,11 +32,26 @@ if (toggle) {
 ui.utils.scaleUI = () => {
     let scale = window.innerWidth / 1920;
     if (scale < 1) scale = 1;
-    document.querySelector('body').style.transform = `scale(${scale})`;
+    
+    // Create or update CSS variable for scale factor
+    let styleEl = document.getElementById('scale-factor-style');
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'scale-factor-style';
+        document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = `:root { --scale-factor: ${scale}; }`;
+    
+    // Apply scale to elements with scale-ui class
+    const scalable = document.querySelectorAll('.scale-ui');
+    scalable.forEach(el => el.style.transform = `scale(${scale})`);
 }
+    
 window.addEventListener('resize', () => {
     ui.utils.scaleUI();
 });
+
+ui.utils.scaleUI();
 
 setTimeout(() => {
     const init = document.querySelector('.init');

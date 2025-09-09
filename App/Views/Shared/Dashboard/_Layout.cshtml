@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -12,7 +12,7 @@
 <body>
     <div class="init"></div>
     <div class="dash">
-        <nav>
+        <nav class="scale-ui">
             <div class="logo">
                 <svg viewBox="0 0 1850 705" class="light">
                     <use xlink:href="#racerui-logo" x="0" y="0" width="1850" height="705" class="svg-nocolor"></use>
@@ -46,13 +46,24 @@
                     <span>Tracks</span>
                 </li>
                 <li class="item-history" onclick="RacerUI.nav.navigate('history')">
-                    <svg viewBox="0 0 800 657" class="dark">
-                        <use xlink:href="#icon-history" x="0" y="0" width="800" height="657"></use>
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-history" x="0" y="0" width="64" height="64"></use>
                     </svg>
                     <span>History</span>
                 </li>
+                <li class="item-profile" onclick="RacerUI.nav.navigate('profile')">
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-profile" x="0" y="0" width="64" height="64"></use>
+                    </svg>
+                    <span>Profile</span>
+                </li>
+                <li class="item-settings" onclick="RacerUI.nav.navigate('settings')">
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-settings" x="0" y="0" width="64" height="64"></use>
+                    </svg>
+                    <span>Settings</span>
+                </li>
             </ul>
-            <darkmode-toggle></darkmode-toggle>
             <div class="dropdown-menu" style="display:none;">
                 <div class="hamburger">
                     <span class="material-symbols-outlined">menu</span>
@@ -61,7 +72,12 @@
                 </ul>
             </div>
         </nav>
-        @RenderBody()
+        <div class="content">
+            @RenderBody()
+        </div>
+    </div>
+    <div class="footer">
+        <darkmode-toggle class="scale-ui"></darkmode-toggle>
     </div>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
