@@ -21,22 +21,39 @@
                     <use xlink:href="#racerui-logo-light" x="0" y="0" width="1850" height="705" class="svg-nocolor"></use>
                 </svg>
             </div>
+            <div class="arrow">
+                <svg viewBox="0 0 64 64" class="dark">
+                    <use xlink:href="#icon-arrow-right" x="0" y="0" width="64" height="64"></use>
+                </svg>
+            </div>
             <ul class="menu">
-                <li class="item-cars">
+                <li class="item-game" onclick="RacerUI.nav.navigate('game')">
+                    <svg viewBox="0 0 657 657" class="dark">
+                        <use xlink:href="#icon-game" x="0" y="0" width="657" height="657"></use>
+                    </svg>
+                    <span id="gameName">Game</span>
+                </li>
+                <li class="item-cars" onclick="RacerUI.nav.navigate('cars')">
                     <svg viewBox="0 0 1850 705" class="dark">
                         <use xlink:href="#icon-race-car" x="0" y="0" width="1850" height="705"></use>
                     </svg>
                     <span>Cars</span>
                 </li>
-                <li class="item-cars">
-                    <svg viewBox="0 0 1850 705" class="dark">
-                        <use xlink:href="#icon-track" x="0" y="0" width="1850" height="705"></use>
+                <li class="item-tracks" onclick="RacerUI.nav.navigate('tracks')">
+                    <svg viewBox="0 0 800 657" class="dark">
+                        <use xlink:href="#icon-track" x="0" y="0" width="800" height="657"></use>
                     </svg>
                     <span>Tracks</span>
                 </li>
+                <li class="item-history" onclick="RacerUI.nav.navigate('history')">
+                    <svg viewBox="0 0 800 657" class="dark">
+                        <use xlink:href="#icon-history" x="0" y="0" width="800" height="657"></use>
+                    </svg>
+                    <span>History</span>
+                </li>
             </ul>
             <darkmode-toggle></darkmode-toggle>
-            <div class="dropdown-menu">
+            <div class="dropdown-menu" style="display:none;">
                 <div class="hamburger">
                     <span class="material-symbols-outlined">menu</span>
                 </div>

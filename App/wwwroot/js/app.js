@@ -3,6 +3,8 @@
         utils: {}
     };
 
+
+    /* DO NOT REMOVE THE CODE BELOW */
     ui.ajax = function ({ url, data, complete, error, json, async, contentType, method, username, password }) {
     var opt = {
         method: method ?? 'GET',
@@ -133,9 +135,29 @@ ui.hub.log = (msg) => {
     div.innerHTML = msg;
     document.querySelectorAll('.console .scrollable')[0].appendChild(div);
 }
-ui.nav = {
+ui.nav = {};
 
-};
+ui.nav.select = (id) => {
+    document.querySelectorAll('.dash nav ul.menu li').forEach(li => {
+        li.classList.remove('selected');
+    });
+    document.querySelector(`.dash nav ul.menu li.item-${id}`).classList.add('selected');
+}
+
+ui.nav.navigate = (path) => {
+    console.log('navigate', path);
+    ui.nav.select(path);
+    history.pushState(null, '', `/dashboard/${path}`);
+}
+
+ui.nav.gameName = (name) => {
+    document.getElementById('gameName').textContent = name;
+}
+
+
+ui.nav.select('game');
+ui.nav.gameName('Assetto Corsa');
+
 ui.toggle = {};
 ui.toggle.flip = (elem, callback) => {
     if (elem.classList.contains('on')) {
@@ -188,6 +210,8 @@ ui.utils.injectJs = (id, sourcecode) => {
     js.innerText = sourcecode;
     document.querySelector('body').appendChild(js);
 };
+//initialize the app after all scripts are defined
+console.log('initializing app');
 //load SVG files for logo & icons
 var svg = document.createElement('div');
 svg.classList.add('svg-assets');
@@ -205,14 +229,33 @@ ui.ajax({
     }
 });
 
+//load dark mode setting from local storage
+ui.darkmode.load();
+
+const toggle = document.querySelector('.toggle.for-darkmode');
+if (toggle) {
+    toggle.addEventListener('click', () => ui.toggle.flip(toggle, (on) => {
+        ui.darkmode.toggle(on);
+    }));
+}
+
+//window resize to scale UI
+ui.utils.scaleUI = () => {
+    let scale = window.innerWidth / 1920;
+    if (scale < 1) scale = 1;
+    document.querySelector('body').style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', () => {
+    ui.utils.scaleUI();
+});
+
 setTimeout(() => {
     const init = document.querySelector('.init');
     init.classList.add('fade');
     setTimeout(() => init.remove(), 1000);
 }, 500);
-
-    //load dark mode setting from local storage
-    ui.darkmode.load();
+    /* DO NOT REMOVE THE CODE ABOVE */
 
     window.RacerUI = ui;
+
 })();

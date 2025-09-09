@@ -3,10 +3,11 @@
         utils: {}
     };
 
-    /*[js libraries goes here]*/
 
-    //load dark mode setting from local storage
-    ui.darkmode.load();
+    /* DO NOT REMOVE THE CODE BELOW */
+    /*[js libraries goes here]*/
+    /* DO NOT REMOVE THE CODE ABOVE */
 
     window.RacerUI = ui;
+
 })();

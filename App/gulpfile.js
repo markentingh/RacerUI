@@ -38,6 +38,8 @@ paths.working = {
         app: paths.css + 'app.less',
         app_files: [
             paths.css + 'app/*.less',
+            paths.css + 'app/**/*.less',
+            paths.css + 'colors/*.less',
         ],
         login: paths.css + 'login.less',
         login_files: [

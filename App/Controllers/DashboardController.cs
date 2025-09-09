@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using RacerUI.Models;
 using System.Diagnostics;
 
@@ -6,24 +6,25 @@ namespace RacerUI.Controllers
 {
     public class DashboardController : BaseController
     {
-        [Route("dashboard")]
-        public IActionResult Index()
+        [Route("dashboard/{*path}")]
+        public IActionResult Index(string path)
         {
-            if (!CheckSecurity()) { return RedirectToAction("access-denied"); }
+            if (!CheckSecurity()) { return RedirectToAction("AccessDenied", "Dashboard"); }
+
+            if (path == "error")
+            {
+                return View("Error", new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            }
+            else if (path == "access-denied")
+            {
+                return View("AccessDenied");
+            }
 
             return View(new DashboardViewModel() { 
                 Config = App.Config 
             });
         }
 
-        [Route("dashboard/error")]
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
-
-        [Route("access-denied")]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult AccessDenied()
         {

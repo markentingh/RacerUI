@@ -2,31 +2,36 @@
 @import '../colors/dark.less';
 
 body {
-    background: @light-bg;
+    background-color: @light-bg;
     color: @light-color;
     animation: darkmode-off 0.5s ease-in-out;
+    background-image:url('/images/footer.png');
+    background-size:contain;
+    background-position:bottom left;
+    background-repeat:no-repeat;
 }
 
 body.dark-mode {
-    background: @dark-bg;
+    background-color: @dark-bg;
+    background-image:url('/images/footer.png');
     color: @dark-color;
     animation: darkmode-on 0.5s ease-in-out;
 }
 
 input { 
-    background: @light-input-bg;
+    background-color: @light-input-bg;
     color: @light-input-color;
     animation: darkmode-input-off 0.5s ease-in-out;
 }
 
 body.dark-mode input {
-    background: @dark-input-bg;
+    background-color: @dark-input-bg;
     color: @dark-input-color;
     animation: darkmode-input-on 0.5s ease-in-out;
 }
 
 body.dark-mode .row.hover:hover {
-    background: @dark-row-hover;
+    background-color: @dark-row-hover;
 }
 
 a:link {
@@ -65,48 +70,48 @@ a:active {
 
 @keyframes darkmode-on {
     from {
-        background: #fafafa;
+        background-color: #fafafa;
         color: #333;
     }
 
     to {
-        background: #333;
+        background-color: #333;
         color: #fafafa;
     }
 }
 
 @keyframes darkmode-off {
     from {
-        background: #333;
+        background-color: #333;
         color: #fafafa;
     }
 
     to {
-        background: #fafafa;
+        background-color: #fafafa;
         color: #333;
     }
 }
 
 @keyframes darkmode-input-on {
     from {
-        background: #effcf9;
+        background-color: #effcf9;
         color: #333;
     }
 
     to {
-        background: #444;
+        background-color: #444;
         color: #fff;
     }
 }
 
 @keyframes darkmode-input-off {
     from {
-        background: #444;
+        background-color: #444;
         color: #fff;
     }
 
     to {
-        background: #effcf9;
+        background-color: #effcf9;
         color: #333;
     }
 }
@@ -153,8 +158,49 @@ body.dark-mode .logo .dark{
 }
 
 nav ul.menu{
+    color:@light-nav-color;
+    svg use{
+        color:@light-nav-icon-color;
+    }
+    li{
+        background:@light-nav-bg;
+    }
+    li:hover{
+        color:@light-nav-color-hover;
+        background:@light-nav-bg-hover;
+        svg use{
+            color:@light-nav-icon-color-hover;
+        }
+    }
+    li.selected{
+        color:@light-nav-color-selected;
+        background:@light-nav-bg-selected;
+        svg use{
+            color:@light-nav-icon-color-selected;
+        }
+    }
+}
+
+body.dark-mode nav ul.menu{
     color:@dark-nav-color;
+    svg use{
+        color:@dark-nav-icon-color;
+    }
+    li{
+        background:@dark-nav-bg;
+    }
     li:hover{
         color:@dark-nav-color-hover;
+        background:@dark-nav-bg-hover;
+        svg use{
+            color:@dark-nav-icon-color-hover;
+        }
+    }
+    li.selected{
+        color:@dark-nav-color-selected;
+        background:@dark-nav-bg-selected;
+        svg use{
+            color:@dark-nav-icon-color-selected;
+        }
     }
 }

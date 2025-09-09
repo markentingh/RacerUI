@@ -3,6 +3,8 @@
         utils: {}
     };
 
+
+    /* DO NOT REMOVE THE CODE BELOW */
     ui.darkmode = { enabled: false };
 ui.darkmode.load = () => {
     ui.darkmode.enabled = localStorage.getItem('darkmode') ?? false;
@@ -131,6 +133,8 @@ class DarkModeToggle extends HTMLElement {
 }
 
 customElements.define('darkmode-toggle', DarkModeToggle);
+//initialize the app after all scripts are defined
+console.log('initializing app');
 //load SVG files for logo & icons
 var svg = document.createElement('div');
 svg.classList.add('svg-assets');
@@ -148,11 +152,9 @@ ui.ajax({
     }
 });
 
-setTimeout(() => {
-    const init = document.querySelector('.init');
-    init.classList.add('fade');
-    setTimeout(() => init.remove(), 1000);
-}, 500);
+//load dark mode setting from local storage
+ui.darkmode.load();
+
 const toggle = document.querySelector('.toggle.for-darkmode');
 if (toggle) {
     toggle.addEventListener('click', () => ui.toggle.flip(toggle, (on) => {
@@ -160,8 +162,24 @@ if (toggle) {
     }));
 }
 
-    //load dark mode setting from local storage
-    ui.darkmode.load();
+//window resize to scale UI
+ui.utils.scaleUI = () => {
+    let scale = window.innerWidth / 1920;
+    if (scale < 1) scale = 1;
+    document.querySelector('body').style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', () => {
+    ui.utils.scaleUI();
+});
+
+setTimeout(() => {
+    const init = document.querySelector('.init');
+    init.classList.add('fade');
+    setTimeout(() => init.remove(), 1000);
+}, 500);
+
+    /* DO NOT REMOVE THE CODE ABOVE */
 
     window.RacerUI = ui;
+
 })();

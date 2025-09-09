@@ -1,4 +1,6 @@
-﻿//load SVG files for logo & icons
+﻿//initialize the app after all scripts are defined
+console.log('initializing app');
+//load SVG files for logo & icons
 var svg = document.createElement('div');
 svg.classList.add('svg-assets');
 document.body.append(svg);
@@ -13,6 +15,26 @@ ui.ajax({
     complete: (response) => {
         svg.innerHTML += response.responseText;
     }
+});
+
+//load dark mode setting from local storage
+ui.darkmode.load();
+
+const toggle = document.querySelector('.toggle.for-darkmode');
+if (toggle) {
+    toggle.addEventListener('click', () => ui.toggle.flip(toggle, (on) => {
+        ui.darkmode.toggle(on);
+    }));
+}
+
+//window resize to scale UI
+ui.utils.scaleUI = () => {
+    let scale = window.innerWidth / 1920;
+    if (scale < 1) scale = 1;
+    document.querySelector('body').style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', () => {
+    ui.utils.scaleUI();
 });
 
 setTimeout(() => {

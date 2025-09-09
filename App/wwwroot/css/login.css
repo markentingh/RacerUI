@@ -4,6 +4,14 @@ body {
   font-weight: normal;
   font-style: normal;
   font-variation-settings: "wdth" 87.5;
+  transform-origin: top left;
+  max-width: 1920px;
+  min-height: 100vh;
+  overflow: hidden;
+}
+* {
+  transition: all 0.25s ease-in-out;
+  box-sizing: border-box;
 }
 .row,
 .col {
@@ -105,10 +113,14 @@ button:hover,
   overflow: hidden;
   cursor: pointer;
   animation: toggle-off 0.3s ease-in;
+  font-size: 1em;
+}
+.toggle .material-symbols-outlined {
+  font-size: 1.25em;
 }
 .toggle .switch {
-  width: 1.5em;
-  height: 1.5em;
+  width: 1.25em;
+  height: 1.25em;
   left: 0;
   background: #333;
   border-radius: 5em;
@@ -180,27 +192,32 @@ button:hover,
   }
 }
 body {
-  background: #fafafa;
+  background-color: #fafafa;
   color: #333;
   animation: darkmode-off 0.5s ease-in-out;
+  background-image: url('/images/footer.png');
+  background-size: contain;
+  background-position: bottom left;
+  background-repeat: no-repeat;
 }
 body.dark-mode {
-  background: #101010;
+  background-color: #101010;
+  background-image: url('/images/footer.png');
   color: #fafafa;
   animation: darkmode-on 0.5s ease-in-out;
 }
 input {
-  background: #effcf9;
+  background-color: #effcf9;
   color: #333;
   animation: darkmode-input-off 0.5s ease-in-out;
 }
 body.dark-mode input {
-  background: #444;
+  background-color: #444;
   color: #fff;
   animation: darkmode-input-on 0.5s ease-in-out;
 }
 body.dark-mode .row.hover:hover {
-  background: #335b64;
+  background-color: #335b64;
 }
 a:link {
   color: #8d00f0;
@@ -228,41 +245,41 @@ body.dark-mode a:visited {
 }
 @keyframes darkmode-on {
   from {
-    background: #fafafa;
+    background-color: #fafafa;
     color: #333;
   }
   to {
-    background: #333;
+    background-color: #333;
     color: #fafafa;
   }
 }
 @keyframes darkmode-off {
   from {
-    background: #333;
+    background-color: #333;
     color: #fafafa;
   }
   to {
-    background: #fafafa;
+    background-color: #fafafa;
     color: #333;
   }
 }
 @keyframes darkmode-input-on {
   from {
-    background: #effcf9;
+    background-color: #effcf9;
     color: #333;
   }
   to {
-    background: #444;
+    background-color: #444;
     color: #fff;
   }
 }
 @keyframes darkmode-input-off {
   from {
-    background: #444;
+    background-color: #444;
     color: #fff;
   }
   to {
-    background: #effcf9;
+    background-color: #effcf9;
     color: #333;
   }
 }
@@ -300,13 +317,65 @@ body.dark-mode .logo .dark {
   }
 }
 nav ul.menu {
-  color: #cd71eb;
+  color: #333333;
+}
+nav ul.menu svg use {
+  color: #9a9a9a;
+}
+nav ul.menu li {
+  background: linear-gradient(to bottom, rgba(250, 250, 250, 0) 0%, rgba(0, 228, 176, 0) 50%, rgba(147, 216, 255, 0) 100%);
 }
 nav ul.menu li:hover {
-  color: #cd71eb;
+  color: #333333;
+  background: linear-gradient(to bottom, rgba(54 225 145 / 0%) 0%, rgba(0, 197, 132, 0) 50%, #6af3ce 100%);
 }
+nav ul.menu li:hover svg use {
+  color: #14a193;
+}
+nav ul.menu li.selected {
+  color: #fff;
+  background: linear-gradient(to bottom, rgba(87, 253, 197, 0.82) 0%, rgba(0, 126, 213, 0.82) 50%, #30d7ea 100%);
+}
+nav ul.menu li.selected svg use {
+  color: #fff;
+}
+body.dark-mode nav ul.menu {
+  color: #c5c5c5;
+}
+body.dark-mode nav ul.menu svg use {
+  color: #38a8ff;
+}
+body.dark-mode nav ul.menu li {
+  background: linear-gradient(to bottom, rgba(16, 16, 16, 0) 100%, rgba(16, 16, 16, 0) 100%);
+}
+body.dark-mode nav ul.menu li:hover {
+  color: #c5c5c5;
+  background: linear-gradient(to bottom, rgba(16, 16, 16, 0) 50%, #086acd 100%);
+}
+body.dark-mode nav ul.menu li:hover svg use {
+  color: #33adff;
+}
+body.dark-mode nav ul.menu li.selected {
+  color: #000;
+  background: linear-gradient(to bottom, #8867ed 0%, #5836fa 50%, #148cfb 100%);
+}
+body.dark-mode nav ul.menu li.selected svg use {
+  color: #000;
+}
+/* nav menu item */
+/* hovered nav menu item */
+/* selected nav menu item */
+/* nav menu item */
+/* hovered nav menu item */
+/* selected nav menu item */
 body {
   background-color: transparent !important;
+  transform-origin: top left;
+  max-width: 1920px;
+  padding: 0;
+  margin: 0;
+  min-height: 100vh;
+  background-size: cover !important;
 }
 body.dark-mode {
   background-color: transparent !important;

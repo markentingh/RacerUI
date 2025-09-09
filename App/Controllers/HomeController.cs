@@ -17,7 +17,7 @@ namespace RacerUI.Controllers
                     if(username == App.Config.Admin.Username && password == App.Config.Admin.Pass)
                     {
                         HttpContext.Session.SetString("admin", "1");
-                        Response.Redirect("Dashboard");
+                        Response.Redirect("dashboard");
                     }
                 }
             }
