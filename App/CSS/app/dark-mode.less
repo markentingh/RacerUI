@@ -204,3 +204,39 @@ body.dark-mode nav ul.menu{
         }
     }
 }
+
+button, .button {
+    background: @light-button-bg;
+    color: @light-button-color;
+}
+
+button:hover, .button:hover {
+    background: @light-button-hover-bg;
+    color: @light-button-hover-color;
+}
+
+body.dark-mode button, 
+body.dark-mode .button {
+    background: @dark-button-bg;
+    color: @dark-button-color;
+}
+
+body.dark-mode button:hover, 
+body.dark-mode .button:hover {
+    background: @dark-button-hover-bg;
+    color: @dark-button-hover-color;
+}
+
+.progress{
+    border-color:@light-progress-border-color;
+    .bar{
+        background-image:@light-progress-bar-image;
+    }
+}
+
+body.dark-mode .progress{
+    border-color:@dark-progress-border-color;
+    .bar{
+        background-image:@dark-progress-bar-image;
+    }
+}

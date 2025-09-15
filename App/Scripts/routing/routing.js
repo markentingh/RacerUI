@@ -59,7 +59,6 @@ ui.routing.parseParams = (pattern, path) => {
 ui.routing.get = (path) => {
     // Normalize path by removing leading/trailing slashes
     const normalizedPath = path.replace(/^\/+|\/+$/g, '');
-    
     for (const route of ui.routes) {
         const normalizedPattern = route.path.replace(/^\/+|\/+$/g, '');
         const params = ui.routing.parseParams(normalizedPattern, normalizedPath);
@@ -80,8 +79,8 @@ ui.routing.get = (path) => {
 // Execute a route with the given path
 ui.routing.execute = (path) => {
     const result = ui.routing.get(path);
-    
     if (result) {
+        console.log('Executing route: ' + result.route.path);
         result.route.action(result.params);
         return true;
     }
@@ -91,38 +90,26 @@ ui.routing.execute = (path) => {
 
 // Extract path from URL
 ui.routing.getPathFromUrl = () => {
-    // Get the current URL path
     const fullPath = window.location.pathname;
-    
-    // Check if the path starts with /dashboard/
-    if (fullPath.startsWith('/dashboard/')) {
-        // Extract the part after /dashboard/
-        return fullPath.substring('/dashboard/'.length);
-    }
-    
-    // If not in dashboard, return the path as is (without leading slash)
     return fullPath.startsWith('/') ? fullPath.substring(1) : fullPath;
 };
 
-// Initialize routing
-ui.routing.init = () => {
-    // Handle initial route
+ui.routing.executeUrl = () => {
     const initialPath = ui.routing.getPathFromUrl();
     if (initialPath) {
         ui.routing.execute(initialPath);
     }
-    
-    // Listen for popstate events (back/forward browser buttons)
-    window.addEventListener('popstate', (event) => {
-        const path = ui.routing.getPathFromUrl();
-        ui.routing.execute(path);
-    });
-    
-    // Listen for hash changes
-    window.addEventListener('hashchange', () => {
-        const path = ui.routing.getPathFromUrl();
-        ui.routing.execute(path);
-    });
+}
+
+// Initialize routing
+ui.routing.init = () => {
+    // Handle initial route
+    ui.routing.executeUrl();
+
+    // Listen for various navigation events in browser
+    window.addEventListener('popstate', ui.routing.executeUrl);
+    window.addEventListener('locationchange', ui.routing.executeUrl);
+    window.addEventListener('hashchange', ui.routing.executeUrl);
     
     // Create a proxy for history.pushState and history.replaceState
     const originalPushState = history.pushState;
@@ -141,13 +128,7 @@ ui.routing.init = () => {
         // Dispatch a custom event
         window.dispatchEvent(new Event('locationchange'));
     };
-    
-    // Listen for our custom locationchange event
-    window.addEventListener('locationchange', () => {
-        const path = ui.routing.getPathFromUrl();
-        ui.routing.execute(path);
-    });
 };
 
 // Call init when the DOM is loaded
-document.addEventListener('DOMContentLoaded', ui.routing.init);
+//document.addEventListener('DOMContentLoaded', ui.routing.init);

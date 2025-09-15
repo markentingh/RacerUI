@@ -1,0 +1,14 @@
+<div class="check-assets scale-ui">
+    <p>Make sure RacerUI has the latest catalogue of all of your game assets for <span class="game-name">Assetto Corsa</span></p>
+    <button onclick="RacerUI.views.game.checkAssets()">Check Game Assets</button>
+    <div class="checking-assets" style="display: none;">
+        <div class="progress-title"></div>
+        <div class="progress-text"></div>
+        <div class="progress"><div class="bar"></div></div>
+    </div>
+</div>
+<div class="set-game-path scale-ui" style="display: none;">
+    <p>Set the path to your game directory</p>
+    <input type="text" id="gamePath" placeholder="Game Path">
+    <button onclick="RacerUI.views.game.setPath()">Set Path</button>
+</div>

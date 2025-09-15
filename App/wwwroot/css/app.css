@@ -1,6 +1,10 @@
+/* This file is used for the dashboard after the user logs into their account */
+/* inputs */
+/* buttons */
 /* nav menu item */
 /* hovered nav menu item */
 /* selected nav menu item */
+/* progress bar */
 body {
   font-family: "Noto Sans", sans-serif;
   font-optical-sizing: auto;
@@ -21,10 +25,9 @@ body {
   width: 0;
   height: 0;
 }
-* {
-  transition: all 0.25s ease-in-out;
-  box-sizing: border-box;
-}
+/*
+* {transition: all 0.25s ease-in-out; box-sizing: border-box;}
+*/
 .row,
 .col {
   box-sizing: border-box;
@@ -55,37 +58,25 @@ body {
 .col.input.short {
   width: calc(100% - 12.5em);
 }
-input {
-  padding: 0.5em;
-  border-radius: 0.25em;
-  outline: none;
-  border: solid 2px #2facad;
-  width: 100%;
-  box-sizing: border-box;
-}
-button,
-.button {
-  background: #5cd5d6;
-  color: #00586c;
-  border: 0;
-  border-radius: 0.5em;
-  padding: 0.5em 1em;
-  cursor: pointer;
-}
-button:hover,
-.button:hover {
-  background: #13ccd8;
-  color: #00586c;
-}
-.buttons {
-  text-align: right;
-  padding: 1em 0 0 0;
-}
 .logo {
   position: relative;
 }
 .logo svg {
   width: 100%;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+}
+p {
+  font-size: 1.25em;
+  line-height: 1.5;
 }
 .init {
   position: fixed;
@@ -128,6 +119,8 @@ darkmode-toggle.scale-us {
   position: relative;
   overflow: hidden;
   cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  box-sizing: border-box;
   animation: toggle-off 0.3s ease-in;
   font-size: 1em;
 }
@@ -214,13 +207,16 @@ body {
   min-height: 100vh;
   line-height: 0;
 }
+body .game-loaded {
+  display: none !important;
+}
 .dash {
   grid-row: 1;
 }
 .dash nav {
-  width: calc(1920px * var(--scale-factor));
-  max-width: 100vw;
-  max-height: calc(60px * var(--scale-factor));
+  max-width: calc(1920px * var(--scale-factor));
+  width: 100%;
+  height: calc(60px * var(--scale-factor));
   display: block;
   line-height: 1.35;
 }
@@ -330,12 +326,72 @@ body {
     padding: 0.5em 0.15em;
   }
 }
-.content.game {
+.error-page {
   padding: 2em;
+  text-align: center;
+  width: 100%;
 }
+.error-page h1 {
+  font-size: 6em;
+  margin: 1em 0 0.25em 0;
+}
+.error-page p {
+  padding: 2em;
+  max-width: 20em;
+  margin: 0 auto;
+  opacity: 0.6;
+}
+input {
+  padding: 0.5em;
+  border-radius: 0.25em;
+  outline: none;
+  border: solid 2px #2facad;
+  width: 100%;
+  box-sizing: border-box;
+}
+button,
+.button {
+  border: 0;
+  border-radius: 2em;
+  padding: 0.75em 1.25em;
+  cursor: pointer;
+  font-size: 1.25em;
+  transform: skewX(-10deg);
+}
+.buttons {
+  text-align: right;
+  padding: 1em 0 0 0;
+}
+@keyframes moveGradient {
+  0% {
+    background-position: 5000% 50%;
+  }
+  50% {
+    background-position: 0% 50%;
+  }
+}
+.progress {
+  border-width: 2px;
+  border-style: solid;
+  padding: 0.25em;
+  border-radius: 3em;
+  width: 100%;
+  overflow: hidden;
+}
+.progress .bar {
+  height: 2em;
+  border-radius: 2em;
+  background-size: 500% 100%;
+  background-position: top left;
+  animation: moveGradient 1000s linear infinite;
+  position: relative;
+}
+/* inputs */
+/* buttons */
 /* nav menu item */
 /* hovered nav menu item */
 /* selected nav menu item */
+/* progress bar */
 body {
   background-color: #fafafa;
   color: #333;
@@ -507,4 +563,120 @@ body.dark-mode nav ul.menu li.selected {
 body.dark-mode nav ul.menu li.selected svg use {
   color: #000;
 }
-/* This file is used for the dashboard after the user logs into their account */
+button,
+.button {
+  background: #5cd5d6;
+  color: #00586c;
+}
+button:hover,
+.button:hover {
+  background: #13ccd8;
+  color: #00586c;
+}
+body.dark-mode button,
+body.dark-mode .button {
+  background: #5cd5d6;
+  color: #00586c;
+}
+body.dark-mode button:hover,
+body.dark-mode .button:hover {
+  background: #13ccd8;
+  color: #00586c;
+}
+.progress {
+  border-color: #5cd5d6;
+}
+.progress .bar {
+  background-image: linear-gradient(45deg, #5cd5d6 25%, #38a8ff 35%, #5cd5d6 45%, #5cd5d6 65%, #38a8ff 75%, #5cd5d6 85%);
+}
+body.dark-mode .progress {
+  border-color: #38a8ff;
+}
+body.dark-mode .progress .bar {
+  background-image: linear-gradient(65deg, #38a8ff 25%, #5836fa 35%, #38a8ff 45%, #38a8ff 65%, #5836fa 75%, #38a8ff 85%);
+}
+/* views */
+.content.cars .coming-soon {
+  padding: 2em;
+  text-align: center;
+  width: 100%;
+}
+.content.cars .coming-soon p {
+  padding: 2em 0;
+}
+.content.game .check-assets {
+  padding: 2em;
+  text-align: center;
+  width: 100%;
+}
+.content.game .check-assets p {
+  padding: 2em 0;
+}
+.content.game .set-game-path {
+  padding: 2em;
+  text-align: center;
+  width: 100%;
+  max-width: 50em;
+  margin: 0 auto;
+}
+.content.game .set-game-path p {
+  padding: 2em 0 0 0;
+}
+.content.game .set-game-path input {
+  max-width: calc(100% - 12em);
+  margin-right: 1em;
+}
+.content.game .checking-assets {
+  text-align: center;
+  width: 100%;
+  margin: 0 auto;
+}
+.content.game .checking-assets .progress-title {
+  padding: 1em 0 0.5em 0;
+  font-size: 1.2em;
+  line-height: 1;
+}
+.content.game .checking-assets .progress-text {
+  padding: 1em 0 0.5em 0;
+  line-height: 1;
+}
+.content.game .checking-assets .progress {
+  max-width: 30em;
+  margin: 0 auto;
+  margin-top: 1em;
+}
+.content.game .checking-assets .progress .bar {
+  width: 0%;
+}
+.content.history .coming-soon {
+  padding: 2em;
+  text-align: center;
+  width: 100%;
+}
+.content.history .coming-soon p {
+  padding: 2em 0;
+}
+.content.profile .coming-soon {
+  padding: 2em;
+  text-align: center;
+  width: 100%;
+}
+.content.profile .coming-soon p {
+  padding: 2em 0;
+}
+.content.settings .coming-soon {
+  padding: 2em;
+  text-align: center;
+  width: 100%;
+}
+.content.settings .coming-soon p {
+  padding: 2em 0;
+}
+.content.tracks .coming-soon {
+  padding: 2em;
+  text-align: center;
+  width: 100%;
+}
+.content.tracks .coming-soon p {
+  padding: 2em 0;
+}

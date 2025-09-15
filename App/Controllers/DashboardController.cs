@@ -9,15 +9,11 @@ namespace RacerUI.Controllers
         [Route("dashboard/{*path}")]
         public IActionResult Index(string path)
         {
-            if (!CheckSecurity()) { return RedirectToAction("AccessDenied", "Dashboard"); }
+            if (!CheckSecurity()) { return RedirectToAction("access-denied"); }
 
             if (path == "error")
             {
                 return View("Error", new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-            }
-            else if (path == "access-denied")
-            {
-                return View("AccessDenied");
             }
 
             return View(new DashboardViewModel() { 
@@ -25,7 +21,7 @@ namespace RacerUI.Controllers
             });
         }
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        [Route("access-denied")]
         public IActionResult AccessDenied()
         {
             return View();

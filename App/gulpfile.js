@@ -21,7 +21,11 @@ paths.working = {
         app: paths.scripts + 'app.js',
         app_files: [
             paths.scripts + 'app/*.js',
-            paths.scripts + 'components/ui/*.js',
+            paths.scripts + 'signalr/*.js',
+            paths.scripts + 'components/**/*.js',
+            paths.scripts + 'views/*.js',
+            paths.scripts + 'routing/route*.js',
+            paths.scripts + 'routing/routing.js',
             paths.scripts + 'utils/*.js',
             paths.scripts + 'init.js',
         ],
@@ -39,6 +43,7 @@ paths.working = {
         app_files: [
             paths.css + 'app/*.less',
             paths.css + 'app/**/*.less',
+            paths.css + 'views/*.less',
             paths.css + 'colors/*.less',
         ],
         login: paths.css + 'login.less',

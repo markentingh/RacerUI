@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using RacerUI.Models;
+using System.Text.Json;
 
 namespace RacerUI
 {
@@ -17,6 +18,11 @@ namespace RacerUI
         public static List<string> Addresses { get; set; } = new List<string>();
         public static Environment Environment { get; set; } = Environment.development;
         public static bool IsDocker { get; set; }
+        public static List<Models.GameInfo> Games { get; set; } = new List<Models.GameInfo>()
+        {
+            new Models.GameInfo("assetto corsa", "Assetto Corsa", "", "assettocorsa")
+        };
+
         private static string _rootPath { get; set; } = "";
 
         public static string RootPath
@@ -48,6 +54,11 @@ namespace RacerUI
         public static void SaveConfig()
         {
             File.WriteAllText(MapPath("/" + ConfigFilename), JsonSerializer.Serialize(Config));
+        }
+
+        public static GameInfo Game(string name)
+        {
+            return Games.Find(x => x.Name == name);
         }
     }
 }

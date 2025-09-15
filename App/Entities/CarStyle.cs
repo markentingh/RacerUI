@@ -1,0 +1,15 @@
+using System;
+using System.Collections.Generic;
+
+namespace RacerUI.Entities
+{
+    public class CarStyle
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        
+        // Navigation properties
+        public List<Car> Cars { get; set; } = new List<Car>();
+        public List<CarStyling> CarStylings { get; set; } = new List<CarStyling>();
+    }
+}

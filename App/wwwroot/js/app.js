@@ -100,53 +100,64 @@ ui.darkmode.toggle = (on) => {
         ui.darkmode.enabled = true;
     }
 };
+ui.game = {
+    name: 'assetto corsa',
+    path: null,
+    id: null
+};
 
-let dashHub = null;
-ui.hub = {};
-
-ui.hub.load = () => {
-    var consl = document.querySelector('.console');
-    if (consl.className.indexOf('show') >= 0) {
-        //hide console
-        consl.classList.remove('show');
-        consl.classList.add('hide');
-        //dashHub.stop();
-    } else {
-        //show console and load SignalR hub
-        consl.classList.remove('hide');
-        consl.classList.add('show');
-        if (dashHub == null) {
-            dashHub = new signalR.HubConnectionBuilder().withUrl('/dashboardhub').build();
-            dashHub.on('update', ui.hub.log);
-            dashHub.start().catch(ui.hub.error);
-            setTimeout(() => { dashHub.invoke('handshake'); }, 500);
-        }
+ui.games = [
+    {
+        name: 'assetto corsa',
+        class: 'game-assetto-corsa',
+        icon: 'icon-assetto-corsa'
     }
-};
+]
 
-ui.hub.error = (e) => {
-    console.log(e);
-};
-
-ui.hub.log = (msg) => {
-    var div = document.createElement("div");
-    div.innerHTML = msg;
-    document.querySelectorAll('.console .scrollable')[0].appendChild(div);
-}
-ui.game = {};
-
-// Load default game view
 ui.game.load = () => {
-    ui.view.load(`Game/index`, (response) => {
-        ui.nav.select('game');
-        ui.view.inject(response.responseText, 'game');
+    console.log('Loading initial game information...');
+    ui.game.get().then((game) => {
+        if(game?.id && game?.title){
+            console.log('Game selected: ' + game.title);
+            var gameInfo = ui.games.find(g => g.name == game.name);
+            ui.nav.gameName(game.title);
+            document.querySelectorAll('.game-loaded').forEach(el => { 
+                el.classList.remove('game-loaded'); 
+            });
+            document.body.classList.add('game-loaded');
+            document.body.classList.add(gameInfo.class);
+        }
     });
 };
 
-// Check game assets (referenced in the HTML component)
-ui.game.checkAssets = () => {
-    console.log('Checking game assets...');
-    
+ui.game.get = async () => {
+    var game = localStorage.getItem('RacerUI:game');
+    if(ui.game.id == null && game){
+        ui.game = {...ui.game, ...JSON.parse(game)};
+    }else{
+        ui.game = {
+            ...ui.game, 
+            ...(await dashHub.invoke('GetGameDetails', 'assetto corsa'))
+        };
+    }
+    return new Promise((resolve) => { resolve(ui.game); });
+};
+
+ui.game.set = (game) => {
+    ui.game = {...ui.game, ...game};
+    localStorage.setItem('RacerUI:game', JSON.stringify({
+        name: ui.game.name,
+        path: ui.game.path,
+        id: ui.game.id,
+        title: ui.game.title
+    }));
+};
+
+ui.game.setPath = async (path) => {
+    var game = await dashHub.invoke('SetGamePath', path, ui.game?.name);
+    if(game){
+        ui.game.set(game);
+    }
 };
 
 ui.nav = {};
@@ -172,11 +183,9 @@ ui.nav.gameName = (name) => {
     document.getElementById('gameName').textContent = name;
 }
 
-ui.nav.gameName('Assetto Corsa');
-
 ui.notFound = () => {
-    ui.view.load(`Errors/404`, (response) => {
-        document.querySelector('.content').innerHTML = response;
+    ui.view.loadComponent(`errors/404`, (response) => {
+        document.querySelector('.content').innerHTML = response.responseText;
         console.warn('Route not found - 404 page displayed');
     });
 };
@@ -184,17 +193,229 @@ ui.notFound = () => {
 ui.profile = {};
 
 // Load profile view with optional username
-ui.profile.load = (username) => {
-    ui.view.load(`Profile/index`, (response) => {
+ui.profile.load = () => {
+    ui.view.loadComponent(`pages/profile`, (response) => {
         document.querySelector('.content').innerHTML = response;
 
     });
 };
+ui.toggle = {};
+ui.toggle.flip = (elem, callback) => {
+    if (elem.classList.contains('on')) {
+        elem.classList.remove('on');
+        if (callback) callback(false);
+    } else {
+        elem.classList.add('on');
+        if (callback) callback(true);
+    }
+}; 
+ui.view = {};
+ui.views = {}; //contains all loaded views
+
+ui.view.loadComponent = (path, callback) => {
+    ui.ajax({
+        url: `/views/${path}`,
+        complete: (response) => {
+            if (callback) callback(response);
+        }
+    });
+}
+
+ui.view.inject = (html, name) => {
+    const content = document.querySelector(`div.content`);
+    content.innerHTML = html;
+    content.className = 'content ' + name;
+}
+
+
+let dashHub = null; //SignalR hub instance
+ui.hub = {};
+
+ui.hub.load = () => {
+    if (dashHub == null) {
+        dashHub = new signalR.HubConnectionBuilder().withUrl('/dashboardhub', { skipNegotiation: true, transport: signalR.HttpTransportType.WebSockets }).build();
+        
+        //event listeners
+        dashHub.on('update', ui.hub.log);
+        dashHub.on('handshake', ui.hub.handshake);
+        dashHub.on('gameDetails', ui.hub.gameDetails);
+
+        dashHub.start().catch(ui.hub.error);
+        setTimeout(() => { 
+            dashHub.invoke('Handshake'); 
+            ui.hub.keepAliveAgain();
+        }, 500);
+    }
+};
+
+ui.hub.error = (e) => {
+    console.log(e);
+};
+
+ui.hub.log = (msg) => {
+    console.log(msg);
+};
+
+ui.hub.keepAlive = () => {
+    dashHub.invoke('KeepAlive');
+    ui.hub.keepAliveAgain();
+}
+
+ui.hub.keepAliveAgain = () => {
+    setTimeout(() => { ui.hub.keepAlive(); }, 1000 * 10);
+}
+
+ui.hub.handshake = () => {
+    //load current game
+    ui.game.load();
+    //finally, initialize routing
+    ui.routing.init();
+}
+
+ui.hub.gameDetails = (game) => {
+    if(game){
+        ui.game.set(JSON.parse(game));
+    }
+};
+ui.views.cars = {};
+
+// Load default game view
+ui.views.cars.load = () => {
+    ui.view.loadComponent(`pages/cars`, (response) => {
+        ui.nav.select('cars');
+        ui.view.inject(response.responseText, 'cars');
+    });
+};
+
+ui.views.game = {
+    isCheckingAssets:false,
+    checkingProgress:0
+};
+
+// Load default game view
+ui.views.game.load = () => {
+    ui.view.loadComponent(`pages/game`, (response) => {
+        ui.nav.select('game');
+        ui.view.inject(response.responseText, 'game');
+        ui.views.game.checkingAssetsShowUI();
+        if (ui.game.path == null) {
+            ui.game.get().then((game) => {
+                if (game == null || game.id == null || game.id == 0) {
+                    document.querySelector('.set-game-path').style.display = 'block';
+                    document.querySelector('.check-assets').style.display = 'none';
+                    document.querySelector('.set-game-path input').value = game.path;
+                } else {
+                    document.querySelector('.set-game-path').style.display = 'none';
+                    document.querySelector('.check-assets').style.display = 'block';
+                }
+            });
+        }
+    });
+};
+
+// Check game assets (referenced in the HTML component)
+ui.views.game.checkAssets = () => {
+    console.log('Checking game assets...');
+    ui.views.game.isCheckingAssets = true;
+    ui.views.game.checkingProgress = 0;
+    ui.views.game.checkingAssetsShowUI();
+    dashHub.on('progress', ui.views.game.updateProgress);
+    dashHub.on('progress-title', ui.views.game.updateProgressTitle);
+    dashHub.on('progress-text', ui.views.game.updateProgressText);
+    dashHub.invoke('CheckGameAssets', ui.game.name).then(() => {
+        ui.views.game.isCheckingAssets = false;
+        ui.views.game.checkingAssetsShowUI();
+        dashHub.off('progress', ui.views.game.updateProgress);
+        dashHub.off('progress-title', ui.views.game.updateProgressTitle);
+        dashHub.off('progress-text', ui.views.game.updateProgressText);
+    });
+};
+
+ui.views.game.updateProgressTitle = (title) => {
+    document.querySelector('.checking-assets .progress-title').textContent = title;
+}
+
+ui.views.game.updateProgressText = (text) => {
+    document.querySelector('.checking-assets .progress-text').textContent = text;
+}
+
+ui.views.game.updateProgress = (progress) => {
+    var el = document.querySelector('.checking-assets .progress .bar');
+    if(el != null) el.style.width = progress + '%';
+    ui.views.game.checkingProgress = progress;
+}
+
+ui.views.game.checkingAssetsShowUI = () => {
+    console.log('Checking game assets show UI...', ui.views.game.isCheckingAssets, document.querySelector('.check-assets'));
+    if(ui.views.game.isCheckingAssets && document.querySelector('.check-assets')){
+        document.querySelector('.check-assets > button').style.display = 'none';
+        document.querySelector('.checking-assets').style.display = 'block';
+        document.querySelector('.checking-assets .bar').style.width = ui.views.game.checkingProgress + '%';
+    }else if(!ui.views.game.isCheckingAssets && document.querySelector('.checking-assets')){
+        document.querySelector('.check-assets > button').style.display = '';
+        document.querySelector('.checking-assets').style.display = 'none';
+    }
+};
+
+ui.views.game.setPath = () => {
+    var path = document.querySelector('#gamePath').value;
+    RacerUI.game.setPath(path).then((game) => {
+        if(game){
+            document.querySelector('.set-game-path').style.display = 'none';
+            document.querySelector('.check-assets').style.display = 'block';
+        }
+    });
+};
+
+ui.views.history = {};
+
+// Load default game view
+ui.views.history.load = () => {
+    ui.view.loadComponent(`pages/history`, (response) => {
+        ui.nav.select('history');
+        ui.view.inject(response.responseText, 'history');
+    });
+};
+
+ui.views.profile = {};
+
+// Load default game view
+ui.views.profile.load = () => {
+    ui.view.loadComponent(`pages/profile`, (response) => {
+        ui.nav.select('profile');
+        ui.view.inject(response.responseText, 'tracks');
+    });
+};
+
+ui.views.settings = {};
+
+// Load default game view
+ui.views.settings.load = () => {
+    ui.view.loadComponent(`pages/settings`, (response) => {
+        ui.nav.select('settings');
+        ui.view.inject(response.responseText, 'settings');
+    });
+};
+
+ui.views.tracks = {};
+
+// Load default game view
+ui.views.tracks.load = () => {
+    ui.view.loadComponent(`pages/tracks`, (response) => {
+        ui.nav.select('tracks');
+        ui.view.inject(response.responseText, 'tracks');
+    });
+};
+
 ui.routes = [
-    { path: 'dashboard', action: ui.game.load },
-    { path: 'dashboard/game', action: ui.game.load },
-    { path: 'dashboard/game/:id', action: ui.game.load },
-    { path: 'dashboard/profile', action: ui.profile.load },
+    { path: 'dashboard', action: ui.views.game.load },
+    { path: 'dashboard/game', action: ui.views.game.load },
+    { path: 'dashboard/game/:id', action: ui.views.game.load },
+    { path: 'dashboard/cars', action: ui.views.cars.load },
+    { path: 'dashboard/tracks', action: ui.views.tracks.load },
+    { path: 'dashboard/history', action: ui.views.history.load },
+    { path: 'dashboard/settings', action: ui.views.settings.load },
+    { path: 'dashboard/profile', action: ui.views.profile.load },
     { path: 'dashboard/*', action: () => ui.notFound() } // Wildcard route for 404
 ];
 
@@ -259,7 +480,6 @@ ui.routing.parseParams = (pattern, path) => {
 ui.routing.get = (path) => {
     // Normalize path by removing leading/trailing slashes
     const normalizedPath = path.replace(/^\/+|\/+$/g, '');
-    
     for (const route of ui.routes) {
         const normalizedPattern = route.path.replace(/^\/+|\/+$/g, '');
         const params = ui.routing.parseParams(normalizedPattern, normalizedPath);
@@ -280,8 +500,8 @@ ui.routing.get = (path) => {
 // Execute a route with the given path
 ui.routing.execute = (path) => {
     const result = ui.routing.get(path);
-    
     if (result) {
+        console.log('Executing route: ' + result.route.path);
         result.route.action(result.params);
         return true;
     }
@@ -291,38 +511,26 @@ ui.routing.execute = (path) => {
 
 // Extract path from URL
 ui.routing.getPathFromUrl = () => {
-    // Get the current URL path
     const fullPath = window.location.pathname;
-    
-    // Check if the path starts with /dashboard/
-    if (fullPath.startsWith('/dashboard/')) {
-        // Extract the part after /dashboard/
-        return fullPath.substring('/dashboard/'.length);
-    }
-    
-    // If not in dashboard, return the path as is (without leading slash)
     return fullPath.startsWith('/') ? fullPath.substring(1) : fullPath;
 };
 
-// Initialize routing
-ui.routing.init = () => {
-    // Handle initial route
+ui.routing.executeUrl = () => {
     const initialPath = ui.routing.getPathFromUrl();
     if (initialPath) {
         ui.routing.execute(initialPath);
     }
-    
-    // Listen for popstate events (back/forward browser buttons)
-    window.addEventListener('popstate', (event) => {
-        const path = ui.routing.getPathFromUrl();
-        ui.routing.execute(path);
-    });
-    
-    // Listen for hash changes
-    window.addEventListener('hashchange', () => {
-        const path = ui.routing.getPathFromUrl();
-        ui.routing.execute(path);
-    });
+}
+
+// Initialize routing
+ui.routing.init = () => {
+    // Handle initial route
+    ui.routing.executeUrl();
+
+    // Listen for various navigation events in browser
+    window.addEventListener('popstate', ui.routing.executeUrl);
+    window.addEventListener('locationchange', ui.routing.executeUrl);
+    window.addEventListener('hashchange', ui.routing.executeUrl);
     
     // Create a proxy for history.pushState and history.replaceState
     const originalPushState = history.pushState;
@@ -341,63 +549,10 @@ ui.routing.init = () => {
         // Dispatch a custom event
         window.dispatchEvent(new Event('locationchange'));
     };
-    
-    // Listen for our custom locationchange event
-    window.addEventListener('locationchange', () => {
-        const path = ui.routing.getPathFromUrl();
-        ui.routing.execute(path);
-    });
 };
 
 // Call init when the DOM is loaded
-document.addEventListener('DOMContentLoaded', ui.routing.init);
-ui.toggle = {};
-ui.toggle.flip = (elem, callback) => {
-    if (elem.classList.contains('on')) {
-        elem.classList.remove('on');
-        if (callback) callback(false);
-    } else {
-        elem.classList.add('on');
-        if (callback) callback(true);
-    }
-}; 
-ui.view = {};
-ui.view.load = (path, callback) => {
-    ui.ajax({
-        url: `/views/${path}`,
-        complete: (response) => {
-            if (callback) callback(response);
-        }
-    });
-}
-
-ui.view.inject = (html, name) => {
-    const content = document.querySelector(`div.content`);
-    content.innerHTML = html;
-    content.className = 'content ' + name;
-}
-
-class DarkModeToggle extends HTMLElement {
-    constructor() {
-        super();
-    }
-
-    connectedCallback() {
-        this.innerHTML = `
-          <div class="toggle-dark-mode">
-            <span>Dark Mode</span>
-            <div class="toggle for-darkmode">
-                <div class="switch">
-                    <span class="light material-symbols-outlined">light_mode</span>
-                    <span class="dark material-symbols-outlined">dark_mode</span>
-                </div>
-            </div>
-        </div>
-        `;
-    }
-}
-
-customElements.define('darkmode-toggle', DarkModeToggle);
+//document.addEventListener('DOMContentLoaded', ui.routing.init);
 ui.utils.addStyleSheet = (id, url) => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -420,7 +575,27 @@ ui.utils.injectJs = (id, sourcecode) => {
     document.querySelector('body').appendChild(js);
 };
 //initialize the app after all scripts are defined
-console.log('initializing app');
+console.log('initializing RacerUI web app...');
+
+document.addEventListener('DOMContentLoaded', function() {
+    //load dark mode setting from local storage
+    ui.darkmode.load();
+    ui.utils.scaleUI();
+
+    //set up dark mode toggle
+    const toggle = document.querySelector('.toggle.for-darkmode');
+    if (toggle) {
+        toggle.addEventListener('click', () => ui.toggle.flip(toggle, (on) => {
+            ui.darkmode.toggle(on);
+        }));
+    }
+
+    setTimeout(() => {
+        const init = document.querySelector('.init');
+        init.classList.add('fade');
+        setTimeout(() => init.remove(), 1000);
+    }, 500);
+});
 
 //load SVG files for logo & icons
 var svg = document.createElement('div');
@@ -439,15 +614,6 @@ ui.ajax({
     }
 });
 
-//load dark mode setting from local storage
-ui.darkmode.load();
-
-const toggle = document.querySelector('.toggle.for-darkmode');
-if (toggle) {
-    toggle.addEventListener('click', () => ui.toggle.flip(toggle, (on) => {
-        ui.darkmode.toggle(on);
-    }));
-}
 
 //window resize to scale UI
 ui.utils.scaleUI = () => {
@@ -471,16 +637,29 @@ ui.utils.scaleUI = () => {
 window.addEventListener('resize', () => {
     ui.utils.scaleUI();
 });
+class DarkModeToggle extends HTMLElement {
+    constructor() {
+        super();
+    }
 
-ui.utils.scaleUI();
+    connectedCallback() {
+        this.innerHTML = `
+          <div class="toggle-dark-mode">
+            <span>Dark Mode</span>
+            <div class="toggle for-darkmode">
+                <div class="switch">
+                    <span class="light material-symbols-outlined">light_mode</span>
+                    <span class="dark material-symbols-outlined">dark_mode</span>
+                </div>
+            </div>
+        </div>
+        `;
+    }
+}
 
-setTimeout(() => {
-    const init = document.querySelector('.init');
-    init.classList.add('fade');
-    setTimeout(() => init.remove(), 1000);
-}, 500);
+customElements.define('darkmode-toggle', DarkModeToggle);
     /* DO NOT REMOVE THE CODE ABOVE */
 
     window.RacerUI = ui;
-
+    ui.hub.load();
 })();

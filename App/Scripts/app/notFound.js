@@ -1,6 +1,6 @@
 ui.notFound = () => {
-    ui.view.load(`Errors/404`, (response) => {
-        document.querySelector('.content').innerHTML = response;
+    ui.view.loadComponent(`errors/404`, (response) => {
+        document.querySelector('.content').innerHTML = response.responseText;
         console.warn('Route not found - 404 page displayed');
     });
 };

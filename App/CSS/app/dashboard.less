@@ -5,12 +5,16 @@ body{
     line-height:0;
 }
 
+body .game-loaded{
+    display:none !important;
+}
+
 .dash {
     grid-row: 1;
     nav {
-        width: calc(1920px * var(--scale-factor));
-        max-width: 100vw;
-        max-height: calc(60px * var(--scale-factor));
+        max-width: calc(1920px * var(--scale-factor));
+        width:100%;
+        height: calc(60px * var(--scale-factor));
         display: block;
         line-height:1.35;
 

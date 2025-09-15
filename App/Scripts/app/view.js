@@ -1,5 +1,7 @@
 ui.view = {};
-ui.view.load = (path, callback) => {
+ui.views = {}; //contains all loaded views
+
+ui.view.loadComponent = (path, callback) => {
     ui.ajax({
         url: `/views/${path}`,
         complete: (response) => {

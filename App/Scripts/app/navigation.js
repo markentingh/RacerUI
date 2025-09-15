@@ -20,5 +20,3 @@ ui.nav.navigate = (path) => {
 ui.nav.gameName = (name) => {
     document.getElementById('gameName').textContent = name;
 }
-
-ui.nav.gameName('Assetto Corsa');

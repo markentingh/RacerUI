@@ -18,10 +18,9 @@ body {
   width: 0;
   height: 0;
 }
-* {
-  transition: all 0.25s ease-in-out;
-  box-sizing: border-box;
-}
+/*
+* {transition: all 0.25s ease-in-out; box-sizing: border-box;}
+*/
 .row,
 .col {
   box-sizing: border-box;
@@ -52,37 +51,25 @@ body {
 .col.input.short {
   width: calc(100% - 12.5em);
 }
-input {
-  padding: 0.5em;
-  border-radius: 0.25em;
-  outline: none;
-  border: solid 2px #2facad;
-  width: 100%;
-  box-sizing: border-box;
-}
-button,
-.button {
-  background: #5cd5d6;
-  color: #00586c;
-  border: 0;
-  border-radius: 0.5em;
-  padding: 0.5em 1em;
-  cursor: pointer;
-}
-button:hover,
-.button:hover {
-  background: #13ccd8;
-  color: #00586c;
-}
-.buttons {
-  text-align: right;
-  padding: 1em 0 0 0;
-}
 .logo {
   position: relative;
 }
 .logo svg {
   width: 100%;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+}
+p {
+  font-size: 1.25em;
+  line-height: 1.5;
 }
 .init {
   position: fixed;
@@ -125,6 +112,8 @@ darkmode-toggle.scale-us {
   position: relative;
   overflow: hidden;
   cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  box-sizing: border-box;
   animation: toggle-off 0.3s ease-in;
   font-size: 1em;
 }
@@ -376,12 +365,50 @@ body.dark-mode nav ul.menu li.selected {
 body.dark-mode nav ul.menu li.selected svg use {
   color: #000;
 }
+button,
+.button {
+  background: #5cd5d6;
+  color: #00586c;
+}
+button:hover,
+.button:hover {
+  background: #13ccd8;
+  color: #00586c;
+}
+body.dark-mode button,
+body.dark-mode .button {
+  background: #5cd5d6;
+  color: #00586c;
+}
+body.dark-mode button:hover,
+body.dark-mode .button:hover {
+  background: #13ccd8;
+  color: #00586c;
+}
+.progress {
+  border-color: #14a193;
+}
+.progress .bar {
+  background-image: linear-gradient(45deg, #14a193 25%, #38a8ff 35%, #14a193 45%, #14a193 65%, #38a8ff 75%, #14a193 85%);
+}
+body.dark-mode .progress {
+  border-color: #38a8ff;
+}
+body.dark-mode .progress .bar {
+  background-image: linear-gradient(45deg, #38a8ff 25%, #5836fa 35%, #38a8ff 45%, #38a8ff 65%, #5836fa 75%, #38a8ff 85%);
+}
+/* inputs */
+/* buttons */
 /* nav menu item */
 /* hovered nav menu item */
 /* selected nav menu item */
+/* progress bar */
+/* inputs */
+/* buttons */
 /* nav menu item */
 /* hovered nav menu item */
 /* selected nav menu item */
+/* progress bar */
 body {
   background-color: transparent !important;
   transform-origin: top left;

@@ -1,0 +1,23 @@
+
+
+@keyframes moveGradient {
+    0% { background-position: 5000% 50%; }
+    50% { background-position: 0% 50%; }
+}
+
+.progress{
+    border-width:2px;
+    border-style:solid;
+    padding:0.25em;
+    border-radius:3em;
+    width:100%;
+    overflow: hidden;
+    .bar{
+        height:2em;
+        border-radius:2em;
+        background-size: 500% 100%;
+        background-position: top left;
+        animation: moveGradient 1000s linear infinite;
+        position: relative;
+    }
+}

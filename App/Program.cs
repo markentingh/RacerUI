@@ -13,6 +13,20 @@ builder.Services.AddSession(options =>
     options.Cookie.Name = ".RacerUI";
     options.Cookie.IsEssential = true;
 });
+
+// Add CORS policy
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy", builder =>
+    {
+        builder
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials()
+            .SetIsOriginAllowed(_ => true);
+    });
+});
+
 builder.Services.AddSignalR();
 builder.Services.AddMvc().AddRazorRuntimeCompilation();
 
@@ -41,6 +55,7 @@ var options = new StaticFileOptions
 app.UseStaticFiles(options);
 
 app.UseRouting();
+app.UseCors("CorsPolicy");
 app.UseAuthorization();
 
 
