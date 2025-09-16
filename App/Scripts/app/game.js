@@ -31,8 +31,17 @@ ui.game.load = () => {
 ui.game.get = async () => {
     var game = localStorage.getItem('RacerUI:game');
     if(ui.game.id == null && game){
-        ui.game = {...ui.game, ...JSON.parse(game)};
-    }else{
+        game = JSON.parse(game);
+        var loadedGame = await dashHub.invoke('GetGameDetails', game.name);
+        if(loadedGame){
+            ui.game = {
+                ...ui.game, 
+                ...loadedGame
+            };
+        }
+    }
+    if(ui.game.id == null){
+        //if all else fails, try to load assetto corsa
         ui.game = {
             ...ui.game, 
             ...(await dashHub.invoke('GetGameDetails', 'assetto corsa'))
@@ -56,4 +65,5 @@ ui.game.setPath = async (path) => {
     if(game){
         ui.game.set(game);
     }
+    return new Promise((resolve) => { resolve(game); });
 };

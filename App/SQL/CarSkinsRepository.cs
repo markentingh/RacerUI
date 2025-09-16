@@ -54,21 +54,6 @@ namespace RacerUI.SQL
         }
 
         /// <summary>
-        /// Gets all car skins for a specific driver
-        /// </summary>
-        /// <param name="driverId">The ID of the driver</param>
-        /// <returns>A list of car skins for the specified driver</returns>
-        public static IEnumerable<CarSkin> GetByDriverId(int driverId)
-        {
-            const string sql = "SELECT * FROM Cars_Skins WHERE DriverId = @DriverId";
-
-            using (var connection = Connection.GetConnection())
-            {
-                return connection.Query<CarSkin>(sql, new { DriverId = driverId });
-            }
-        }
-
-        /// <summary>
         /// Adds a new car skin
         /// </summary>
         /// <param name="carSkin">The car skin entity to add</param>
@@ -76,8 +61,8 @@ namespace RacerUI.SQL
         public static int Add(CarSkin carSkin)
         {
             const string sql = @"
-                INSERT INTO Cars_Skins (Name, Path, DriverId, Number, CarId)
-                VALUES (@Name, @Path, @DriverId, @Number, @CarId);
+                INSERT INTO Cars_Skins (Name, Path, Number, CarId)
+                VALUES (@Name, @Path, @Number, @CarId);
                 SELECT last_insert_rowid();";
 
             using (var connection = Connection.GetConnection())
@@ -97,7 +82,6 @@ namespace RacerUI.SQL
                 UPDATE Cars_Skins SET 
                     Name = @Name,
                     Path = @Path,
-                    DriverId = @DriverId,
                     Number = @Number,
                     CarId = @CarId
                 WHERE Id = @Id";

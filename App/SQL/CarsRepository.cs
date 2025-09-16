@@ -30,17 +30,27 @@ namespace RacerUI.SQL
                 );
                 SELECT last_insert_rowid();";
 
-            int id;
+            int carId;
             using (var connection = Connection.GetConnection())
             {
-                id = connection.ExecuteScalar<int>(sql, car);
+                carId = connection.ExecuteScalar<int>(sql, car);
             }
 
             // Add skins if they exist
             if(car.Skins != null && car.Skins.Count > 0){
                 foreach(var skin in car.Skins){
-                    skin.CarId = id;
-                    CarSkinsRepository.Add(skin);
+                    skin.CarId = carId;
+                    var skinId = CarSkinsRepository.Add(skin);
+                    if(skin.Drivers != null && skin.Drivers.Count > 0){
+                        CarDriversRepository.DeleteBySkinId(skinId); //reset list of drivers for skin
+                        foreach(var driver in skin.Drivers){
+                            CarDriversRepository.Add(new CarDriver(){
+                                CarId = carId,
+                                DriverId = driver.Id,
+                                SkinId = skinId
+                            });
+                        }
+                    }
                 }
             }
 
@@ -48,7 +58,7 @@ namespace RacerUI.SQL
             if(car.Stylings != null && car.Stylings.Count > 0){
                 foreach(var styling in car.Stylings)
                 {
-                    styling.CarId = id;
+                    styling.CarId = carId;
                     CarStylingRepository.Add(styling);
                 }
             }
@@ -57,7 +67,7 @@ namespace RacerUI.SQL
             if(car.Tags != null && car.Tags.Count > 0){
                 foreach(var tag in car.Tags)
                 {
-                    tag.CarId = id;
+                    tag.CarId = carId;
                     CarTagsRepository.Add(tag);
                 }
             }
@@ -66,7 +76,7 @@ namespace RacerUI.SQL
             if(car.Types != null && car.Types.Count > 0){
                 foreach(var type in car.Types)
                 {
-                    type.CarId = id;
+                    type.CarId = carId;
                     CarTypesRepository.Add(type);
                 }
             }
@@ -78,7 +88,7 @@ namespace RacerUI.SQL
                 }
             }
 
-            return id;
+            return carId;
         }
 
         /// <summary>
@@ -279,6 +289,12 @@ namespace RacerUI.SQL
                 FROM Cars_Skins s
                 WHERE s.CarId = @Id;
 
+                -- Get all drivers associated with each skin through the Cars_Drivers table
+                SELECT d.*, cd.SkinId
+                FROM Drivers d
+                JOIN Cars_Drivers cd ON d.Id = cd.DriverId
+                WHERE cd.CarId = @Id;
+
                 SELECT rs.*, cs.SpecializationId
                 FROM RacingSpecializations rs
                 JOIN Cars_Specializations cs ON rs.Id = cs.SpecializationId
@@ -308,6 +324,34 @@ namespace RacerUI.SQL
                     if (car != null)
                     {
                         car.Skins = multi.Read<CarSkin>().ToList();
+                        
+                        // Read drivers with their associated skin IDs
+                        var driversWithSkinIds = multi.Read<dynamic>().ToList();
+                        
+                        // Initialize Drivers list for each skin
+                        foreach (var skin in car.Skins)
+                        {
+                            skin.Drivers = new List<Driver>();
+                        }
+                        
+                        // Assign drivers to their respective skins
+                        foreach (var item in driversWithSkinIds)
+                        {
+                            var skinId = (int)item.SkinId;
+                            var driver = new Driver
+                            {
+                                Id = item.Id,
+                                Name = item.Name,
+                                // Add other driver properties as needed
+                            };
+                            
+                            var skin = car.Skins.FirstOrDefault(s => s.Id == skinId);
+                            if (skin != null)
+                            {
+                                skin.Drivers.Add(driver);
+                            }
+                        }
+                        
                         car.Specializations = multi.Read<CarSpecialization>().ToList();
                         car.Stylings = multi.Read<CarStyling>().ToList();
                         car.Tags = multi.Read<CarTag>().ToList();

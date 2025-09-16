@@ -10,10 +10,9 @@ namespace RacerUI.Entities
         public string Name { get; set; }
         public string Path { get; set; }
         public string Number { get; set; }
-        public int? DriverId { get; set; }
         
         // Navigation properties
-        public Driver Driver { get; set; }
+        public List<Driver> Drivers { get; set; }
         public Car Car { get; set; }
     }
 }

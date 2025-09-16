@@ -9,18 +9,16 @@ ui.views.game.load = () => {
         ui.nav.select('game');
         ui.view.inject(response.responseText, 'game');
         ui.views.game.checkingAssetsShowUI();
-        if (ui.game.path == null) {
-            ui.game.get().then((game) => {
-                if (game == null || game.id == null || game.id == 0) {
-                    document.querySelector('.set-game-path').style.display = 'block';
-                    document.querySelector('.check-assets').style.display = 'none';
-                    document.querySelector('.set-game-path input').value = game.path;
-                } else {
-                    document.querySelector('.set-game-path').style.display = 'none';
-                    document.querySelector('.check-assets').style.display = 'block';
-                }
-            });
-        }
+        ui.game.get().then((game) => {
+            if (game == null || game.id == null || game.id == 0) {
+                document.querySelector('.set-game-path').style.display = 'block';
+                document.querySelector('.check-assets').style.display = 'none';
+                document.querySelector('.set-game-path input').value = game.path;
+            } else {
+                document.querySelector('.set-game-path').style.display = 'none';
+                document.querySelector('.check-assets').style.display = 'block';
+            }
+        });
     });
 };
 
@@ -34,6 +32,7 @@ ui.views.game.checkAssets = () => {
     dashHub.on('progress-title', ui.views.game.updateProgressTitle);
     dashHub.on('progress-text', ui.views.game.updateProgressText);
     dashHub.invoke('CheckGameAssets', ui.game.name).then(() => {
+        //finished checking assets
         ui.views.game.isCheckingAssets = false;
         ui.views.game.checkingAssetsShowUI();
         dashHub.off('progress', ui.views.game.updateProgress);
@@ -57,7 +56,6 @@ ui.views.game.updateProgress = (progress) => {
 }
 
 ui.views.game.checkingAssetsShowUI = () => {
-    console.log('Checking game assets show UI...', ui.views.game.isCheckingAssets, document.querySelector('.check-assets'));
     if(ui.views.game.isCheckingAssets && document.querySelector('.check-assets')){
         document.querySelector('.check-assets > button').style.display = 'none';
         document.querySelector('.checking-assets').style.display = 'block';
