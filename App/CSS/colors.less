@@ -1,0 +1,168 @@
+.colors() {
+    & {
+        background-color: @bg;
+        color: @color;
+    }
+
+    input {
+        background-color: @input-bg;
+        color: @input-color;
+        border-color: @input-border;
+    }
+
+    input:focus {
+        background-color: @input-focus-bg;
+        color: @input-focus-color;
+        border-color: @input-focus-border;
+    }
+
+    .row.hover:hover {
+        background-color: @row-hover;
+    }
+
+    a:link {
+        color: @link-color;
+    }
+
+    a:hover {
+        color: @link-hover-color;
+    }
+
+    a:active {
+        color: @link-active-color;
+    }
+
+    a:visited {
+        color: @link-visited-color;
+    }
+
+    /* menu system */
+
+    nav ul.menu {
+        color: @nav-color;
+
+        a {
+            color: @nav-color;
+        }
+
+        svg use {
+            color: @nav-icon-color;
+        }
+
+        li {
+            background: @nav-bg;
+        }
+
+        li:hover {
+            color: @nav-color-hover;
+            background: @nav-bg-hover;
+
+            svg use {
+                color: @nav-icon-color-hover;
+            }
+        }
+
+        li.selected {
+            color: @nav-color-selected;
+            background: @nav-bg-selected;
+
+            svg use {
+                color: @nav-icon-color-selected;
+            }
+        }
+    }
+
+    /* submenu system */
+
+    .sub-menu {
+        background: @submenu-bg;
+
+        input[type="text"] {
+            background-color: @submenu-input-bg;
+            color: @submenu-input-color;
+            border-color: @submenu-input-border-color;
+        }
+
+        input[type="text"]:focus {
+            background-color: @submenu-input-focus-bg;
+            color: @submenu-input-focus-color;
+            border-color: @submenu-input-focus-border-color;
+        }
+
+        ul.menu {
+            color: @submenu-item-color;
+
+            a {
+                color: @submenu-item-color;
+            }
+
+            svg use {
+                color: @submenu-item-icon-color;
+            }
+
+            li {
+                background: @submenu-item-bg;
+            }
+
+            li:hover {
+                color: @submenu-item-color-hover;
+                background: @submenu-item-bg-hover;
+
+                svg use {
+                    color: @submenu-item-icon-color-hover;
+                }
+            }
+
+            li.selected {
+                color: @submenu-item-color-selected;
+                background: @submenu-item-bg-selected;
+
+                svg use {
+                    color: @submenu-item-icon-color-selected;
+                }
+            }
+        }
+    }
+
+    /* buttons */
+
+    button,
+    .button {
+        background: @button-bg;
+        color: @button-color;
+    }
+
+    button:hover,
+    .button:hover {
+        background: @button-hover-bg;
+        color: @button-hover-color;
+    }
+
+    /* progress bar */
+
+    .progress {
+        border-color: @progress-border-color;
+
+        .bar {
+            background-image: @progress-bar-image;
+        }
+    }
+
+    /* select list */
+    ul.select-list {
+        li {
+            background-color: @select-list-bg;
+            color: @select-list-color;
+        }
+
+        li:hover {
+            background-color: @select-list-hover-bg;
+            color: @select-list-hover-color;
+        }
+
+        li.selected {
+            background-color: @select-list-selected-bg;
+            color: @select-list-selected-color;
+        }
+    }
+}

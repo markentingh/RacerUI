@@ -7,13 +7,13 @@
     /* DO NOT REMOVE THE CODE BELOW */
     ui.ajax = function ({ url, data, complete, error, json, async, contentType, method, username, password }) {
     var opt = {
-        method: method ?? 'GET',
-        data: JSON.stringify(data),
+        method: method ?? (data ? 'POST' : 'GET'),
+        data: data ? JSON.stringify(data) : null,
         url: url,
         async: async,
         username: username,
         password: password,
-        contentType: contentType ?? 'text/plain; charset=utf-8',
+        contentType: contentType ?? (data ? 'application/json; charset=utf-8' : 'text/plain; charset=utf-8'),
         dataType: json ? 'json' : 'html',
         success: function (xhr) {
             if (typeof complete == 'function') { complete(xhr); }
@@ -194,7 +194,7 @@ ui.nav.gameName = (name) => {
 }
 
 ui.notFound = () => {
-    ui.view.loadComponent(`errors/404`, (response) => {
+    ui.view.loadComponent(`Errors/404`, (response) => {
         document.querySelector('.content').innerHTML = response.responseText;
         console.warn('Route not found - 404 page displayed');
     });
@@ -204,7 +204,7 @@ ui.profile = {};
 
 // Load profile view with optional username
 ui.profile.load = () => {
-    ui.view.loadComponent(`pages/profile`, (response) => {
+    ui.view.loadComponent(`Profile/profile`, (response) => {
         document.querySelector('.content').innerHTML = response;
 
     });
@@ -235,6 +235,13 @@ ui.view.inject = (html, name) => {
     const content = document.querySelector(`div.content`);
     content.innerHTML = html;
     content.className = 'content ' + name;
+    ui.utils.scaleUI();
+}
+
+ui.view.injectComponent = (html, selector) => {
+    const content = document.querySelector(selector);
+    content.innerHTML = html;
+    ui.utils.scaleUI();
 }
 
 
@@ -287,15 +294,142 @@ ui.hub.gameDetails = (game) => {
         ui.game.set(JSON.parse(game));
     }
 };
-ui.views.cars = {};
+class DarkModeToggle extends HTMLElement {
+    constructor() {
+        super();
+    }
+
+    connectedCallback() {
+        this.innerHTML = `
+          <div class="toggle-dark-mode">
+            <span>Dark Mode</span>
+            <div class="toggle for-darkmode">
+                <div class="switch">
+                    <span class="light material-symbols-outlined">light_mode</span>
+                    <span class="dark material-symbols-outlined">dark_mode</span>
+                </div>
+            </div>
+        </div>
+        `;
+    }
+}
+
+customElements.define('darkmode-toggle', DarkModeToggle);
+ui.views.cars = {
+    filter:{
+        countries:['all'], //ISO 3166-1 alpha-2 country codes
+        makes:[],//makeId int   
+        models:[],//modelId int
+        years:[],//4-digit year
+        types:[],//typeId int
+        styles:[],//styleId int
+        specializations:[],//specializationId int
+        search:'',
+        start:0,
+        length:20,
+    }
+};
 
 // Load default game view
-ui.views.cars.load = () => {
-    ui.view.loadComponent(`pages/cars`, (response) => {
-        ui.nav.select('cars');
-        ui.view.inject(response.responseText, 'cars');
-    });
+ui.views.cars.load = (e) => {
+    //first, load filter settings from local storage
+    if(localStorage.getItem('RacerUI:cars-filter')){
+        ui.views.cars.filter = JSON.parse(localStorage.getItem('RacerUI:cars-filter'));
+    }
+    if(!document.querySelector('.cars-toolbar')){
+        ui.view.loadComponent(`Cars/cars`, (response) => {
+            ui.nav.select('cars');
+            ui.view.inject(response.responseText, 'cars');
+            if(e && e.id){
+                ui.views.cars.updateNav(e.id);
+            }
+        });
+    }else{
+        //view already loaded
+        if(e && e.id){
+            ui.views.cars.updateNav(e.id);
+        }
+    }
 };
+
+ui.views.cars.nav = (e, item) => {
+    e.preventDefault();
+    e.stopPropagation();
+    history.pushState(null, '', `/dashboard/cars/${item}` + window.location.search);
+}
+
+ui.views.cars.updateNav = (item) => {
+    console.log('views.cars.nav', item);
+    ui.nav.select('cars');
+    document.querySelector('.cars-toolbar li').classList.remove('selected');
+    document.querySelector(`.cars-toolbar li.item-${item}`).classList.add('selected');
+    ui.view.loadComponent(`Cars/filter-${item}`, (response) => {
+        ui.view.injectComponent(response.responseText, '.cars-content');
+        switch(item){
+            case 'country':
+                //load selected countries
+                if(ui.views.cars.filter.countries.length > 0){
+                    document.querySelectorAll('.filter-country li').forEach((li) => {
+                        if(ui.views.cars.filter.countries.includes(li.getAttribute('data-country'))){
+                            li.classList.add('selected');
+                        }else{
+                            li.classList.remove('selected');
+                        }
+                    });
+                }
+                document.querySelectorAll('.filter-country li').forEach((li) => {
+                    li.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        ui.views.cars.country.select(li.getAttribute('data-country'));
+                    }
+                });
+                break;
+        }
+    });
+}
+
+ui.views.cars.getFilteredList = () => {
+    //save filter to local storage
+    localStorage.setItem('RacerUI:cars-filter', JSON.stringify(ui.views.cars.filter));
+    //get list of cars based on filter
+    ui.ajax({
+        url: `/api/cars/filter`,
+        data: ui.views.cars.filter,
+        complete: (response) => {
+            console.log(response);
+        }
+    });
+}
+
+ui.views.cars.country = {}; 
+ui.views.cars.country.select = (country) => {
+    console.log('views.cars.country.select', country);
+    if(country == 'all'){
+        ui.views.cars.filter.countries = ['all'];
+        document.querySelectorAll('.filter-country li').forEach((li) => {
+            li.classList.remove('selected');
+        });
+    }else{
+        if(ui.views.cars.filter.countries.includes(country)){
+            ui.views.cars.filter.countries.splice(ui.views.cars.filter.countries.indexOf(country), 1);
+        }else{
+            ui.views.cars.filter.countries.push(country); 
+        }
+        if(ui.views.cars.filter.countries.indexOf('all') > -1){
+            ui.views.cars.filter.countries.splice(ui.views.cars.filter.countries.indexOf('all'), 1);
+        }
+        document.querySelectorAll('.filter-country li[data-country="all"]').forEach((li) => {
+            li.classList.remove('selected');
+        });
+    }
+    document.querySelectorAll('.filter-country li[data-country="' + country + '"]').forEach((li) => {
+        li.classList.toggle('selected');
+    });
+    ui.views.cars.getFilteredList();
+}
+    
+
 
 ui.views.game = {
     isCheckingAssets:false,
@@ -304,7 +438,7 @@ ui.views.game = {
 
 // Load default game view
 ui.views.game.load = () => {
-    ui.view.loadComponent(`pages/game`, (response) => {
+    ui.view.loadComponent(`Game/game`, (response) => {
         ui.nav.select('game');
         ui.view.inject(response.responseText, 'game');
         ui.views.game.checkingAssetsShowUI();
@@ -379,7 +513,7 @@ ui.views.history = {};
 
 // Load default game view
 ui.views.history.load = () => {
-    ui.view.loadComponent(`pages/history`, (response) => {
+    ui.view.loadComponent(`History/history`, (response) => {
         ui.nav.select('history');
         ui.view.inject(response.responseText, 'history');
     });
@@ -389,9 +523,9 @@ ui.views.profile = {};
 
 // Load default game view
 ui.views.profile.load = () => {
-    ui.view.loadComponent(`pages/profile`, (response) => {
+    ui.view.loadComponent(`Profile/profile`, (response) => {
         ui.nav.select('profile');
-        ui.view.inject(response.responseText, 'tracks');
+        ui.view.inject(response.responseText, 'profile');
     });
 };
 
@@ -399,7 +533,7 @@ ui.views.settings = {};
 
 // Load default game view
 ui.views.settings.load = () => {
-    ui.view.loadComponent(`pages/settings`, (response) => {
+    ui.view.loadComponent(`Settings/settings`, (response) => {
         ui.nav.select('settings');
         ui.view.inject(response.responseText, 'settings');
     });
@@ -409,7 +543,7 @@ ui.views.tracks = {};
 
 // Load default game view
 ui.views.tracks.load = () => {
-    ui.view.loadComponent(`pages/tracks`, (response) => {
+    ui.view.loadComponent(`Tracks/tracks`, (response) => {
         ui.nav.select('tracks');
         ui.view.inject(response.responseText, 'tracks');
     });
@@ -418,13 +552,14 @@ ui.views.tracks.load = () => {
 ui.routes = [
     { path: 'dashboard', action: ui.views.game.load },
     { path: 'dashboard/game', action: ui.views.game.load },
-    { path: 'dashboard/game/:id', action: ui.views.game.load },
+    { path: 'dashboard/game/:id', action: ui.views.game.load }, 
     { path: 'dashboard/cars', action: ui.views.cars.load },
+    { path: 'dashboard/cars/:id', action: ui.views.cars.load },
     { path: 'dashboard/tracks', action: ui.views.tracks.load },
     { path: 'dashboard/history', action: ui.views.history.load },
     { path: 'dashboard/settings', action: ui.views.settings.load },
     { path: 'dashboard/profile', action: ui.views.profile.load },
-    { path: 'dashboard/*', action: () => ui.notFound() } // Wildcard route for 404
+    { path: 'dashboard/*', action: ui.notFound } // Wildcard route for 404
 ];
 
 ui.routing = {};
@@ -438,8 +573,8 @@ ui.routing.parseParams = (pattern, path) => {
     
     // Handle optional parameters first
     let regexPattern = pattern
-        .replace(optionalParamRegex, '(?:\/([^/]+))?')
-        .replace(requiredParamRegex, '\/([^/]+)')
+        .replace(optionalParamRegex, '(?:\/([^\/]+))?')
+        .replace(requiredParamRegex, '([^\/]+)')
         .replace(wildcardRegex, '(.*)'); 
     
     // Add start/end markers and handle empty segments
@@ -602,6 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const init = document.querySelector('.init');
         init.classList.add('fade');
         setTimeout(() => init.remove(), 1000);
+        ui.utils.scaleUI();
     }, 500);
 });
 
@@ -624,18 +760,21 @@ ui.ajax({
 
 
 //window resize to scale UI
+ui.utils.scaleFactor = 0;
 ui.utils.scaleUI = () => {
     let scale = window.innerWidth / 1920;
     if (scale < 1) scale = 1;
-    
-    // Create or update CSS variable for scale factor
-    let styleEl = document.getElementById('scale-factor-style');
-    if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = 'scale-factor-style';
-        document.head.appendChild(styleEl);
+    if(scale != ui.utils.scaleFactor){
+        ui.utils.scaleFactor = scale;
+        // Create or update CSS variable for scale factor
+        let styleEl = document.getElementById('scale-factor-style');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'scale-factor-style';
+            document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = `:root { --scale-factor: ${scale}; }`;
     }
-    styleEl.textContent = `:root { --scale-factor: ${scale}; }`;
     
     // Apply scale to elements with scale-ui class
     const scalable = document.querySelectorAll('.scale-ui');
@@ -645,27 +784,7 @@ ui.utils.scaleUI = () => {
 window.addEventListener('resize', () => {
     ui.utils.scaleUI();
 });
-class DarkModeToggle extends HTMLElement {
-    constructor() {
-        super();
-    }
 
-    connectedCallback() {
-        this.innerHTML = `
-          <div class="toggle-dark-mode">
-            <span>Dark Mode</span>
-            <div class="toggle for-darkmode">
-                <div class="switch">
-                    <span class="light material-symbols-outlined">light_mode</span>
-                    <span class="dark material-symbols-outlined">dark_mode</span>
-                </div>
-            </div>
-        </div>
-        `;
-    }
-}
-
-customElements.define('darkmode-toggle', DarkModeToggle);
     /* DO NOT REMOVE THE CODE ABOVE */
 
     window.RacerUI = ui;

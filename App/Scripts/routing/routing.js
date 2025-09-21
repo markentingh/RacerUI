@@ -9,8 +9,8 @@ ui.routing.parseParams = (pattern, path) => {
     
     // Handle optional parameters first
     let regexPattern = pattern
-        .replace(optionalParamRegex, '(?:\/([^/]+))?')
-        .replace(requiredParamRegex, '\/([^/]+)')
+        .replace(optionalParamRegex, '(?:\/([^\/]+))?')
+        .replace(requiredParamRegex, '([^\/]+)')
         .replace(wildcardRegex, '(.*)'); 
     
     // Add start/end markers and handle empty segments

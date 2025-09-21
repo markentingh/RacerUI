@@ -10,6 +10,7 @@ body .game-loaded{
 }
 
 .dash {
+    user-select: none;
     grid-row: 1;
     nav {
         max-width: calc(1920px * var(--scale-factor));
@@ -17,6 +18,7 @@ body .game-loaded{
         height: calc(60px * var(--scale-factor));
         display: block;
         line-height:1.35;
+        padding: 0.5em;
 
         & > * {
             display:inline-block;
@@ -74,6 +76,9 @@ body .game-loaded{
                     margin-right:0.5em;
                     vertical-align: middle;
                 }
+                a{
+                    text-decoration:none;
+                }
             }
 
             li.item-game svg{
@@ -104,6 +109,21 @@ body .game-loaded{
             }
         }
     }
+    .sub-menu{
+        font-size:0.8em;
+        height: calc(48px * var(--scale-factor));
+        nav{
+            background-image:url("/images/submenu-bg.png");
+            background-repeat:no-repeat;
+            background-size:100%;
+            margin:0;
+            padding:0;
+            height:3.7em;
+        }
+    }
+}
+input::focus{
+    border-width:3px;
 }
 .footer{
     grid-row: 2;
@@ -112,6 +132,22 @@ body .game-loaded{
     darkmode-toggle{
         float:right;
         margin:0 0 0 1em;
+    }
+}
+
+ul.select-list{
+    list-style-type:none;
+    padding:0 2em 2em 2em;
+    li{
+        display:inline-block;
+        padding:1em 3em;
+        margin:0.25em;
+        border-radius:1em;
+        background-color:#ccc;
+        cursor:pointer;
+        a{
+            text-decoration:none;
+        }
     }
 }
 

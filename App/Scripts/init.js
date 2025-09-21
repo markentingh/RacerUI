@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const init = document.querySelector('.init');
         init.classList.add('fade');
         setTimeout(() => init.remove(), 1000);
+        ui.utils.scaleUI();
     }, 500);
 });
 
@@ -40,18 +41,21 @@ ui.ajax({
 
 
 //window resize to scale UI
+ui.utils.scaleFactor = 0;
 ui.utils.scaleUI = () => {
     let scale = window.innerWidth / 1920;
     if (scale < 1) scale = 1;
-    
-    // Create or update CSS variable for scale factor
-    let styleEl = document.getElementById('scale-factor-style');
-    if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = 'scale-factor-style';
-        document.head.appendChild(styleEl);
+    if(scale != ui.utils.scaleFactor){
+        ui.utils.scaleFactor = scale;
+        // Create or update CSS variable for scale factor
+        let styleEl = document.getElementById('scale-factor-style');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'scale-factor-style';
+            document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = `:root { --scale-factor: ${scale}; }`;
     }
-    styleEl.textContent = `:root { --scale-factor: ${scale}; }`;
     
     // Apply scale to elements with scale-ui class
     const scalable = document.querySelectorAll('.scale-ui');

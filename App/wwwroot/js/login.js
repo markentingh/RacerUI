@@ -5,49 +5,15 @@
 
 
     /* DO NOT REMOVE THE CODE BELOW */
-    ui.darkmode = { enabled: false };
-ui.darkmode.load = () => {
-    ui.darkmode.enabled = localStorage.getItem('darkmode') ?? false;
-    ui.darkmode.toggle(ui.darkmode.enabled == 'true');
-};
-
-ui.darkmode.toggle = (on) => {
-    if (on === false) {
-        //light mode
-        document.body.classList.remove('dark-mode');
-        const elems = [...document.querySelectorAll('.toggle-dark-mode')];
-        if (elems) elems.forEach(a => {
-            a.querySelector('.toggle.for-darkmode').classList.remove('on');
-        });
-        [...document.querySelectorAll('.toggle-dark-mode > span')]?.forEach(a => {
-            a.innerHTML = 'Light Mode';
-        })
-        localStorage.setItem('darkmode', false);
-        ui.darkmode.enabled = false;
-
-    } else {
-        //dark mode
-        document.body.classList.add('dark-mode');
-        const elems = [...document.querySelectorAll('.toggle-dark-mode')];
-        if (elems) elems.forEach(a => {
-            a.querySelector('.toggle.for-darkmode').classList.add('on');
-        });
-        [...document.querySelectorAll('.toggle-dark-mode > span')]?.forEach(a => {
-            a.innerHTML = 'Dark Mode';
-        })
-        localStorage.setItem('darkmode', true);
-        ui.darkmode.enabled = true;
-    }
-};
-ui.ajax = function ({ url, data, complete, error, json, async, contentType, method, username, password }) {
+    ui.ajax = function ({ url, data, complete, error, json, async, contentType, method, username, password }) {
     var opt = {
-        method: method ?? 'GET',
-        data: JSON.stringify(data),
+        method: method ?? (data ? 'POST' : 'GET'),
+        data: data ? JSON.stringify(data) : null,
         url: url,
         async: async,
         username: username,
         password: password,
-        contentType: contentType ?? 'text/plain; charset=utf-8',
+        contentType: contentType ?? (data ? 'application/json; charset=utf-8' : 'text/plain; charset=utf-8'),
         dataType: json ? 'json' : 'html',
         success: function (xhr) {
             if (typeof complete == 'function') { complete(xhr); }
@@ -151,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const init = document.querySelector('.init');
         init.classList.add('fade');
         setTimeout(() => init.remove(), 1000);
+        ui.utils.scaleUI();
     }, 500);
 });
 
@@ -173,18 +140,21 @@ ui.ajax({
 
 
 //window resize to scale UI
+ui.utils.scaleFactor = 0;
 ui.utils.scaleUI = () => {
     let scale = window.innerWidth / 1920;
     if (scale < 1) scale = 1;
-    
-    // Create or update CSS variable for scale factor
-    let styleEl = document.getElementById('scale-factor-style');
-    if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = 'scale-factor-style';
-        document.head.appendChild(styleEl);
+    if(scale != ui.utils.scaleFactor){
+        ui.utils.scaleFactor = scale;
+        // Create or update CSS variable for scale factor
+        let styleEl = document.getElementById('scale-factor-style');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'scale-factor-style';
+            document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = `:root { --scale-factor: ${scale}; }`;
     }
-    styleEl.textContent = `:root { --scale-factor: ${scale}; }`;
     
     // Apply scale to elements with scale-ui class
     const scalable = document.querySelectorAll('.scale-ui');
@@ -194,6 +164,7 @@ ui.utils.scaleUI = () => {
 window.addEventListener('resize', () => {
     ui.utils.scaleUI();
 });
+
 
     /* DO NOT REMOVE THE CODE ABOVE */
 

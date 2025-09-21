@@ -1,0 +1,140 @@
+/* inputs */
+/* links */
+/* buttons */
+/* nav menu item */
+/* hovered nav menu item */
+/* selected nav menu item */
+/* progress bar */
+/* submenu */
+/* nav submenu item */
+/* hovered nav submenu item */
+/* selected nav submenu item */
+/* submenu input */
+/* select list */
+body.dark-mode {
+  background-color: #101010;
+  color: #fafafa;
+  /* menu system */
+  /* submenu system */
+  /* buttons */
+  /* progress bar */
+  /* select list */
+}
+body.dark-mode input {
+  background-color: #444;
+  color: #fff;
+  border-color: #2facad;
+}
+body.dark-mode input:focus {
+  background-color: #444;
+  color: #fff;
+  border-color: #2facad;
+}
+body.dark-mode .row.hover:hover {
+  background-color: #335b64;
+}
+body.dark-mode a:link {
+  color: #8d00f0;
+}
+body.dark-mode a:hover {
+  color: #f512ff;
+}
+body.dark-mode a:active {
+  color: #e257ff;
+}
+body.dark-mode a:visited {
+  color: #eb7d1c;
+}
+body.dark-mode nav ul.menu {
+  color: #c5c5c5;
+}
+body.dark-mode nav ul.menu a {
+  color: #c5c5c5;
+}
+body.dark-mode nav ul.menu svg use {
+  color: #38a8ff;
+}
+body.dark-mode nav ul.menu li {
+  background: linear-gradient(to bottom, rgba(16, 16, 16, 0) 100%, rgba(16, 16, 16, 0) 100%);
+}
+body.dark-mode nav ul.menu li:hover {
+  color: #c5c5c5;
+  background: linear-gradient(to bottom, rgba(16, 16, 16, 0) 50%, #086acd 100%);
+}
+body.dark-mode nav ul.menu li:hover svg use {
+  color: #33adff;
+}
+body.dark-mode nav ul.menu li.selected {
+  color: #000;
+  background: linear-gradient(to bottom, #8867ed 0%, #5836fa 50%, #148cfb 100%);
+}
+body.dark-mode nav ul.menu li.selected svg use {
+  color: #000;
+}
+body.dark-mode .sub-menu {
+  background: linear-gradient(to bottom, #121a47 0%, rgba(18, 26, 71, 0) 100%);
+}
+body.dark-mode .sub-menu input[type="text"] {
+  background-color: #071751;
+  color: #fff;
+  border-color: #2f6dad;
+}
+body.dark-mode .sub-menu input[type="text"]:focus {
+  background-color: #071751;
+  color: #fff;
+  border-color: #0080ff;
+}
+body.dark-mode .sub-menu ul.menu {
+  color: #c5c5c5;
+}
+body.dark-mode .sub-menu ul.menu a {
+  color: #c5c5c5;
+}
+body.dark-mode .sub-menu ul.menu svg use {
+  color: #38a8ff;
+}
+body.dark-mode .sub-menu ul.menu li {
+  background: linear-gradient(to bottom, rgba(16, 16, 16, 0) 100%, rgba(16, 16, 16, 0) 100%);
+}
+body.dark-mode .sub-menu ul.menu li:hover {
+  color: #c5c5c5;
+  background: linear-gradient(to bottom, rgba(16, 16, 16, 0) 50%, #057d96 100%);
+}
+body.dark-mode .sub-menu ul.menu li:hover svg use {
+  color: #33adff;
+}
+body.dark-mode .sub-menu ul.menu li.selected {
+  color: #000;
+  background: linear-gradient(to bottom, #6b4ec4 0%, #265a98 50%, #0a7c76 100%);
+}
+body.dark-mode .sub-menu ul.menu li.selected svg use {
+  color: #000;
+}
+body.dark-mode button,
+body.dark-mode .button {
+  background: #5cd5d6;
+  color: #00586c;
+}
+body.dark-mode button:hover,
+body.dark-mode .button:hover {
+  background: #13ccd8;
+  color: #00586c;
+}
+body.dark-mode .progress {
+  border-color: #38a8ff;
+}
+body.dark-mode .progress .bar {
+  background-image: linear-gradient(65deg, #38a8ff 25%, #5836fa 35%, #38a8ff 45%, #38a8ff 65%, #5836fa 75%, #38a8ff 85%);
+}
+body.dark-mode ul.select-list li {
+  background-color: #2f1f67;
+  color: #fff;
+}
+body.dark-mode ul.select-list li:hover {
+  background-color: #3b2199;
+  color: #fff;
+}
+body.dark-mode ul.select-list li.selected {
+  background-color: #297eff;
+  color: #fff;
+}

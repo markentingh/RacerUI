@@ -1,12 +1,12 @@
-﻿ui.ajax = function ({ url, data, complete, error, json, async, contentType, method, username, password }) {
+ui.ajax = function ({ url, data, complete, error, json, async, contentType, method, username, password }) {
     var opt = {
-        method: method ?? 'GET',
-        data: JSON.stringify(data),
+        method: method ?? (data ? 'POST' : 'GET'),
+        data: data ? JSON.stringify(data) : null,
         url: url,
         async: async,
         username: username,
         password: password,
-        contentType: contentType ?? 'text/plain; charset=utf-8',
+        contentType: contentType ?? (data ? 'application/json; charset=utf-8' : 'text/plain; charset=utf-8'),
         dataType: json ? 'json' : 'html',
         success: function (xhr) {
             if (typeof complete == 'function') { complete(xhr); }

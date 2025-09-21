@@ -1,10 +1,4 @@
 /* This file is used for the dashboard after the user logs into their account */
-/* inputs */
-/* buttons */
-/* nav menu item */
-/* hovered nav menu item */
-/* selected nav menu item */
-/* progress bar */
 body {
   font-family: "Noto Sans", sans-serif;
   font-optical-sizing: auto;
@@ -13,6 +7,13 @@ body {
   font-variation-settings: "wdth" 87.5;
   min-height: 100vh;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
+  animation: darkmode-off 0.5s ease-in-out;
+  background-image: url('/images/footer.png');
+  background-size: cover;
+  background-position: bottom left;
+  background-repeat: no-repeat;
 }
 .scale-ui {
   transform-origin: top left;
@@ -35,9 +36,6 @@ body {
 .row {
   width: 100%;
   display: block;
-}
-.row.hover:hover {
-  background: #c7f4eb;
 }
 .col {
   display: inline-block;
@@ -77,6 +75,40 @@ h6 {
 p {
   font-size: 1.25em;
   line-height: 1.5;
+}
+/* logo */
+.logo .light {
+  position: absolute;
+  opacity: 1;
+  animation: opacity-1 0.5s ease-in-out;
+}
+.logo .dark {
+  opacity: 0;
+  animation: opacity-0 0.5s ease-in-out;
+}
+body.dark-mode .logo .light {
+  opacity: 0;
+  animation: opacity-0 0.5s ease-in-out;
+}
+body.dark-mode .logo .dark {
+  opacity: 1;
+  animation: opacity-1 0.5s ease-in-out;
+}
+@keyframes opacity-1 {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes opacity-0 {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 .init {
   position: fixed;
@@ -211,6 +243,7 @@ body .game-loaded {
   display: none !important;
 }
 .dash {
+  user-select: none;
   grid-row: 1;
 }
 .dash nav {
@@ -219,6 +252,7 @@ body .game-loaded {
   height: calc(60px * var(--scale-factor));
   display: block;
   line-height: 1.35;
+  padding: 0.5em;
 }
 .dash nav > * {
   display: inline-block;
@@ -272,6 +306,9 @@ body .game-loaded {
   margin-right: 0.5em;
   vertical-align: middle;
 }
+.dash nav > ul.menu li a {
+  text-decoration: none;
+}
 .dash nav > ul.menu li.item-game svg {
   width: 1.1em;
 }
@@ -293,6 +330,21 @@ body .game-loaded {
 .dash nav > ul.menu li.item-settings svg {
   width: 1.3em;
 }
+.dash .sub-menu {
+  font-size: 0.8em;
+  height: calc(48px * var(--scale-factor));
+}
+.dash .sub-menu nav {
+  background-image: url("/images/submenu-bg.png");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  margin: 0;
+  padding: 0;
+  height: 3.7em;
+}
+input::focus {
+  border-width: 3px;
+}
 .footer {
   grid-row: 2;
   padding: 1em 1em 2em 1em;
@@ -301,6 +353,21 @@ body .game-loaded {
 .footer darkmode-toggle {
   float: right;
   margin: 0 0 0 1em;
+}
+ul.select-list {
+  list-style-type: none;
+  padding: 0 2em 2em 2em;
+}
+ul.select-list li {
+  display: inline-block;
+  padding: 1em 3em;
+  margin: 0.25em;
+  border-radius: 1em;
+  background-color: #ccc;
+  cursor: pointer;
+}
+ul.select-list li a {
+  text-decoration: none;
 }
 @media screen and (max-width: 1480px) {
   .dash > nav {
@@ -345,7 +412,6 @@ input {
   padding: 0.5em;
   border-radius: 0.25em;
   outline: none;
-  border: solid 2px #2facad;
   width: 100%;
   box-sizing: border-box;
 }
@@ -386,222 +452,37 @@ button,
   animation: moveGradient 1000s linear infinite;
   position: relative;
 }
-/* inputs */
-/* buttons */
-/* nav menu item */
-/* hovered nav menu item */
-/* selected nav menu item */
-/* progress bar */
-body {
-  background-color: #fafafa;
-  color: #333;
-  animation: darkmode-off 0.5s ease-in-out;
-  background-image: url('/images/footer.png');
-  background-size: cover;
-  background-position: bottom left;
-  background-repeat: no-repeat;
-}
-body.dark-mode {
-  background-color: #101010;
-  background-image: url('/images/footer.png');
-  color: #fafafa;
-  animation: darkmode-on 0.5s ease-in-out;
-}
-input {
-  background-color: #effcf9;
-  color: #333;
-  animation: darkmode-input-off 0.5s ease-in-out;
-}
-body.dark-mode input {
-  background-color: #444;
-  color: #fff;
-  animation: darkmode-input-on 0.5s ease-in-out;
-}
-body.dark-mode .row.hover:hover {
-  background-color: #335b64;
-}
-a:link {
-  color: #8d00f0;
-}
-a:hover {
-  color: #f512ff;
-}
-a:active {
-  color: #e257ff;
-}
-a:visited {
-  color: #eb7d1c;
-}
-body.dark-mode a:link {
-  color: #0fe4f3;
-}
-body.dark-mode a:hover {
-  color: #2af6ff;
-}
-body.dark-mode a:active {
-  color: #2af6ff;
-}
-body.dark-mode a:visited {
-  color: #793d84;
-}
-@keyframes darkmode-on {
-  from {
-    background-color: #fafafa;
-    color: #333;
-  }
-  to {
-    background-color: #333;
-    color: #fafafa;
-  }
-}
-@keyframes darkmode-off {
-  from {
-    background-color: #333;
-    color: #fafafa;
-  }
-  to {
-    background-color: #fafafa;
-    color: #333;
-  }
-}
-@keyframes darkmode-input-on {
-  from {
-    background-color: #effcf9;
-    color: #333;
-  }
-  to {
-    background-color: #444;
-    color: #fff;
-  }
-}
-@keyframes darkmode-input-off {
-  from {
-    background-color: #444;
-    color: #fff;
-  }
-  to {
-    background-color: #effcf9;
-    color: #333;
-  }
-}
-.logo .light {
-  position: absolute;
-  opacity: 1;
-  animation: opacity-1 0.5s ease-in-out;
-}
-.logo .dark {
-  opacity: 0;
-  animation: opacity-0 0.5s ease-in-out;
-}
-body.dark-mode .logo .light {
-  opacity: 0;
-  animation: opacity-0 0.5s ease-in-out;
-}
-body.dark-mode .logo .dark {
-  opacity: 1;
-  animation: opacity-1 0.5s ease-in-out;
-}
-@keyframes opacity-1 {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes opacity-0 {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-nav ul.menu {
-  color: #333333;
-}
-nav ul.menu svg use {
-  color: #9a9a9a;
-}
-nav ul.menu li {
-  background: linear-gradient(to bottom, rgba(250, 250, 250, 0) 0%, rgba(0, 228, 176, 0) 50%, rgba(147, 216, 255, 0) 100%);
-}
-nav ul.menu li:hover {
-  color: #333333;
-  background: linear-gradient(to bottom, rgba(54 225 145 / 0%) 0%, rgba(0, 197, 132, 0) 50%, #6af3ce 100%);
-}
-nav ul.menu li:hover svg use {
-  color: #14a193;
-}
-nav ul.menu li.selected {
-  color: #fff;
-  background: linear-gradient(to bottom, rgba(87, 253, 197, 0.82) 0%, rgba(0, 126, 213, 0.82) 50%, #30d7ea 100%);
-}
-nav ul.menu li.selected svg use {
-  color: #fff;
-}
-body.dark-mode nav ul.menu {
-  color: #c5c5c5;
-}
-body.dark-mode nav ul.menu svg use {
-  color: #38a8ff;
-}
-body.dark-mode nav ul.menu li {
-  background: linear-gradient(to bottom, rgba(16, 16, 16, 0) 100%, rgba(16, 16, 16, 0) 100%);
-}
-body.dark-mode nav ul.menu li:hover {
-  color: #c5c5c5;
-  background: linear-gradient(to bottom, rgba(16, 16, 16, 0) 50%, #086acd 100%);
-}
-body.dark-mode nav ul.menu li:hover svg use {
-  color: #33adff;
-}
-body.dark-mode nav ul.menu li.selected {
-  color: #000;
-  background: linear-gradient(to bottom, #8867ed 0%, #5836fa 50%, #148cfb 100%);
-}
-body.dark-mode nav ul.menu li.selected svg use {
-  color: #000;
-}
-button,
-.button {
-  background: #5cd5d6;
-  color: #00586c;
-}
-button:hover,
-.button:hover {
-  background: #13ccd8;
-  color: #00586c;
-}
-body.dark-mode button,
-body.dark-mode .button {
-  background: #5cd5d6;
-  color: #00586c;
-}
-body.dark-mode button:hover,
-body.dark-mode .button:hover {
-  background: #13ccd8;
-  color: #00586c;
-}
-.progress {
-  border-color: #5cd5d6;
-}
-.progress .bar {
-  background-image: linear-gradient(45deg, #5cd5d6 25%, #38a8ff 35%, #5cd5d6 45%, #5cd5d6 65%, #38a8ff 75%, #5cd5d6 85%);
-}
-body.dark-mode .progress {
-  border-color: #38a8ff;
-}
-body.dark-mode .progress .bar {
-  background-image: linear-gradient(65deg, #38a8ff 25%, #5836fa 35%, #38a8ff 45%, #38a8ff 65%, #5836fa 75%, #38a8ff 85%);
-}
 /* views */
-.content.cars .coming-soon {
+.content.tracks .coming-soon {
   padding: 2em;
   text-align: center;
   width: 100%;
 }
-.content.cars .coming-soon p {
+.content.tracks .coming-soon p {
+  padding: 2em 0;
+}
+.content.settings .coming-soon {
+  padding: 2em;
+  text-align: center;
+  width: 100%;
+}
+.content.settings .coming-soon p {
+  padding: 2em 0;
+}
+.content.profile .coming-soon {
+  padding: 2em;
+  text-align: center;
+  width: 100%;
+}
+.content.profile .coming-soon p {
+  padding: 2em 0;
+}
+.content.history .coming-soon {
+  padding: 2em;
+  text-align: center;
+  width: 100%;
+}
+.content.history .coming-soon p {
   padding: 2em 0;
 }
 .content.game .check-assets {
@@ -648,35 +529,33 @@ body.dark-mode .progress .bar {
 .content.game .checking-assets .progress .bar {
   width: 0%;
 }
-.content.history .coming-soon {
+.content.cars .coming-soon {
   padding: 2em;
   text-align: center;
   width: 100%;
 }
-.content.history .coming-soon p {
+.content.cars .coming-soon p {
   padding: 2em 0;
 }
-.content.profile .coming-soon {
-  padding: 2em;
-  text-align: center;
-  width: 100%;
+.cars-toolbar nav ul.menu li.search-input {
+  padding-top: 0.35em;
+  vertical-align: top;
 }
-.content.profile .coming-soon p {
-  padding: 2em 0;
+.cars-toolbar nav ul.menu li.search-input input {
+  max-width: 15em;
 }
-.content.settings .coming-soon {
-  padding: 2em;
-  text-align: center;
-  width: 100%;
+.filter-country h2 {
+  padding: 2em 0 0 2em;
 }
-.content.settings .coming-soon p {
-  padding: 2em 0;
+.filter-country ul.select-list {
+  padding: 0 2em 2em 2em;
 }
-.content.tracks .coming-soon {
-  padding: 2em;
-  text-align: center;
-  width: 100%;
+.filter-country ul.select-list li {
+  padding: 1em 1.5em;
+  height: 1em;
 }
-.content.tracks .coming-soon p {
-  padding: 2em 0;
+.filter-country ul.select-list li img {
+  width: 1.5em;
+  padding: 0 0.5em 0 0;
+  vertical-align: middle;
 }

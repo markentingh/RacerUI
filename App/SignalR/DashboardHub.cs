@@ -97,7 +97,6 @@ namespace RacerUI.SignalR
                         int i = 0;
                         int lastProgress = 0;
 
-                        // Create options with custom converters explicitly added
                         var jsonOptions = new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true,
@@ -113,6 +112,7 @@ namespace RacerUI.SignalR
                                 i++;
                                 var isNew = false;
                                 var carId = folder.Split("\\").Last();
+                                //find car in database
                                 var car = SQL.CarsRepository.GetByPath(carId);
                                 if (car == null)
                                 {
@@ -126,6 +126,7 @@ namespace RacerUI.SignalR
                                 {
                                     try
                                     {
+                                        //car exists in database, get details
                                         car = SQL.CarsRepository.GetDetails(car.Id);
                                     }
                                     catch (Exception ex)
@@ -135,11 +136,13 @@ namespace RacerUI.SignalR
                                     }
                                 }
 
+                                //update progress in UI
                                 await Clients.Caller.SendAsync("progress-title", $"{progressTitle}: Checking car # {i}");
                                 await Clients.Caller.SendAsync("progress-text", $"Checking car: {car.Path}");
 
                                 if (car.Skins == null || car.Skins.Count == 0)
                                 {
+                                    //add car skins, drivers, & teams to database
                                     car.Skins = new List<CarSkin>();
                                     var skinFolders = Directory.GetDirectories(folder + "\\skins");
                                     foreach (var skinFolder in skinFolders)

@@ -157,8 +157,13 @@ body.dark-mode .logo .dark{
     }
 }
 
+/* menu system */
+
 nav ul.menu{
     color:@light-nav-color;
+    a{
+        color:@light-nav-color;
+    }
     svg use{
         color:@light-nav-icon-color;
     }
@@ -183,6 +188,8 @@ nav ul.menu{
 
 body.dark-mode nav ul.menu{
     color:@dark-nav-color;
+    a{
+        color:@dark-nav-color;}
     svg use{
         color:@dark-nav-icon-color;
     }
@@ -204,6 +211,89 @@ body.dark-mode nav ul.menu{
         }
     }
 }
+
+/* submenu system */
+
+.sub-menu{
+    background: @light-nav-submenu-bg; 
+
+    input[type="text"]{
+        background-color: @light-submenu-input-bg;
+        color: @light-submenu-input-color;
+        border-color:@light-submenu-input-border-color;
+    }
+
+    input[type="text"]:focus{
+        background-color: @light-submenu-input-focus-bg;
+        color: @light-submenu-input-focus-color;
+        border-color:@light-submenu-input-focus-border-color;
+    }
+
+    ul.menu{
+        color:@light-nav-submenu-item-color;
+        a{
+            color:@light-nav-submenu-item-color;
+        }
+        svg use{
+            color:@light-nav-submenu-item-icon-color;
+        }
+        li{
+            background:@light-nav-submenu-item-bg;
+        }
+        li:hover{
+            color:@light-nav-submenu-item-color-hover;
+            background:@light-nav-submenu-item-bg-hover;
+            svg use{
+                color:@light-nav-submenu-item-icon-color-hover;
+            }
+        }
+        li.selected{
+            color:@light-nav-submenu-item-color-selected;
+            background:@light-nav-submenu-item-bg-selected;
+            svg use{
+                color:@light-nav-submenu-item-icon-color-selected;
+            }
+        }
+    }
+}
+
+body.dark-mode .sub-menu{
+    background: @dark-nav-submenu-bg; 
+
+    input[type="text"]{
+        background-color: @dark-submenu-input-bg;
+        color: @dark-submenu-input-color;
+        border-color:@dark-submenu-input-border-color;
+    }
+
+    ul.menu{
+        color:@dark-nav-submenu-item-color;
+        a{
+            color:@dark-nav-submenu-item-color;}
+        svg use{
+            color:@dark-nav-submenu-item-icon-color;
+        }
+        li{
+            background:@dark-nav-submenu-item-bg;
+        }
+        li:hover{
+            color:@dark-nav-submenu-item-color-hover;
+            background:@dark-nav-submenu-item-bg-hover;
+            svg use{
+                color:@dark-nav-submenu-item-icon-color-hover;
+            }
+        }
+        li.selected{
+            color:@dark-nav-submenu-item-color-selected;
+            background:@dark-nav-submenu-item-bg-selected;
+            svg use{
+                color:@dark-nav-submenu-item-icon-color-selected;
+            }
+        }
+    }
+}
+
+/* buttons */
 
 button, .button {
     background: @light-button-bg;
@@ -227,6 +317,8 @@ body.dark-mode .button:hover {
     color: @dark-button-hover-color;
 }
 
+/* progress bar */
+
 .progress{
     border-color:@light-progress-border-color;
     .bar{
@@ -238,5 +330,21 @@ body.dark-mode .progress{
     border-color:@dark-progress-border-color;
     .bar{
         background-image:@dark-progress-bar-image;
+    }
+}
+
+/* select list */
+ul.select-list{
+    li{
+        background-color:@dark-select-list-bg;
+        color:@dark-select-list-color;
+    }
+    li:hover{
+        background-color:@dark-select-list-hover-bg;
+        color:@dark-select-list-hover-color;
+    }
+    li.selected{
+        background-color:@dark-select-list-selected-bg;
+        color:@dark-select-list-selected-color;
     }
 }

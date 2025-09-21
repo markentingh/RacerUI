@@ -6,6 +6,13 @@ body {
   font-variation-settings: "wdth" 87.5;
   min-height: 100vh;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
+  animation: darkmode-off 0.5s ease-in-out;
+  background-image: url('/images/footer.png');
+  background-size: cover;
+  background-position: bottom left;
+  background-repeat: no-repeat;
 }
 .scale-ui {
   transform-origin: top left;
@@ -30,7 +37,7 @@ body {
   display: block;
 }
 .row.hover:hover {
-  background: #c7f4eb;
+  background: #335b64;
 }
 .col {
   display: inline-block;
@@ -70,6 +77,40 @@ h6 {
 p {
   font-size: 1.25em;
   line-height: 1.5;
+}
+/* logo */
+.logo .light {
+  position: absolute;
+  opacity: 1;
+  animation: opacity-1 0.5s ease-in-out;
+}
+.logo .dark {
+  opacity: 0;
+  animation: opacity-0 0.5s ease-in-out;
+}
+body.dark-mode .logo .light {
+  opacity: 0;
+  animation: opacity-0 0.5s ease-in-out;
+}
+body.dark-mode .logo .dark {
+  opacity: 1;
+  animation: opacity-1 0.5s ease-in-out;
+}
+@keyframes opacity-1 {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes opacity-0 {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 .init {
   position: fixed;
@@ -194,221 +235,32 @@ darkmode-toggle.scale-us {
     background: #3eafe6;
   }
 }
-body {
-  background-color: #fafafa;
-  color: #333;
-  animation: darkmode-off 0.5s ease-in-out;
-  background-image: url('/images/footer.png');
-  background-size: cover;
-  background-position: bottom left;
-  background-repeat: no-repeat;
-}
-body.dark-mode {
-  background-color: #101010;
-  background-image: url('/images/footer.png');
-  color: #fafafa;
-  animation: darkmode-on 0.5s ease-in-out;
-}
-input {
-  background-color: #effcf9;
-  color: #333;
-  animation: darkmode-input-off 0.5s ease-in-out;
-}
-body.dark-mode input {
-  background-color: #444;
-  color: #fff;
-  animation: darkmode-input-on 0.5s ease-in-out;
-}
-body.dark-mode .row.hover:hover {
-  background-color: #335b64;
-}
-a:link {
-  color: #8d00f0;
-}
-a:hover {
-  color: #f512ff;
-}
-a:active {
-  color: #e257ff;
-}
-a:visited {
-  color: #eb7d1c;
-}
-body.dark-mode a:link {
-  color: #0fe4f3;
-}
-body.dark-mode a:hover {
-  color: #2af6ff;
-}
-body.dark-mode a:active {
-  color: #2af6ff;
-}
-body.dark-mode a:visited {
-  color: #793d84;
-}
-@keyframes darkmode-on {
-  from {
-    background-color: #fafafa;
-    color: #333;
-  }
-  to {
-    background-color: #333;
-    color: #fafafa;
-  }
-}
-@keyframes darkmode-off {
-  from {
-    background-color: #333;
-    color: #fafafa;
-  }
-  to {
-    background-color: #fafafa;
-    color: #333;
-  }
-}
-@keyframes darkmode-input-on {
-  from {
-    background-color: #effcf9;
-    color: #333;
-  }
-  to {
-    background-color: #444;
-    color: #fff;
-  }
-}
-@keyframes darkmode-input-off {
-  from {
-    background-color: #444;
-    color: #fff;
-  }
-  to {
-    background-color: #effcf9;
-    color: #333;
-  }
-}
-.logo .light {
-  position: absolute;
-  opacity: 1;
-  animation: opacity-1 0.5s ease-in-out;
-}
-.logo .dark {
-  opacity: 0;
-  animation: opacity-0 0.5s ease-in-out;
-}
-body.dark-mode .logo .light {
-  opacity: 0;
-  animation: opacity-0 0.5s ease-in-out;
-}
-body.dark-mode .logo .dark {
-  opacity: 1;
-  animation: opacity-1 0.5s ease-in-out;
-}
-@keyframes opacity-1 {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes opacity-0 {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-nav ul.menu {
-  color: #333333;
-}
-nav ul.menu svg use {
-  color: #9a9a9a;
-}
-nav ul.menu li {
-  background: linear-gradient(to bottom, rgba(250, 250, 250, 0) 0%, rgba(0, 228, 176, 0) 50%, rgba(147, 216, 255, 0) 100%);
-}
-nav ul.menu li:hover {
-  color: #333333;
-  background: linear-gradient(to bottom, rgba(54 225 145 / 0%) 0%, rgba(0, 197, 132, 0) 50%, #6af3ce 100%);
-}
-nav ul.menu li:hover svg use {
-  color: #14a193;
-}
-nav ul.menu li.selected {
-  color: #fff;
-  background: linear-gradient(to bottom, rgba(87, 253, 197, 0.82) 0%, rgba(0, 126, 213, 0.82) 50%, #30d7ea 100%);
-}
-nav ul.menu li.selected svg use {
-  color: #fff;
-}
-body.dark-mode nav ul.menu {
-  color: #c5c5c5;
-}
-body.dark-mode nav ul.menu svg use {
-  color: #38a8ff;
-}
-body.dark-mode nav ul.menu li {
-  background: linear-gradient(to bottom, rgba(16, 16, 16, 0) 100%, rgba(16, 16, 16, 0) 100%);
-}
-body.dark-mode nav ul.menu li:hover {
-  color: #c5c5c5;
-  background: linear-gradient(to bottom, rgba(16, 16, 16, 0) 50%, #086acd 100%);
-}
-body.dark-mode nav ul.menu li:hover svg use {
-  color: #33adff;
-}
-body.dark-mode nav ul.menu li.selected {
-  color: #000;
-  background: linear-gradient(to bottom, #8867ed 0%, #5836fa 50%, #148cfb 100%);
-}
-body.dark-mode nav ul.menu li.selected svg use {
-  color: #000;
-}
-button,
-.button {
-  background: #5cd5d6;
-  color: #00586c;
-}
-button:hover,
-.button:hover {
-  background: #13ccd8;
-  color: #00586c;
-}
-body.dark-mode button,
-body.dark-mode .button {
-  background: #5cd5d6;
-  color: #00586c;
-}
-body.dark-mode button:hover,
-body.dark-mode .button:hover {
-  background: #13ccd8;
-  color: #00586c;
-}
-.progress {
-  border-color: #14a193;
-}
-.progress .bar {
-  background-image: linear-gradient(45deg, #14a193 25%, #38a8ff 35%, #14a193 45%, #14a193 65%, #38a8ff 75%, #14a193 85%);
-}
-body.dark-mode .progress {
-  border-color: #38a8ff;
-}
-body.dark-mode .progress .bar {
-  background-image: linear-gradient(45deg, #38a8ff 25%, #5836fa 35%, #38a8ff 45%, #38a8ff 65%, #5836fa 75%, #38a8ff 85%);
-}
 /* inputs */
+/* links */
 /* buttons */
 /* nav menu item */
 /* hovered nav menu item */
 /* selected nav menu item */
 /* progress bar */
+/* submenu */
+/* nav submenu item */
+/* hovered nav submenu item */
+/* selected nav submenu item */
+/* submenu input */
+/* select list */
 /* inputs */
+/* links */
 /* buttons */
 /* nav menu item */
 /* hovered nav menu item */
 /* selected nav menu item */
 /* progress bar */
+/* submenu */
+/* nav submenu item */
+/* hovered nav submenu item */
+/* selected nav submenu item */
+/* submenu input */
+/* select list */
 body {
   background-color: transparent !important;
   transform-origin: top left;

@@ -37,14 +37,19 @@ namespace RacerUI.SQL
             }
 
             // Add skins if they exist
-            if(car.Skins != null && car.Skins.Count > 0){
-                foreach(var skin in car.Skins){
+            if (car.Skins != null && car.Skins.Count > 0)
+            {
+                foreach (var skin in car.Skins)
+                {
                     skin.CarId = carId;
                     var skinId = CarSkinsRepository.Add(skin);
-                    if(skin.Drivers != null && skin.Drivers.Count > 0){
+                    if (skin.Drivers != null && skin.Drivers.Count > 0)
+                    {
                         CarDriversRepository.DeleteBySkinId(skinId); //reset list of drivers for skin
-                        foreach(var driver in skin.Drivers){
-                            CarDriversRepository.Add(new CarDriver(){
+                        foreach (var driver in skin.Drivers)
+                        {
+                            CarDriversRepository.Add(new CarDriver()
+                            {
                                 CarId = carId,
                                 DriverId = driver.Id,
                                 SkinId = skinId
@@ -55,8 +60,9 @@ namespace RacerUI.SQL
             }
 
             // Add stylings if they exist
-            if(car.Stylings != null && car.Stylings.Count > 0){
-                foreach(var styling in car.Stylings)
+            if (car.Stylings != null && car.Stylings.Count > 0)
+            {
+                foreach (var styling in car.Stylings)
                 {
                     styling.CarId = carId;
                     CarStylingRepository.Add(styling);
@@ -64,8 +70,9 @@ namespace RacerUI.SQL
             }
 
             // Add tags if they exist
-            if(car.Tags != null && car.Tags.Count > 0){
-                foreach(var tag in car.Tags)
+            if (car.Tags != null && car.Tags.Count > 0)
+            {
+                foreach (var tag in car.Tags)
                 {
                     tag.CarId = carId;
                     CarTagsRepository.Add(tag);
@@ -73,8 +80,9 @@ namespace RacerUI.SQL
             }
 
             // Add types if they exist
-            if(car.Types != null && car.Types.Count > 0){
-                foreach(var type in car.Types)
+            if (car.Types != null && car.Types.Count > 0)
+            {
+                foreach (var type in car.Types)
                 {
                     type.CarId = carId;
                     CarTypesRepository.Add(type);
@@ -82,8 +90,10 @@ namespace RacerUI.SQL
             }
 
             // Add specializations if they exist
-            if(car.Specializations != null && car.Specializations.Count > 0){
-                foreach(var specialization in car.Specializations){
+            if (car.Specializations != null && car.Specializations.Count > 0)
+            {
+                foreach (var specialization in car.Specializations)
+                {
                     CarSpecializationsRepository.Associate(car.Id, specialization.SpecializationId);
                 }
             }
@@ -103,11 +113,11 @@ namespace RacerUI.SQL
         /// <param name="class">Optional class filter</param>
         /// <returns>A list of cars matching the filter criteria</returns>
         public static IEnumerable<Car> Filter(
-            int? gameId = null, 
-            string make = null, 
-            string model = null, 
-            int? year = null, 
-            int? status = null, 
+            int? gameId = null,
+            string make = null,
+            string model = null,
+            int? year = null,
+            int? status = null,
             int? minRating = null,
             string carClass = null)
         {
@@ -156,8 +166,8 @@ namespace RacerUI.SQL
                 parameters.Add("Class", $"%{carClass}%");
             }
 
-            var whereClause = conditions.Count > 0 
-                ? $"WHERE {string.Join(" AND ", conditions)}" 
+            var whereClause = conditions.Count > 0
+                ? $"WHERE {string.Join(" AND ", conditions)}"
                 : string.Empty;
 
             var sql = $"SELECT * FROM Cars {whereClause} ORDER BY Make, Model, Year";
@@ -324,16 +334,16 @@ namespace RacerUI.SQL
                     if (car != null)
                     {
                         car.Skins = multi.Read<CarSkin>().ToList();
-                        
+
                         // Read drivers with their associated skin IDs
                         var driversWithSkinIds = multi.Read<dynamic>().ToList();
-                        
+
                         // Initialize Drivers list for each skin
                         foreach (var skin in car.Skins)
                         {
                             skin.Drivers = new List<Driver>();
                         }
-                        
+
                         // Assign drivers to their respective skins
                         foreach (var item in driversWithSkinIds)
                         {
@@ -344,14 +354,14 @@ namespace RacerUI.SQL
                                 Name = item.Name,
                                 // Add other driver properties as needed
                             };
-                            
+
                             var skin = car.Skins.FirstOrDefault(s => s.Id == skinId);
                             if (skin != null)
                             {
                                 skin.Drivers.Add(driver);
                             }
                         }
-                        
+
                         car.Specializations = multi.Read<CarSpecialization>().ToList();
                         car.Stylings = multi.Read<CarStyling>().ToList();
                         car.Tags = multi.Read<CarTag>().ToList();
@@ -375,6 +385,128 @@ namespace RacerUI.SQL
             using (var connection = Connection.GetConnection())
             {
                 return connection.QuerySingleOrDefault<Car>(sql, new { Path = path });
+            }
+        }
+
+        /// <summary>
+        /// Advanced filtering of cars based on multiple criteria with pagination support
+        /// </summary>
+        /// <param name="filter">The filter entity containing all filter criteria including pagination parameters</param>
+        /// <returns>A list of cars matching the filter criteria with pagination applied</returns>
+        public static IEnumerable<Car> AdvancedFilter(CarFilter filter)
+        {
+            var conditions = new List<string>();
+            var parameters = new DynamicParameters();
+
+            // Base query to get all cars with their related data
+            var sql = @"
+            SELECT c.* FROM Cars c
+            LEFT JOIN CarMakes m ON c.MakeId = m.Id
+            LEFT JOIN CarModels mdl ON c.ModelId = mdl.Id";
+
+            // Add conditions for each filter parameter
+            if (filter.Countries != null && filter.Countries.Count > 0)
+            {
+                conditions.Add("m.CountryCode IN @Countries");
+                parameters.Add("Countries", filter.Countries);
+            }
+
+            if (filter.Makes != null && filter.Makes.Count > 0)
+            {
+                conditions.Add("c.MakeId IN @Makes");
+                parameters.Add("Makes", filter.Makes);
+            }
+
+            if (filter.Models != null && filter.Models.Count > 0)
+            {
+                conditions.Add("c.ModelId IN @Models");
+                parameters.Add("Models", filter.Models);
+            }
+
+            if (filter.Years != null && filter.Years.Count > 0)
+            {
+                conditions.Add("c.Year IN @Years");
+                parameters.Add("Years", filter.Years);
+            }
+
+            // Handle types - requires subquery or join
+            if (filter.Types != null && filter.Types.Count > 0)
+            {
+                sql += @" 
+            LEFT JOIN (
+                SELECT ct.CarId 
+                FROM Cars_Types ct 
+                WHERE ct.TypeId IN @Types
+                GROUP BY ct.CarId
+            ) types ON c.Id = types.CarId";
+
+                conditions.Add("types.CarId IS NOT NULL");
+                parameters.Add("Types", filter.Types);
+            }
+
+            // Handle styles - requires subquery or join
+            if (filter.Styles != null && filter.Styles.Count > 0)
+            {
+                sql += @" 
+            LEFT JOIN (
+                SELECT cs.CarId 
+                FROM Cars_Styling cs 
+                WHERE cs.StylingId IN @Styles
+                GROUP BY cs.CarId
+            ) styles ON c.Id = styles.CarId";
+
+                conditions.Add("styles.CarId IS NOT NULL");
+                parameters.Add("Styles", filter.Styles);
+            }
+
+            // Handle specializations - requires subquery or join
+            if (filter.Specializations != null && filter.Specializations.Count > 0)
+            {
+                sql += @" 
+            LEFT JOIN (
+                SELECT cs.CarId 
+                FROM Cars_Specializations cs 
+                WHERE cs.SpecializationId IN @Specializations
+                GROUP BY cs.CarId
+            ) specs ON c.Id = specs.CarId";
+
+                conditions.Add("specs.CarId IS NOT NULL");
+                parameters.Add("Specializations", filter.Specializations);
+            }
+
+            // Handle text search
+            if (!string.IsNullOrEmpty(filter.Search))
+            {
+                conditions.Add(@"(
+                c.Name LIKE @SearchTerm OR 
+                c.ShortDescription LIKE @SearchTerm OR 
+                c.Author LIKE @SearchTerm OR 
+                m.Name LIKE @SearchTerm OR 
+                mdl.Name LIKE @SearchTerm
+            )");
+                parameters.Add("SearchTerm", $"%{filter.Search}%");
+            }
+
+            // Add WHERE clause if we have conditions
+            if (conditions.Count > 0)
+            {
+                sql += " WHERE " + string.Join(" AND ", conditions);
+            }
+
+            // Add order by
+            sql += " ORDER BY m.Name, mdl.Name, c.Year";
+
+            // Add pagination if specified
+            if (filter.Start.HasValue && filter.Length.HasValue)
+            {
+                sql += " LIMIT @Length OFFSET @Start";
+                parameters.Add("Start", filter.Start.Value);
+                parameters.Add("Length", filter.Length.Value);
+            }
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query<Car>(sql, parameters);
             }
         }
     }

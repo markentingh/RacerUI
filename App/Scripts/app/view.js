@@ -14,4 +14,11 @@ ui.view.inject = (html, name) => {
     const content = document.querySelector(`div.content`);
     content.innerHTML = html;
     content.className = 'content ' + name;
+    ui.utils.scaleUI();
+}
+
+ui.view.injectComponent = (html, selector) => {
+    const content = document.querySelector(selector);
+    content.innerHTML = html;
+    ui.utils.scaleUI();
 }

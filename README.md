@@ -26,6 +26,7 @@ Import your racing simulator game libraries and customize your gaming experience
 * Uses custom **JavaScript** framework found in `App/Scripts`
     * compile scripts using `gulp default`
     * while working on scripts, run `gulp watch` to watch for changes and compile on the fly
+    * **HTML Components** are loaded using api endpoint `api/views/{path}` that returns HTML files located in `App/Views`
 * Uses custom **CSS** UI framework found in `App/CSS`
     * compile CSS using `gulp less`
     * while working on css, run `gulp watch` to watch for changes and compile on the fly

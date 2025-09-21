@@ -16,14 +16,14 @@ namespace RacerUI.Controllers
         public IActionResult Index(string path)
         {
             // Only check cache if not in development mode
-            if (RacerUI.App.Environment != RacerUI.Environment.development && 
+            if (App.Environment != Environment.development && 
                 _memoryCache.TryGetValue($"view_{path}.html", out string cachedView))
             {
                 return Content(cachedView, "text/html");
             }
             
             // Path to the component view file
-            string viewPath = Path.Combine(Directory.GetCurrentDirectory(), "Views", "Components", $"{path}.html");
+            string viewPath = Path.Combine(Directory.GetCurrentDirectory(), "Views", $"{path}.html");
             
             // Check if file exists
             if (!System.IO.File.Exists(viewPath))
@@ -35,7 +35,7 @@ namespace RacerUI.Controllers
             string viewContent = System.IO.File.ReadAllText(viewPath);
             
             // Only cache the view if not in development mode
-            if (RacerUI.App.Environment != RacerUI.Environment.development)
+            if (App.Environment != Environment.development)
             {
                 var cacheOptions = new MemoryCacheEntryOptions()
                     .SetSlidingExpiration(TimeSpan.FromMinutes(30));

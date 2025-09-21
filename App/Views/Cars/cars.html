@@ -1,0 +1,20 @@
+<div class="cars-toolbar sub-menu scale-ui">
+    <nav>
+        <ul class="menu">
+            <li class="item-country" onclick="RacerUI.views.cars.nav(event, 'country')"><a href="/dashboard/cars/country">Country</a></li>
+            <li class="item-manufacturer" onclick="RacerUI.views.cars.nav(event, 'manufacturer')"><a href="/dashboard/cars/manufacturer">Manufacturer</a></li>
+            <li class="item-model" onclick="RacerUI.views.cars.nav(event, 'model')"><a href="/dashboard/cars/model">Model</a></li>
+            <li class="item-year" onclick="RacerUI.views.cars.nav(event, 'year')"><a href="/dashboard/cars/year">Year</a></li>
+            <li class="item-type" onclick="RacerUI.views.cars.nav(event, 'type')"><a href="/dashboard/cars/type">Type</a></li>
+            <li class="item-style" onclick="RacerUI.views.cars.nav(event, 'style')"><a href="/dashboard/cars/style">Style</a></li>
+            <li class="item-specialization" onclick="RacerUI.views.cars.nav(event, 'specialization')"><a href="/dashboard/cars/specialization">Specialization</a></li>
+            <li class="search-input">
+                <input type="text" id="search_cars" placeholder="Search"/>
+                <svg viewBox="0 0 64 64" class="dark">
+                    <use xlink:href="#icon-arrow-right" x="0" y="0" width="64" height="64"></use>
+                </svg>
+            </li>
+        </ul>
+    </nav>
+</div>
+<div class="cars-content"></div>
