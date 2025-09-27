@@ -50,6 +50,11 @@ namespace RacerUI.Entities
         public int? Start { get; set; }
 
         /// <summary>
+        /// If true, car must have at least one skin
+        /// </summary>
+        public bool HasSkins { get; set; } = true;
+
+        /// <summary>
         /// Number of records to return
         /// </summary>
         public int? Length { get; set; }

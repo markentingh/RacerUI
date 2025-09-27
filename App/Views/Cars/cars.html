@@ -1,6 +1,7 @@
 <div class="cars-toolbar sub-menu scale-ui">
     <nav>
         <ul class="menu">
+            <li class="item-view" onclick="RacerUI.views.cars.nav(event, 'view')"><a href="/dashboard/cars/views">View</a></li>
             <li class="item-country" onclick="RacerUI.views.cars.nav(event, 'country')"><a href="/dashboard/cars/country">Country</a></li>
             <li class="item-manufacturer" onclick="RacerUI.views.cars.nav(event, 'manufacturer')"><a href="/dashboard/cars/manufacturer">Manufacturer</a></li>
             <li class="item-model" onclick="RacerUI.views.cars.nav(event, 'model')"><a href="/dashboard/cars/model">Model</a></li>
@@ -15,6 +16,14 @@
                 </svg>
             </li>
         </ul>
+        <div class="right">
+            <div class="close-btn" onclick="RacerUI.views.cars.hideFilter()" style="display:none;">
+                <svg viewBox="0 0 64 64" class="dark">
+                    <use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use>
+                </svg>
+            </div>
+        </div>
     </nav>
 </div>
+<div class="cars-filter"></div>
 <div class="cars-content"></div>

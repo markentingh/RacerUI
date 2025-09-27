@@ -1,11 +1,16 @@
-ui.view = {};
+ui.view = {cache:{}};
 ui.views = {}; //contains all loaded views
 
 ui.view.loadComponent = (path, callback) => {
+    if(ui.view.cache[path]){
+        if (callback) callback(ui.view.cache[path]);
+        return;
+    }
     ui.ajax({
         url: `/views/${path}`,
         complete: (response) => {
-            if (callback) callback(response);
+            ui.view.cache[path] = response.responseText;
+            if (callback) callback(response.responseText);
         }
     });
 }

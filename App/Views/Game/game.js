@@ -5,9 +5,9 @@ ui.views.game = {
 
 // Load default game view
 ui.views.game.load = () => {
-    ui.view.loadComponent(`Game/game`, (response) => {
+    ui.view.loadComponent(`Game/game`, (html) => {
         ui.nav.select('game');
-        ui.view.inject(response.responseText, 'game');
+        ui.view.inject(html, 'game');
         ui.views.game.checkingAssetsShowUI();
         ui.game.get().then((game) => {
             if (game == null || game.id == null || game.id == 0) {

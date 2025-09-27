@@ -2,8 +2,8 @@ ui.views.tracks = {};
 
 // Load default game view
 ui.views.tracks.load = () => {
-    ui.view.loadComponent(`Tracks/tracks`, (response) => {
+    ui.view.loadComponent(`Tracks/tracks`, (html) => {
         ui.nav.select('tracks');
-        ui.view.inject(response.responseText, 'tracks');
+        ui.view.inject(html, 'tracks');
     });
 };

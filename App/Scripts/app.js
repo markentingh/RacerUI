@@ -9,5 +9,4 @@
     /* DO NOT REMOVE THE CODE ABOVE */
 
     window.RacerUI = ui;
-    ui.hub.load();
 })();

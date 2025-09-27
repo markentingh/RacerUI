@@ -30,10 +30,12 @@ paths.working = {
             paths.scripts + 'routing/routing.js',
             paths.scripts + 'utils/*.js',
             paths.scripts + 'init.js',
+            paths.scripts + 'dashboard.js',
         ],
         login_files: [
             paths.scripts + 'app/ajax.js',
             paths.scripts + 'app/toggle.js',
+            paths.scripts + 'app/dark-mode.js',
             paths.scripts + 'components/ui/darkmode-toggle.js',
             paths.scripts + 'init.js',
             paths.scripts + 'login.js',
@@ -63,18 +65,6 @@ paths.compiled = {
         app: paths.webroot + 'js/app.js',
         login: paths.webroot + 'js/login.js',
     }
-};
-
-
-//tasks for compiling javascript //////////////////////////////////////////////////////////////
-const makeAppJs = (files, output) => {
-    var app = fs.readFileSync(paths.working.js.app, 'utf8');
-    var appParts = app.split('/*[js libraries goes here]*/');
-    var p = gulp.src(files, { base: '.' })
-        .pipe(order(files))
-        .pipe(concat(output))
-        .pipe(headerfooter(appParts[0], appParts[1]));
-    return p.pipe(gulp.dest('.', { overwrite: true }));
 };
 
 //tasks for compiling LESS & CSS /////////////////////////////////////////////////////////////////////
@@ -110,6 +100,17 @@ gulp.task('less:login', function () {
 });
 
 gulp.task('less', gulp.series(['less:app', 'less:colors', 'less:login']));
+
+//tasks for compiling javascript //////////////////////////////////////////////////////////////
+const makeAppJs = (files, output) => {
+    var app = fs.readFileSync(paths.working.js.app, 'utf8');
+    var appParts = app.split('/*[js libraries goes here]*/');
+    var p = gulp.src(files, { base: '.' })
+        .pipe(order(files))
+        .pipe(concat(output))
+        .pipe(headerfooter(appParts[0], appParts[1]));
+    return p.pipe(gulp.dest('.', { overwrite: true }));
+};
 
 gulp.task('js:app', function () {
     return makeAppJs(paths.working.js.app_files, paths.compiled.js.app);

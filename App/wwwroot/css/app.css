@@ -76,6 +76,21 @@ p {
   font-size: 1.25em;
   line-height: 1.5;
 }
+.right {
+  float: right;
+}
+.left {
+  float: left;
+}
+.align-right {
+  text-align: right;
+}
+.align-left {
+  text-align: left;
+}
+.align-center {
+  text-align: center;
+}
 /* logo */
 .logo .light {
   position: absolute;
@@ -544,8 +559,30 @@ button,
 .cars-toolbar nav ul.menu li.search-input input {
   max-width: 15em;
 }
-.filter-country h2 {
-  padding: 2em 0 0 2em;
+.cars-toolbar .close-btn {
+  width: 2em;
+  margin: 0.75em 2em 0 0;
+  opacity: 0.3;
+  cursor: pointer;
+  transition: opacity 0.25s ease-in-out;
+}
+.cars-toolbar .close-btn:hover {
+  opacity: 1;
+}
+.cars-filter {
+  position: absolute;
+}
+.filter-view ul.select-list {
+  padding: 0 2em 2em 2em;
+}
+.filter-view ul.select-list li {
+  padding: 1em 1.5em;
+  height: 1em;
+}
+.filter-view ul.select-list li img {
+  width: 1.5em;
+  padding: 0 0.5em 0 0;
+  vertical-align: middle;
 }
 .filter-country ul.select-list {
   padding: 0 2em 2em 2em;
@@ -555,6 +592,78 @@ button,
   height: 1em;
 }
 .filter-country ul.select-list li img {
+  width: 1.5em;
+  padding: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+.filter-manufacturer ul.select-list {
+  padding: 0 2em 2em 2em;
+}
+.filter-manufacturer ul.select-list li {
+  padding: 1em 1.5em;
+  height: 1em;
+}
+.filter-manufacturer ul.select-list li img {
+  width: 1.5em;
+  padding: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+.filter-model ul.select-list {
+  padding: 0 2em 2em 2em;
+}
+.filter-model ul.select-list li {
+  padding: 1em 1.5em;
+  height: 1em;
+}
+.filter-model ul.select-list li img {
+  width: 1.5em;
+  padding: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+.filter-year ul.select-list {
+  padding: 0 2em 2em 2em;
+}
+.filter-year ul.select-list li {
+  padding: 1em 1.5em;
+  height: 1em;
+}
+.filter-year ul.select-list li img {
+  width: 1.5em;
+  padding: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+.filter-type ul.select-list {
+  padding: 0 2em 2em 2em;
+}
+.filter-type ul.select-list li {
+  padding: 1em 1.5em;
+  height: 1em;
+}
+.filter-type ul.select-list li img {
+  width: 1.5em;
+  padding: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+.filter-style ul.select-list {
+  padding: 0 2em 2em 2em;
+}
+.filter-style ul.select-list li {
+  padding: 1em 1.5em;
+  height: 1em;
+}
+.filter-style ul.select-list li img {
+  width: 1.5em;
+  padding: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+.filter-specialization ul.select-list {
+  padding: 0 2em 2em 2em;
+}
+.filter-specialization ul.select-list li {
+  padding: 1em 1.5em;
+  height: 1em;
+}
+.filter-specialization ul.select-list li img {
   width: 1.5em;
   padding: 0 0.5em 0 0;
   vertical-align: middle;
