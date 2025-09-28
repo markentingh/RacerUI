@@ -11,58 +11,63 @@ ui.views.cars = {
         specializations: [],//specializationId int
         search: '',
         start: 0,
-        length: 20,
+        length: 30,
         view: 'grid',
-    }
+    },
+    results: []
 };
 
 // Load default game view
 ui.views.cars.load = (e) => {
     //first, load filter settings from local storage
+    console.log('ui.views.cars.load', e);
     if (localStorage.getItem('RacerUI:cars-filter')) {
-        ui.views.cars.filter = JSON.parse(localStorage.getItem('RacerUI:cars-filter'));
+        ui.views.cars.filter = {...ui.views.cars.filter, ...JSON.parse(localStorage.getItem('RacerUI:cars-filter'))};
     }
     if (document.querySelector('.cars-toolbar') == null) {
         //view not loaded yet
+        console.log('loadComponent(Cars/cars)');
         ui.view.loadComponent(`Cars/cars`, (html) => {
             ui.nav.select('cars');
             ui.view.inject(html, 'cars');
             if (e && e.id) {
                 ui.views.cars.updateNav(e.id);
             }
+            ui.views.cars.getFilteredList();
         });
     } else {
         //view already loaded
         if (e && e.id) {
             ui.views.cars.updateNav(e.id);
         }
+        ui.views.cars.getFilteredList();
     }
 };
 
-ui.views.cars.nav = (e, item) => {
+ui.views.cars.nav = (e, section) => {
     e.preventDefault();
     e.stopPropagation();
-    var navItem = document.querySelector(`.cars-toolbar li.item-${item}`);
+    var navItem = document.querySelector(`.cars-toolbar li.item-${section}`);
     if (navItem.classList.contains('selected')) {
         ui.views.cars.hideFilter();
         return false;
     }
-    history.pushState(null, '', `/dashboard/cars/${item}` + window.location.search);
+    history.pushState(null, '', `/dashboard/cars/${section}` + window.location.search);
     return true;
 };
 
-ui.views.cars.updateNav = (item) => {
+ui.views.cars.updateNav = (section) => {
     ui.nav.select('cars')
-    var navItem = document.querySelector(`.cars-toolbar li.item-${item}`);
+    var navItem = document.querySelector(`.cars-toolbar li.item-${section}`);
     if (navItem.classList.contains('selected')) {
         ui.views.cars.hideFilter();
         return false;
     }
     document.querySelector('.cars-toolbar li').classList.remove('selected');
     navItem.classList.add('selected');
-    ui.view.loadComponent(`Cars/filter-${item}`, (html) => {
+    ui.view.loadComponent(`Cars/filter-${section}`, (html) => {
         ui.view.injectComponent(html, '.cars-filter');
-        switch (item) {
+        switch (section) {
             case 'country':
                 ui.views.cars.country.load();
                 break;
@@ -107,7 +112,6 @@ ui.views.cars.getFilteredList = () => {
         url: `/api/cars/filter`,
         data: ui.views.cars.filter,
         complete: (response) => {
-            console.log(response);
             if (response.status == 200) {
                 ui.views.cars.views.load(JSON.parse(response.responseText));
             }
@@ -122,31 +126,23 @@ ui.views.cars.getFilteredList = () => {
 ui.views.cars.views = {};
 
 ui.views.cars.views.load = (list) => {
-    switch (ui.views.cars.filter.view) {
-        case 'grid':
-            ui.views.cars.views.grid(list);
-            break;
-        case 'gallery':
-            ui.views.cars.views.gallery(list);
-            break;
-    }
-}
-
-ui.views.cars.views.grid = (list) => {
-    ui.view.loadComponent(`Cars/view-grid`, (html) => {
-        list.forEach((car) => {
-            ui.view.injectComponent(html
-                .replace('{{preview}}', car.preview)
-                .replace('{{name}}', car.name)
-                .replace('{{description}}', car.description)
-                , '.cars-content');
+    ui.views.cars.results = list;
+    ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-view`, (htmlView) => {
+        ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
+            var output = '';
+            list.cars.forEach((car) => {
+                const skin = car.skins.length > 0 ? car.skins[0] : null;
+                var preview = skin ? '/image/' + encodeURIComponent(ui.game.name) + '/skin/' + encodeURIComponent(car.path) + '/' + encodeURIComponent(skin.path) : '';
+                output += htmlItem.replace('{{preview}}', preview || 'no-preview.jpg')
+                    .replace('{{name}}', car.name ?? car.path.replace(/_/g, ' '))
+                    .replace('{{description}}', car.description ?? '')
+                    ;
+            });
+            ui.view.injectComponent(htmlView.replace('{{items}}', output), '.cars-content');
         });
     });
 }
 
-ui.views.cars.views.gallery = (list) => {
-
-}
 
 //#endregion
 
@@ -182,7 +178,6 @@ ui.views.cars.view.select = (view) => {
     document.querySelectorAll('.filter-view li[data-view="' + view + '"]').forEach((li) => {
         li.classList.add('selected');
     });
-    ui.views.cars.getFilteredList();
 };
 
 //#endregion

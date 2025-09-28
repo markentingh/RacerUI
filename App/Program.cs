@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.StaticFiles;
+using RacerUI.SQL;
+using RacerUI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,8 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
-        // Configure JSON serialization to be case-insensitive
+        // Configure JSON serialization to be case-insensitive and ignore null values
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.WriteIndented = true;
     });
 builder.Services.AddSession(options =>
 {
@@ -65,30 +69,30 @@ app.UseAuthorization();
 
 
 //check if app is running in Docker Container
-RacerUI.App.IsDocker = System.Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+App.IsDocker = System.Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
 
 switch (app.Environment.EnvironmentName.ToLower())
 {
     case "production":
-        RacerUI.App.Environment = RacerUI.Environment.production;
+        App.Environment = RacerUI.Environment.production;
         break;
     case "staging":
-        RacerUI.App.Environment = RacerUI.Environment.staging;
+        App.Environment = RacerUI.Environment.staging;
         break;
     default:
-        RacerUI.App.Environment = RacerUI.Environment.development;
+        App.Environment = RacerUI.Environment.development;
         break;
 }
 
 //load application-wide cache
-RacerUI.App.ConfigFilename = "config" +
-    (RacerUI.App.IsDocker ? ".docker" : "") +
-    (RacerUI.App.Environment == RacerUI.Environment.production ? ".prod" : "") + ".json";
+App.ConfigFilename = "config" +
+    (App.IsDocker ? ".docker" : "") +
+    (App.Environment == RacerUI.Environment.production ? ".prod" : "") + ".json";
 
 var builtConfig = new ConfigurationBuilder()
-                .AddJsonFile(RacerUI.App.MapPath(RacerUI.App.ConfigFilename))
+                .AddJsonFile(App.MapPath(App.ConfigFilename))
                 .AddEnvironmentVariables().Build();
-builtConfig.Bind(RacerUI.App.Config);
+builtConfig.Bind(App.Config);
 
 app.MapControllerRoute(
     name: "default",
@@ -96,6 +100,17 @@ app.MapControllerRoute(
 
 
 app.MapHub<RacerUI.SignalR.DashboardHub>("/dashboardhub");
+
+//load game info from database
+var games = GamesRepository.GetAll();
+foreach (var game in games)
+{
+    var gameInfo = App.Game(game.Name);
+    if(gameInfo != null)
+    {
+        gameInfo.GamePath = game.Path;
+    }
+}
 
 app.Start();
 
@@ -107,7 +122,7 @@ if (addressFeature != null)
     foreach (var address in addressFeature.Addresses)
     {
         Console.WriteLine($"Listening to {address}");
-        RacerUI.App.Addresses.Add(address);
+        App.Addresses.Add(address);
     }
 }
 

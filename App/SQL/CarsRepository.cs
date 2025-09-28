@@ -1,9 +1,6 @@
 using Dapper;
 using RacerUI.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using RacerUI.Models;
 
 namespace RacerUI.SQL
 {
@@ -393,18 +390,44 @@ namespace RacerUI.SQL
         /// </summary>
         /// <param name="filter">The filter entity containing all filter criteria including pagination parameters</param>
         /// <returns>A list of cars matching the filter criteria with pagination applied</returns>
-        public static IEnumerable<Car> AdvancedFilter(CarFilter filter)
+        public static CarResultsModel AdvancedFilter(CarFilter filter)
         {
             var conditions = new List<string>();
             var parameters = new DynamicParameters();
 
-            // Base query to get all cars with their related data
-            var carsSql = @"
-            SELECT c.* FROM Cars c
-            LEFT JOIN CarMakes m ON c.MakeId = m.Id
-            LEFT JOIN CarModels mdl ON c.ModelId = mdl.Id";
+            var sql = @"
+                CREATE TEMP TABLE CarsFilter
+                (Id INTEGER PRIMARY KEY);
+            
+                INSERT INTO CarsFilter (Id)
+                SELECT DISTINCT c.Id FROM Cars c
+                LEFT JOIN CarMakes cmk ON cmk.Id = c.MakeId
+                LEFT JOIN CarModels cmdl ON cmdl.Id = c.ModelId";
 
-            // Add conditions for each filter parameter
+            //determine which joins to include based on filter
+            if (filter.Types != null && filter.Types.Count > 0)
+            {
+                sql += @"
+                JOIN Cars_Types ct ON c.Id = ct.CarId";
+            }
+            if (filter.Styles != null && filter.Styles.Count > 0)
+            {
+                sql += @"
+                JOIN Cars_Styling cs ON c.Id = cs.CarId";
+            }
+            if (filter.Specializations != null && filter.Specializations.Count > 0)
+            {
+                sql += @"
+                JOIN Cars_Specializations csp ON c.Id = csp.CarId";
+            }
+            if(filter.HasSkins == true)
+            {
+                sql += @"
+                JOIN Cars_Skins cs ON c.Id = cs.CarId";
+            }
+
+
+            //determine which where clauses to include based on filter
             if (filter.Countries != null && filter.Countries.Count > 0)
             {
                 conditions.Add("m.CountryCode IN @Countries");
@@ -428,124 +451,84 @@ namespace RacerUI.SQL
                 conditions.Add("c.Year IN @Years");
                 parameters.Add("Years", filter.Years);
             }
-
-            // Handle types - requires subquery or join
-            if (filter.Types != null && filter.Types.Count > 0)
-            {
-                carsSql += @" 
-            LEFT JOIN (
-                SELECT ct.CarId 
-                FROM Cars_Types ct 
-                WHERE ct.TypeId IN @Types
-                GROUP BY ct.CarId
-            ) types ON c.Id = types.CarId";
-
-                conditions.Add("types.CarId IS NOT NULL");
-                parameters.Add("Types", filter.Types);
-            }
-
-            // Handle styles - requires subquery or join
-            if (filter.Styles != null && filter.Styles.Count > 0)
-            {
-                carsSql += @" 
-            LEFT JOIN (
-                SELECT cs.CarId 
-                FROM Cars_Styling cs 
-                WHERE cs.StylingId IN @Styles
-                GROUP BY cs.CarId
-            ) styles ON c.Id = styles.CarId";
-
-                conditions.Add("styles.CarId IS NOT NULL");
-                parameters.Add("Styles", filter.Styles);
-            }
-
-            // Handle specializations - requires subquery or join
-            if (filter.Specializations != null && filter.Specializations.Count > 0)
-            {
-                carsSql += @" 
-            LEFT JOIN (
-                SELECT cs.CarId 
-                FROM Cars_Specializations cs 
-                WHERE cs.SpecializationId IN @Specializations
-                GROUP BY cs.CarId
-            ) specs ON c.Id = specs.CarId";
-
-                conditions.Add("specs.CarId IS NOT NULL");
-                parameters.Add("Specializations", filter.Specializations);
-            }
-
-            // Handle text search
             if (!string.IsNullOrEmpty(filter.Search))
             {
                 conditions.Add(@"(
                 c.Name LIKE @SearchTerm OR 
                 c.ShortDescription LIKE @SearchTerm OR 
                 c.Author LIKE @SearchTerm OR 
-                m.Name LIKE @SearchTerm OR 
-                mdl.Name LIKE @SearchTerm
+                cm.Name LIKE @SearchTerm OR 
+                cm.Name LIKE @SearchTerm
             )");
                 parameters.Add("SearchTerm", $"%{filter.Search}%");
             }
 
-            if(filter.HasSkins == true)
-            {
-                conditions.Add(@"EXISTS(SELECT 1 FROM Cars_Skins WHERE CarId=c.Id)");
-            }
-
-            // Create a base filtered cars query with WHERE clause
-            var filteredCarsSql = carsSql;
+            //join all conditions
             if (conditions.Count > 0)
             {
-                filteredCarsSql += " WHERE " + string.Join(" AND ", conditions);
+                sql += @"
+                WHERE " + string.Join(" AND ", conditions);
             }
 
-            // Create a filtered car IDs query for use in related queries
-            var filteredCarIdsSql = "SELECT c.Id FROM (" + filteredCarsSql + ") c";
+            //add sorting & pagination
+            sql += @"
+                ORDER BY cmk.Name, cmdl.Name, c.Year
+                LIMIT @Length OFFSET @Start;";
+            parameters.Add("Start", filter.Start.HasValue ? filter.Start.Value : 0);
+            parameters.Add("Length", filter.Length.HasValue ? filter.Length.Value : 20);
 
-            // Complete the cars query with ORDER BY and pagination
-            var completedCarsSql = filteredCarsSql + " ORDER BY m.Name, mdl.Name, c.Year";
-            
-            // Add pagination if specified
-            if (filter.Start.HasValue && filter.Length.HasValue)
-            {
-                completedCarsSql += " LIMIT @Length OFFSET @Start";
-                parameters.Add("Start", filter.Start.Value);
-                parameters.Add("Length", filter.Length.Value);
-            }
+            // get all filtered cars with their related data
+            var carsSql = @"
+                SELECT c.* FROM Cars c WHERE c.Id IN (SELECT Id FROM CarsFilter);";
 
-            // SQL to get skins for all cars in the result set, ordered by Favorite DESC
+            // get skins for all cars in the result set, ordered by Favorite DESC
             var skinsSql = @"
-            SELECT s.* FROM Cars_Skins s
-            WHERE s.CarId IN (" + filteredCarIdsSql + @")
-            ORDER BY s.Favorite DESC";
+                SELECT s.* FROM Cars_Skins s
+                WHERE s.CarId IN (SELECT Id FROM CarsFilter)
+                ORDER BY s.Favorite DESC;";
 
-            // SQL to get car types for all cars in the result set
+            // get car types for all cars in the result set - relationships and details
             var typesSql = @"
-            SELECT ct.*, t.* FROM Cars_Types ct
-            INNER JOIN CarTypes t ON ct.TypeId = t.Id
-            WHERE ct.CarId IN (" + filteredCarIdsSql + @")";
+                SELECT ct.CarId, ct.TypeId FROM Cars_Types ct
+                WHERE ct.CarId IN (SELECT Id FROM CarsFilter);
+                
+                SELECT DISTINCT t.* FROM CarTypes t
+                INNER JOIN Cars_Types ct ON ct.TypeId = t.Id
+                WHERE ct.CarId IN (SELECT Id FROM CarsFilter);";                
 
-            // SQL to get car stylings for all cars in the result set
+            // get car stylings for all cars in the result set - relationships and details
             var stylingsSql = @"
-            SELECT cs.*, s.* FROM Cars_Styling cs
-            INNER JOIN CarStyling s ON cs.StylingId = s.Id
-            WHERE cs.CarId IN (" + filteredCarIdsSql + @")";
+                SELECT cs.CarId, cs.StylingId FROM Cars_Styling cs
+                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);
+                
+                SELECT DISTINCT s.* FROM CarStyling s
+                INNER JOIN Cars_Styling cs ON cs.StylingId = s.Id
+                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);";                
 
-            // SQL to get car specializations for all cars in the result set
+            // get car specializations for all cars in the result set - relationships and details
             var specsSql = @"
-            SELECT cs.*, rs.* FROM Cars_Specializations cs
-            INNER JOIN RacingSpecializations rs ON cs.SpecializationId = rs.Id
-            WHERE cs.CarId IN (" + filteredCarIdsSql + @")";
+                SELECT cs.CarId, cs.SpecializationId FROM Cars_Specializations cs
+                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);
+                
+                SELECT DISTINCT rs.* FROM RacingSpecializations rs
+                INNER JOIN Cars_Specializations cs ON cs.SpecializationId = rs.Id
+                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);";                
 
-            // SQL to get car makes and models for all cars in the result set
-            var makeModelSql = @"
-            SELECT c.Id AS CarId, m.*, mdl.* FROM Cars c
-            LEFT JOIN CarMakes m ON c.MakeId = m.Id
-            LEFT JOIN CarModels mdl ON c.ModelId = mdl.Id
-            WHERE c.Id IN (" + filteredCarIdsSql + @")";
+            // get car makes for all cars in the result set
+            var makeSql = @"
+                SELECT DISTINCT m.* FROM Cars c
+                LEFT JOIN CarMakes m ON c.MakeId = m.Id
+                WHERE c.Id IN (SELECT Id FROM CarsFilter);";
+
+            // get car models for all cars in the result set
+            var modelSql = @"
+                SELECT DISTINCT m.* FROM Cars c
+                LEFT JOIN CarModels m ON c.ModelId = m.Id
+                WHERE c.Id IN (SELECT Id FROM CarsFilter);";
 
             // Combine all queries for QueryMultiple
-            var combinedSql = completedCarsSql + ";" + skinsSql + ";" + typesSql + ";" + stylingsSql + ";" + specsSql + ";" + makeModelSql;
+            var combinedSql = sql + carsSql + skinsSql + typesSql + stylingsSql + specsSql + makeSql + modelSql + @"
+                DROP TABLE CarsFilter";
 
             using (var connection = Connection.GetConnection())
             {
@@ -554,134 +537,143 @@ namespace RacerUI.SQL
                     // Get cars and related data from the result sets
                     var cars = multi.Read<Car>().ToList();
                     var skins = multi.Read<CarSkin>().ToList();
-                    var typesData = multi.Read<dynamic>().ToList();
-                    var stylingsData = multi.Read<dynamic>().ToList();
-                    var specsData = multi.Read<dynamic>().ToList();
-                    var makesModelsData = multi.Read<dynamic>().ToList();
+                    
+                    // Read types data (relationships and details)
+                    var typesRelationships = multi.Read<dynamic>().ToList();
+                    var typesDetails = multi.Read<CarType>().ToList();
+                    
+                    // Read stylings data (relationships and details)
+                    var stylingsRelationships = multi.Read<dynamic>().ToList();
+                    var stylingsDetails = multi.Read<CarStyling>().ToList();
+                    
+                    // Read specializations data (relationships and details)
+                    var specsRelationships = multi.Read<dynamic>().ToList();
+                    var specsDetails = multi.Read<RacingSpecialization>().ToList();
+                    
+                    // Read makes and models data
+                    var makesData = multi.Read<CarMake>().ToList();
+                    var modelsData = multi.Read<CarModel>().ToList();
 
                     // Group skins by car ID (already ordered by Favorite DESC in the SQL)
                     var skinsByCarId = skins.GroupBy(s => s.CarId)
                         .ToDictionary(g => g.Key, g => g.ToList());
 
-                    // Group types by car ID
+                    // Create a dictionary of types by ID for quick lookup
+                    var typesById = typesDetails.ToDictionary(t => t.Id);
+                    
+                    // Group types by car ID using the relationships
                     var typesByCarId = new Dictionary<int, List<CarType>>();
-                    foreach (var item in typesData)
+                    foreach (var rel in typesRelationships)
                     {
-                        int carId = item.CarId;
-                        var carType = new CarType
+                        int carId = (int)rel.CarId;
+                        int typeId = (int)rel.TypeId;
+                        
+                        // Look up the type details
+                        if (typesById.TryGetValue(typeId, out var carType))
                         {
-                            Id = item.Id,
-                            Name = item.Name,
-                            CarId = carId
-                            // Add other type properties as needed
-                        };
-
-                        if (!typesByCarId.ContainsKey(carId))
-                        {
-                            typesByCarId[carId] = new List<CarType>();
+                            // Create a new instance with the car ID set
+                            var typeWithCarId = new CarType
+                            {
+                                Id = carType.Id,
+                                Name = carType.Name,
+                                CarId = carId
+                                // Copy any other properties from carType as needed
+                            };
+                            
+                            if (!typesByCarId.ContainsKey(carId))
+                            {
+                                typesByCarId[carId] = new List<CarType>();
+                            }
+                            typesByCarId[carId].Add(typeWithCarId);
                         }
-                        typesByCarId[carId].Add(carType);
                     }
 
-                    // Group stylings by car ID
+                    // Create a dictionary of stylings by ID for quick lookup
+                    var stylingsById = stylingsDetails.ToDictionary(s => s.Id);
+                    
+                    // Group stylings by car ID using the relationships
                     var stylingsByCarId = new Dictionary<int, List<CarStyling>>();
-                    foreach (var item in stylingsData)
+                    foreach (var rel in stylingsRelationships)
                     {
-                        int carId = item.CarId;
-                        var styling = new CarStyling
+                        int carId = (int)rel.CarId;
+                        int stylingId = (int)rel.StylingId;
+                        
+                        // Look up the styling details
+                        if (stylingsById.TryGetValue(stylingId, out var styling))
                         {
-                            Id = item.Id,
-                            Name = item.Name,
-                            CarId = carId
-                            // Add other styling properties as needed
-                        };
-
-                        if (!stylingsByCarId.ContainsKey(carId))
-                        {
-                            stylingsByCarId[carId] = new List<CarStyling>();
+                            stylingsByCarId[carId].Add(styling);
                         }
-                        stylingsByCarId[carId].Add(styling);
                     }
 
-                    // Group specializations by car ID
-                    var specsByCarId = new Dictionary<int, List<CarSpecialization>>();
-                    foreach (var item in specsData)
+                    // Create a dictionary of specializations by ID for quick lookup
+                    var specsById = specsDetails.ToDictionary(s => s.Id);
+                    
+                    // Group specializations by car ID using the relationships
+                    var specsByCarId = new Dictionary<int, List<RacingSpecialization>>();
+                    foreach (var rel in specsRelationships)
                     {
-                        int carId = item.CarId;
-                        var spec = new CarSpecialization
+                        int carId = (int)rel.CarId;
+                        int specId = (int)rel.SpecializationId;
+                        
+                        // Look up the specialization details
+                        if (specsById.TryGetValue(specId, out var spec))
                         {
-                            SpecializationId = item.Id,
-                            Name = item.Name,
-                            CarId = carId
-                            // Add other specialization properties as needed
-                        };
-
-                        if (!specsByCarId.ContainsKey(carId))
-                        {
-                            specsByCarId[carId] = new List<CarSpecialization>();
+                            specsByCarId[carId].Add(spec);
                         }
-                        specsByCarId[carId].Add(spec);
                     }
 
-                    // Create dictionary for make/model data
-                    var makeModelByCarId = makesModelsData.ToDictionary(item => (int)item.CarId);
+                    // Create dictionaries for makes and models by ID for quick lookup
+                    var makesById = makesData.ToDictionary(m => m.Id);
+                    var modelsById = modelsData.ToDictionary(m => m.Id);
 
-                    // Assign all related data to their respective cars
-                    foreach (var car in cars)
+                    // Create the result model
+                    var result = new CarResultsModel
+                    {
+                        Cars = cars,
+                        Makes = makesData.Count > 0 && makesData[0].Id > 0 ? makesData : new List<CarMake>(),
+                        Types = typesDetails.ToList(),
+                        Stylings = stylingsDetails.ToList(),
+                        Specializations = specsDetails.ToList()
+                    };
+
+                    // Assign only model and skins to each car (these are unique to each car)
+                    foreach (var car in result.Cars)
                     {
                         // Assign skins
                         if (skinsByCarId.TryGetValue(car.Id, out var carSkins))
                         {
                             car.Skins = carSkins;
                         }
-                        else
+                        
+                        // Assign model details if available
+                        if (car.ModelId.HasValue && car.ModelId > 0 && modelsById.TryGetValue(car.ModelId.Value, out var model))
                         {
-                            car.Skins = new List<CarSkin>();
+                            car.Model = modelsById[car.ModelId.Value];
                         }
 
-                        // Assign types
+                        // Clear Make reference since it's in the shared collection
+                        car.Make = null;
+                        
+                        // Keep only the IDs in the Types list
                         if (typesByCarId.TryGetValue(car.Id, out var carTypes))
                         {
-                            car.Types = carTypes;
+                            car.Types = carTypes.Select(t => new CarType { Id = t.Id }).ToList();
                         }
-                        else
-                        {
-                            car.Types = new List<CarType>();
-                        }
-
-                        // Assign stylings
+                        
+                        // Keep only the IDs in the Stylings list
                         if (stylingsByCarId.TryGetValue(car.Id, out var carStylings))
                         {
-                            car.Stylings = carStylings;
+                            car.Stylings = carStylings.Select(s => new CarStyling { Id = s.Id }).ToList();
                         }
-                        else
-                        {
-                            car.Stylings = new List<CarStyling>();
-                        }
-
-                        // Assign specializations
+                        
+                        // Keep only the IDs in the Specializations list
                         if (specsByCarId.TryGetValue(car.Id, out var carSpecs))
                         {
-                            car.Specializations = carSpecs;
-                        }
-                        else
-                        {
-                            car.Specializations = new List<CarSpecialization>();
-                        }
-
-                        // Assign make and model details if available
-                        if (makeModelByCarId.TryGetValue(car.Id, out var makeModelData))
-                        {
-                            // These properties should already be set via the main car query,
-                            // but we can enhance with additional make/model properties if needed
-                            if (car.MakeId == 0 && makeModelData.Id != null)
-                            {
-                                car.MakeId = makeModelData.Id;
-                            }
+                            car.Specializations = carSpecs.Select(s => new CarSpecialization { Id = s.Id }).ToList();
                         }
                     }
 
-                    return cars;
+                    return result;
                 }
             }
         }

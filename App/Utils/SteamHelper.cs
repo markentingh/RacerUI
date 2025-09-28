@@ -54,7 +54,7 @@ namespace RacerUI.Utils {
             {
                 foreach(var path in paths)
                 {
-                    var gamePath = Path.Combine(path, "steamapps", "common", gameInfo.SteamAppFolder);
+                    var gamePath = Path.Combine(path, "steamapps", "common", gameInfo.GamePath);
                     if(Directory.Exists(gamePath))
                     {
                         return gamePath;

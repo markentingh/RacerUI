@@ -155,3 +155,30 @@
         }
     }
 }
+
+.cars-content{
+    .grid-view{
+        max-width:100vw;
+        display:grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap:1em;
+        margin:1em;
+        .car{
+            img{
+                width:100%;
+            }
+            .info{
+                h2{
+                    font-size:1em;
+                    font-weight:normal;
+                    margin:0.25em 0 0.5em 0;
+                    line-height:1.25;
+                    opacity:0.75;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+            }
+        }
+    }
+}

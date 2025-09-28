@@ -3,8 +3,6 @@ using Microsoft.Extensions.Caching.Memory;
 using RacerUI.Entities;
 using RacerUI.Models;
 using RacerUI.SQL;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace RacerUI.Controllers
 {
@@ -22,6 +20,10 @@ namespace RacerUI.Controllers
         public IActionResult Filter([FromBody] CarFilterModel filterModel)
         {
             // Create a new filter entity with default empty collections
+            if (filterModel?.Countries.Count > 0 && filterModel?.Countries[0] == "all")
+            {
+                filterModel.Countries.Clear();
+            }
             var filterEntity = new CarFilter
             {
                 Countries = filterModel?.Countries ?? new List<string>(),
@@ -36,9 +38,8 @@ namespace RacerUI.Controllers
                 Length = filterModel?.Length
             };
             
-            var cars = CarsRepository.AdvancedFilter(filterEntity);
-            
-            return Ok(cars);
+            var results = CarsRepository.AdvancedFilter(filterEntity);
+            return Ok(results);
         }
     }
 }

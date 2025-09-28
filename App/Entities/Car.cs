@@ -40,11 +40,11 @@ namespace RacerUI.Entities
         public Game Game { get; set; }
         public Team Team { get; set; }
         public Car Parent { get; set; }
-        public List<Car> ChildCars { get; set; } = new List<Car>();
-        public List<CarSkin> Skins { get; set; } = new List<CarSkin>();
-        public List<CarSpecialization> Specializations { get; set; } = new List<CarSpecialization>();
-        public List<CarStyling> Stylings { get; set; } = new List<CarStyling>();
-        public List<CarTag> Tags { get; set; } = new List<CarTag>();
-        public List<CarType> Types { get; set; } = new List<CarType>();
+        public List<Car> ChildCars { get; set; }
+        public List<CarSkin> Skins { get; set; }
+        public List<CarSpecialization> Specializations { get; set; }
+        public List<CarStyling> Stylings { get; set; }
+        public List<CarTag> Tags { get; set; }
+        public List<CarType> Types { get; set; }
     }
 }

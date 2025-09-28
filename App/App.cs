@@ -13,14 +13,14 @@ namespace RacerUI
     public static class App
     {
         public static string Version = "0.1";
-        public static Models.Config Config { get; set; } = new Models.Config();
+        public static Config Config { get; set; } = new Config();
         public static string ConfigFilename { get; set; } = "";
         public static List<string> Addresses { get; set; } = new List<string>();
         public static Environment Environment { get; set; } = Environment.development;
         public static bool IsDocker { get; set; }
-        public static List<Models.GameInfo> Games { get; set; } = new List<Models.GameInfo>()
+        public static List<GameInfo> Games { get; set; } = new List<GameInfo>()
         {
-            new Models.GameInfo("assetto corsa", "Assetto Corsa", "", "assettocorsa")
+            new GameInfo("assetto corsa", "Assetto Corsa", "", "assettocorsa")
         };
 
         private static string _rootPath { get; set; } = "";
