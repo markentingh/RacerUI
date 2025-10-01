@@ -82,9 +82,14 @@ namespace RacerUI.SignalR
             var gameInfo = SQL.GamesRepository.GetByName(game);
             if (gameInfo != null)
             {
+#region Check Game Assets
                 var gameAppInfo = App.Game(game);
+                int i = 0;
+                int lastProgress = 0;
+
                 switch (game)
                 {
+                    // Assetto Corsa ////////////////////////////////////////////////////////
                     case "assetto corsa":
 
                         //get a list of all car folders
@@ -94,8 +99,6 @@ namespace RacerUI.SignalR
                         await Clients.Caller.SendAsync("progress-title", progressTitle);
 
                         //start batch processing folders
-                        int i = 0;
-                        int lastProgress = 0;
 
                         var jsonOptions = new JsonSerializerOptions
                         {
@@ -244,7 +247,33 @@ namespace RacerUI.SignalR
                         }
                         break;
                 }
+#endregion
 
+                await Clients.Caller.SendAsync("progress", 0);
+
+                // find children for all cars in the database
+                await Clients.Caller.SendAsync("progress-title", "Finding cars that are related to other cars");
+                var cars = SQL.CarsRepository.GetAllCarPaths();
+                i = 0;
+                lastProgress = 0;
+                
+                foreach (var car in cars)
+                {
+                    i++;
+
+                    //update progress in UI
+                    await Clients.Caller.SendAsync("progress-title", $"Finding cars that are related to other cars: Checking car # {i}");
+                    await Clients.Caller.SendAsync("progress-text", $"Finding cars that start with: {car.Path}");
+                    var children = SQL.CarsRepository.FindChildren(car);
+
+                    var progress = (int)Math.Floor((100.0 / cars.Count()) * i);
+                    if (lastProgress < progress)
+                    {
+                        lastProgress = progress;
+                        await Clients.Caller.SendAsync("progress", progress);
+                    }
+                }
+                await Clients.Caller.SendAsync("cars", JsonSerializer.Serialize(cars));
             }
         }
 

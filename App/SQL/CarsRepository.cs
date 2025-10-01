@@ -420,7 +420,7 @@ namespace RacerUI.SQL
                 sql += @"
                 JOIN Cars_Specializations csp ON c.Id = csp.CarId";
             }
-            if(filter.HasSkins == true)
+            if (filter.HasSkins == true)
             {
                 sql += @"
                 JOIN Cars_Skins cs ON c.Id = cs.CarId";
@@ -428,6 +428,10 @@ namespace RacerUI.SQL
 
 
             //determine which where clauses to include based on filter
+            if (filter.HasParent == false)
+            {
+                conditions.Add("c.ParentId IS NULL");
+            }
             if (filter.Countries != null && filter.Countries.Count > 0)
             {
                 conditions.Add("m.CountryCode IN @Countries");
@@ -494,7 +498,7 @@ namespace RacerUI.SQL
                 
                 SELECT DISTINCT t.* FROM CarTypes t
                 INNER JOIN Cars_Types ct ON ct.TypeId = t.Id
-                WHERE ct.CarId IN (SELECT Id FROM CarsFilter);";                
+                WHERE ct.CarId IN (SELECT Id FROM CarsFilter);";
 
             // get car stylings for all cars in the result set - relationships and details
             var stylingsSql = @"
@@ -503,7 +507,7 @@ namespace RacerUI.SQL
                 
                 SELECT DISTINCT s.* FROM CarStyling s
                 INNER JOIN Cars_Styling cs ON cs.StylingId = s.Id
-                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);";                
+                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);";
 
             // get car specializations for all cars in the result set - relationships and details
             var specsSql = @"
@@ -512,7 +516,7 @@ namespace RacerUI.SQL
                 
                 SELECT DISTINCT rs.* FROM RacingSpecializations rs
                 INNER JOIN Cars_Specializations cs ON cs.SpecializationId = rs.Id
-                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);";                
+                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);";
 
             // get car makes for all cars in the result set
             var makeSql = @"
@@ -537,19 +541,19 @@ namespace RacerUI.SQL
                     // Get cars and related data from the result sets
                     var cars = multi.Read<Car>().ToList();
                     var skins = multi.Read<CarSkin>().ToList();
-                    
+
                     // Read types data (relationships and details)
                     var typesRelationships = multi.Read<dynamic>().ToList();
                     var typesDetails = multi.Read<CarType>().ToList();
-                    
+
                     // Read stylings data (relationships and details)
                     var stylingsRelationships = multi.Read<dynamic>().ToList();
                     var stylingsDetails = multi.Read<CarStyling>().ToList();
-                    
+
                     // Read specializations data (relationships and details)
                     var specsRelationships = multi.Read<dynamic>().ToList();
                     var specsDetails = multi.Read<RacingSpecialization>().ToList();
-                    
+
                     // Read makes and models data
                     var makesData = multi.Read<CarMake>().ToList();
                     var modelsData = multi.Read<CarModel>().ToList();
@@ -560,14 +564,14 @@ namespace RacerUI.SQL
 
                     // Create a dictionary of types by ID for quick lookup
                     var typesById = typesDetails.ToDictionary(t => t.Id);
-                    
+
                     // Group types by car ID using the relationships
                     var typesByCarId = new Dictionary<int, List<CarType>>();
                     foreach (var rel in typesRelationships)
                     {
                         int carId = (int)rel.CarId;
                         int typeId = (int)rel.TypeId;
-                        
+
                         // Look up the type details
                         if (typesById.TryGetValue(typeId, out var carType))
                         {
@@ -579,7 +583,7 @@ namespace RacerUI.SQL
                                 CarId = carId
                                 // Copy any other properties from carType as needed
                             };
-                            
+
                             if (!typesByCarId.ContainsKey(carId))
                             {
                                 typesByCarId[carId] = new List<CarType>();
@@ -590,14 +594,14 @@ namespace RacerUI.SQL
 
                     // Create a dictionary of stylings by ID for quick lookup
                     var stylingsById = stylingsDetails.ToDictionary(s => s.Id);
-                    
+
                     // Group stylings by car ID using the relationships
                     var stylingsByCarId = new Dictionary<int, List<CarStyling>>();
                     foreach (var rel in stylingsRelationships)
                     {
                         int carId = (int)rel.CarId;
                         int stylingId = (int)rel.StylingId;
-                        
+
                         // Look up the styling details
                         if (stylingsById.TryGetValue(stylingId, out var styling))
                         {
@@ -607,14 +611,14 @@ namespace RacerUI.SQL
 
                     // Create a dictionary of specializations by ID for quick lookup
                     var specsById = specsDetails.ToDictionary(s => s.Id);
-                    
+
                     // Group specializations by car ID using the relationships
                     var specsByCarId = new Dictionary<int, List<RacingSpecialization>>();
                     foreach (var rel in specsRelationships)
                     {
                         int carId = (int)rel.CarId;
                         int specId = (int)rel.SpecializationId;
-                        
+
                         // Look up the specialization details
                         if (specsById.TryGetValue(specId, out var spec))
                         {
@@ -644,7 +648,7 @@ namespace RacerUI.SQL
                         {
                             car.Skins = carSkins;
                         }
-                        
+
                         // Assign model details if available
                         if (car.ModelId.HasValue && car.ModelId > 0 && modelsById.TryGetValue(car.ModelId.Value, out var model))
                         {
@@ -653,19 +657,19 @@ namespace RacerUI.SQL
 
                         // Clear Make reference since it's in the shared collection
                         car.Make = null;
-                        
+
                         // Keep only the IDs in the Types list
                         if (typesByCarId.TryGetValue(car.Id, out var carTypes))
                         {
                             car.Types = carTypes.Select(t => new CarType { Id = t.Id }).ToList();
                         }
-                        
+
                         // Keep only the IDs in the Stylings list
                         if (stylingsByCarId.TryGetValue(car.Id, out var carStylings))
                         {
                             car.Stylings = carStylings.Select(s => new CarStyling { Id = s.Id }).ToList();
                         }
-                        
+
                         // Keep only the IDs in the Specializations list
                         if (specsByCarId.TryGetValue(car.Id, out var carSpecs))
                         {
@@ -675,6 +679,46 @@ namespace RacerUI.SQL
 
                     return result;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets a list of all cars with only their Id and Path properties populated.
+        /// </summary>
+        /// <returns>A list of cars with Id and Path.</returns>
+        public static IEnumerable<Car> GetAllCarPaths()
+        {
+            const string sql = "SELECT Id, Path FROM Cars ORDER BY Path;";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query<Car>(sql);
+            }
+        }
+
+        /// <summary>
+        /// Finds child cars for a given parent car based on path prefix and updates their ParentId.
+        /// </summary>
+        /// <param name="car">The parent car entity, must have Id and Path.</param>
+        /// <returns>A list of child cars found and updated.</returns>
+        public static IEnumerable<Car> FindChildren(Car car)
+        {
+            const string findSql = @"
+                SELECT Id, Path FROM Cars 
+                WHERE Path LIKE @PathPrefix AND Path != @Path AND ParentId IS NULL;";
+
+            using (var connection = Connection.GetConnection())
+            {
+                var children = connection.Query<Car>(findSql, new { PathPrefix = car.Path + '%', car.Path }).ToList();
+
+                if (children.Count > 0)
+                {
+                    var childIds = children.Select(c => c.Id).ToList();
+                    const string updateSql = "UPDATE Cars SET ParentId = @ParentId WHERE Id IN @ChildIds;";
+                    connection.Execute(updateSql, new { ParentId = car.Id, ChildIds = childIds });
+                }
+
+                return children;
             }
         }
     }

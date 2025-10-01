@@ -34,11 +34,14 @@
 
 .cars-filter{
     position:absolute;
+    z-index:100;
+    background-color:rgba(0,0,0,0.8);
+    width:100%;
 }
 
 .filter-view{
     ul.select-list{
-        padding:0 2em 2em 2em;
+        padding:0 2em 0 2em;
         li{
             padding:1em 1.5em;
             height:1em;
@@ -53,7 +56,7 @@
 
 .filter-country{
     ul.select-list{
-        padding:0 2em 2em 2em;
+        padding:0 2em 0 2em;
         li{
             padding:1em 1.5em;
             height:1em;
@@ -68,7 +71,7 @@
 
 .filter-manufacturer{
     ul.select-list{
-        padding:0 2em 2em 2em;
+        padding:0 2em 0 2em;
         li{
             padding:1em 1.5em;
             height:1em;
@@ -83,7 +86,7 @@
 
 .filter-model{
     ul.select-list{
-        padding:0 2em 2em 2em;
+        padding:0 2em 0 2em;
         li{
             padding:1em 1.5em;
             height:1em;
@@ -98,7 +101,7 @@
 
 .filter-year{
     ul.select-list{
-        padding:0 2em 2em 2em;
+        padding:0 2em 0 2em;
         li{
             padding:1em 1.5em;
             height:1em;
@@ -113,7 +116,7 @@
 
 .filter-type{
     ul.select-list{
-        padding:0 2em 2em 2em;
+        padding:0 2em 0 2em;
         li{
             padding:1em 1.5em;
             height:1em;
@@ -128,7 +131,7 @@
 
 .filter-style{
     ul.select-list{
-        padding:0 2em 2em 2em;
+        padding:0 2em 0 2em;
         li{
             padding:1em 1.5em;
             height:1em;
@@ -143,7 +146,7 @@
 
 .filter-specialization{
     ul.select-list{
-        padding:0 2em 2em 2em;
+        padding:0 2em 0 2em;
         li{
             padding:1em 1.5em;
             height:1em;
@@ -157,17 +160,39 @@
 }
 
 .cars-content{
+    position: relative;
+    z-index: 1;
+    width:100vw;
+    height: calc(100vh - 15em);
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: rgb(0, 0, 0);
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #3f265a;
+        border-radius: 10px;
+    }
+
     .grid-view{
-        max-width:100vw;
+        width:calc(100vw - 2.5em);
         display:grid;
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap:1em;
         margin:1em;
+        box-sizing:border-box;
         .car{
             img{
                 width:100%;
             }
             .info{
+                margin:-2.4em 0 0 0.6em;
                 h2{
                     font-size:1em;
                     font-weight:normal;
@@ -177,8 +202,15 @@
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
+                    background-color: rgba(0, 0, 0, 0.75);
+                    float:left;
+                    padding:0.25em 0.5em;
+                    border-radius:0.5em;
                 }
             }
+        }
+        &.xl{
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
         }
     }
 }

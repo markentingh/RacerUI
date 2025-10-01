@@ -15,10 +15,10 @@ body .game-loaded{
     nav {
         max-width: calc(1920px * var(--scale-factor));
         width:100%;
-        height: calc(60px * var(--scale-factor));
+        height: calc(76px * var(--scale-factor));
         display: block;
         line-height:1.35;
-        padding: 0.5em;
+        padding: 1em 1em 0 1em;
 
         & > * {
             display:inline-block;
@@ -151,8 +151,15 @@ ul.select-list{
     }
 }
 
+@media screen and (max-width: 1630px) {
+    .dash nav{
+        height:76px;
+    }
+}
+
 @media screen and (max-width: 1480px) {
     .dash > nav{
+        height:60px;
         font-size:0.8em;
         ul.menu{
             li{
@@ -165,6 +172,7 @@ ul.select-list{
 
 @media screen and (max-width: 1070px) {
     .dash > nav{
+        height:46px;
         font-size:0.6em;
         ul.menu{
             li{
@@ -177,6 +185,7 @@ ul.select-list{
 
 @media screen and (max-width: 760px) {
     .dash > nav{
+        height:30px;
         font-size:0.4em;
         ul.menu{
             li{

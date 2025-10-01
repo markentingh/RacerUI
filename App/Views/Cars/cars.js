@@ -11,13 +11,12 @@ ui.views.cars = {
         specializations: [],//specializationId int
         search: '',
         start: 0,
-        length: 30,
+        length: 100,
         view: 'grid',
     },
     results: []
 };
 
-// Load default game view
 ui.views.cars.load = (e) => {
     //first, load filter settings from local storage
     console.log('ui.views.cars.load', e);
@@ -104,13 +103,19 @@ ui.views.cars.hideFilter = () => {
     history.pushState(null, '', `/dashboard/cars` + window.location.search);
 };
 
-ui.views.cars.getFilteredList = () => {
-    //save filter to local storage
+ui.views.cars.saveFilter = () => {
     localStorage.setItem('RacerUI:cars-filter', JSON.stringify(ui.views.cars.filter));
+};
+
+ui.views.cars.getFilteredList = () => {
     //get list of cars based on filter
+    const start = Math.round(1 + (10000 * Math.random()));
+    console.log('start', start);
+
+    ui.views.cars.saveFilter();
     ui.ajax({
         url: `/api/cars/filter`,
-        data: ui.views.cars.filter,
+        data: {...ui.views.cars.filter, start: start},
         complete: (response) => {
             if (response.status == 200) {
                 ui.views.cars.views.load(JSON.parse(response.responseText));
@@ -126,7 +131,11 @@ ui.views.cars.getFilteredList = () => {
 ui.views.cars.views = {};
 
 ui.views.cars.views.load = (list) => {
-    ui.views.cars.results = list;
+    if (list) {
+        ui.views.cars.results = list;
+    }else{
+        list = ui.views.cars.results;
+    }
     ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-view`, (htmlView) => {
         ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
             var output = '';
@@ -142,6 +151,12 @@ ui.views.cars.views.load = (list) => {
         });
     });
 }
+
+ui.views.cars.views.changeView = (view) => {
+    ui.views.cars.filter.view = view;
+    ui.views.cars.views.load()
+    ui.views.cars.saveFilter();
+};
 
 
 //#endregion

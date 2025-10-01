@@ -41,6 +41,11 @@ ui.views.game.checkAssets = () => {
     });
 };
 
+ui.views.game.skipCheckAssets = () => {
+    ui.views.game.isCheckingAssets = false;
+    ui.views.game.checkingAssetsShowUI();
+};
+
 ui.views.game.updateProgressTitle = (title) => {
     document.querySelector('.checking-assets .progress-title').textContent = title;
 }

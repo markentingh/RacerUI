@@ -55,6 +55,11 @@ namespace RacerUI.Entities
         public bool HasSkins { get; set; } = true;
 
         /// <summary>
+        /// If true, car must have a parent
+        /// </summary>
+        public bool HasParent { get; set; } = false;
+
+        /// <summary>
         /// Number of records to return
         /// </summary>
         public int? Length { get; set; }

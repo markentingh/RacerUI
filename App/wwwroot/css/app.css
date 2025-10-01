@@ -264,10 +264,10 @@ body .game-loaded {
 .dash nav {
   max-width: calc(1920px * var(--scale-factor));
   width: 100%;
-  height: calc(60px * var(--scale-factor));
+  height: calc(76px * var(--scale-factor));
   display: block;
   line-height: 1.35;
-  padding: 0.5em;
+  padding: 1em 1em 0 1em;
 }
 .dash nav > * {
   display: inline-block;
@@ -384,8 +384,14 @@ ul.select-list li {
 ul.select-list li a {
   text-decoration: none;
 }
+@media screen and (max-width: 1630px) {
+  .dash nav {
+    height: 76px;
+  }
+}
 @media screen and (max-width: 1480px) {
   .dash > nav {
+    height: 60px;
     font-size: 0.8em;
   }
   .dash > nav ul.menu li {
@@ -394,6 +400,7 @@ ul.select-list li a {
 }
 @media screen and (max-width: 1070px) {
   .dash > nav {
+    height: 46px;
     font-size: 0.6em;
   }
   .dash > nav ul.menu li {
@@ -402,6 +409,7 @@ ul.select-list li a {
 }
 @media screen and (max-width: 760px) {
   .dash > nav {
+    height: 30px;
     font-size: 0.4em;
   }
   .dash > nav ul.menu li {
@@ -571,9 +579,12 @@ button,
 }
 .cars-filter {
   position: absolute;
+  z-index: 100;
+  background-color: rgba(0, 0, 0, 0.8);
+  width: 100%;
 }
 .filter-view ul.select-list {
-  padding: 0 2em 2em 2em;
+  padding: 0 2em 0 2em;
 }
 .filter-view ul.select-list li {
   padding: 1em 1.5em;
@@ -585,7 +596,7 @@ button,
   vertical-align: middle;
 }
 .filter-country ul.select-list {
-  padding: 0 2em 2em 2em;
+  padding: 0 2em 0 2em;
 }
 .filter-country ul.select-list li {
   padding: 1em 1.5em;
@@ -597,7 +608,7 @@ button,
   vertical-align: middle;
 }
 .filter-manufacturer ul.select-list {
-  padding: 0 2em 2em 2em;
+  padding: 0 2em 0 2em;
 }
 .filter-manufacturer ul.select-list li {
   padding: 1em 1.5em;
@@ -609,7 +620,7 @@ button,
   vertical-align: middle;
 }
 .filter-model ul.select-list {
-  padding: 0 2em 2em 2em;
+  padding: 0 2em 0 2em;
 }
 .filter-model ul.select-list li {
   padding: 1em 1.5em;
@@ -621,7 +632,7 @@ button,
   vertical-align: middle;
 }
 .filter-year ul.select-list {
-  padding: 0 2em 2em 2em;
+  padding: 0 2em 0 2em;
 }
 .filter-year ul.select-list li {
   padding: 1em 1.5em;
@@ -633,7 +644,7 @@ button,
   vertical-align: middle;
 }
 .filter-type ul.select-list {
-  padding: 0 2em 2em 2em;
+  padding: 0 2em 0 2em;
 }
 .filter-type ul.select-list li {
   padding: 1em 1.5em;
@@ -645,7 +656,7 @@ button,
   vertical-align: middle;
 }
 .filter-style ul.select-list {
-  padding: 0 2em 2em 2em;
+  padding: 0 2em 0 2em;
 }
 .filter-style ul.select-list li {
   padding: 1em 1.5em;
@@ -657,7 +668,7 @@ button,
   vertical-align: middle;
 }
 .filter-specialization ul.select-list {
-  padding: 0 2em 2em 2em;
+  padding: 0 2em 0 2em;
 }
 .filter-specialization ul.select-list li {
   padding: 1em 1.5em;
@@ -668,15 +679,37 @@ button,
   padding: 0 0.5em 0 0;
   vertical-align: middle;
 }
+.cars-content {
+  position: relative;
+  z-index: 1;
+  width: 100vw;
+  height: calc(100vh - 15em);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.cars-content::-webkit-scrollbar {
+  width: 10px;
+}
+.cars-content::-webkit-scrollbar-track {
+  background: #000000;
+}
+.cars-content::-webkit-scrollbar-thumb {
+  background: #3f265a;
+  border-radius: 10px;
+}
 .cars-content .grid-view {
-  max-width: 100vw;
+  width: calc(100vw - 2.5em);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1em;
   margin: 1em;
+  box-sizing: border-box;
 }
 .cars-content .grid-view .car img {
   width: 100%;
+}
+.cars-content .grid-view .car .info {
+  margin: -2.4em 0 0 0.6em;
 }
 .cars-content .grid-view .car .info h2 {
   font-size: 1em;
@@ -687,4 +720,11 @@ button,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  background-color: rgba(0, 0, 0, 0.75);
+  float: left;
+  padding: 0.25em 0.5em;
+  border-radius: 0.5em;
+}
+.cars-content .grid-view.xl {
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
 }
