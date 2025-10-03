@@ -290,6 +290,9 @@ body .game-loaded {
   float: right;
   margin-top: 1.25em;
 }
+.dash nav .game-default-name {
+  display: none;
+}
 .dash nav > .dropdown-menu {
   float: right;
 }
@@ -414,6 +417,14 @@ ul.select-list li a {
   }
   .dash > nav ul.menu li {
     padding: 0.5em 0.15em;
+  }
+}
+@media screen and (max-width: 560px) {
+  .dash > nav #gameName {
+    display: none;
+  }
+  .dash > nav .game-default-name {
+    display: inline-block !important;
   }
 }
 .error-page {
@@ -565,7 +576,7 @@ button,
   vertical-align: top;
 }
 .cars-toolbar nav ul.menu li.search-input input {
-  max-width: 15em;
+  max-width: 15vw;
 }
 .cars-toolbar .close-btn {
   width: 2em;
@@ -684,8 +695,10 @@ button,
   z-index: 1;
   width: 100vw;
   height: calc(100vh - 15em);
+  max-height: calc(100vh - 1em);
   overflow-y: auto;
   overflow-x: hidden;
+  margin-top: 0.5em;
 }
 .cars-content::-webkit-scrollbar {
   width: 10px;
@@ -700,13 +713,22 @@ button,
 .cars-content .grid-view {
   width: calc(100vw - 2.5em);
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1em;
   margin: 1em;
   box-sizing: border-box;
 }
+.cars-content .grid-view .car {
+  aspect-ratio: 16/9;
+  width: 100%;
+  top: 0%;
+  position: relative;
+  border-width: 0;
+  box-shadow: none;
+}
 .cars-content .grid-view .car img {
   width: 100%;
+  border-radius: 0.5em;
 }
 .cars-content .grid-view .car .info {
   margin: -2.4em 0 0 0.6em;
@@ -725,6 +747,130 @@ button,
   padding: 0.25em 0.5em;
   border-radius: 0.5em;
 }
+.cars-content .grid-view .car.hovered-clone {
+  z-index: 10;
+  margin: 0 auto;
+  position: absolute;
+  border-style: solid;
+  border-radius: 0.5em;
+  animation: hover-grow 0.25s ease-in-out forwards;
+}
+.cars-content .grid-view .car.hovered-clone.hiding {
+  z-index: 9;
+  animation: hover-shrink 0.25s ease-in-out forwards;
+}
 .cars-content .grid-view.xl {
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+}
+.cars-content .grid-view.sm {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+@keyframes hover-grow {
+  from {
+    width: 100%;
+    top: 0%;
+    left: 0%;
+    border-color: rgba(255, 255, 255, 0);
+    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
+  }
+  to {
+    width: 120%;
+    top: -10%;
+    left: -10%;
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
+  }
+}
+@keyframes hover-shrink {
+  from {
+    width: 120%;
+    top: -10%;
+    left: -10%;
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
+  }
+  to {
+    width: 100%;
+    top: 0%;
+    left: 0%;
+    border-color: rgba(255, 255, 255, 0);
+    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
+  }
+}
+.cars-content .gallery-view .gallery-selected {
+  text-align: center;
+  width: 100%;
+}
+.cars-content .gallery-view .gallery-selected img.preview {
+  max-width: calc(75vw);
+  aspect-ratio: 16 / 9;
+  max-height: 40vh;
+}
+.cars-content .gallery-view .gallery-selected .info {
+  margin: -5em 0 0 12vw;
+}
+.cars-content .gallery-view .gallery-selected .info h2 {
+  font-size: 2em;
+  font-weight: normal;
+  margin: 0.25em 0 0.5em 0;
+  line-height: 1.25;
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: rgba(0, 0, 0, 0.75);
+  padding: 0.25em 0.5em;
+  border-radius: 0.5em;
+  float: left;
+}
+.cars-content .gallery-view .gallery-footer {
+  position: relative;
+  width: 100%;
+}
+.cars-content .gallery-view .gallery-items {
+  padding: 1em 0;
+  width: calc(100vw - 2em);
+  margin: 0 1em;
+  overflow: hidden;
+}
+.cars-content .gallery-view .gallery-items .car {
+  display: inline-block;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  width: calc((100vw / 4) - 4em);
+  margin: 0 0.5em;
+  border-radius: 0.5em;
+}
+.cars-content .gallery-view .gallery-items .car img {
+  width: 100%;
+}
+.cars-content .gallery-view .gallery-scroller {
+  white-space: nowrap;
+  position: relative;
+  left: 40vw;
+}
+.cars-content .gallery-view .gallery-target {
+  margin: 5.25em 0 0 0.6em;
+  width: calc((100vw / 4) - 3em);
+  aspect-ratio: 16/9;
+  border: 7px solid rgba(255, 255, 255, 0.3);
+  position: absolute;
+  top: 0;
+  left: 40vw;
+  z-index: 10;
+  border-radius: 0.5em;
+}
+@media screen and (max-width: 1630px) {
+  .cars-toolbar .search-input {
+    max-width: calc(100vw - 50em);
+  }
+}
+@media screen and (max-width: 1480px) {
+  .cars-toolbar nav > ul.menu li {
+    font-size: 0.8em;
+    margin-top: 0.15em;
+  }
+  .cars-toolbar nav > ul.menu li:not(.search-input) {
+    margin-top: 0.2em;
+  }
 }

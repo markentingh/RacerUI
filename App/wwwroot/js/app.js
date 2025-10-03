@@ -209,6 +209,29 @@ ui.profile.load = () => {
 
     });
 };
+//window resize to scale UI
+ui.utils.scaleFactor = 0;
+ui.utils.scaleUI = () => {
+    let scale = (1.0 / 1920) * window.innerWidth;
+    if (scale < 1) scale = 1;
+    if(scale != ui.utils.scaleFactor){
+        ui.utils.scaleFactor = scale;
+        // Create or update CSS variable for scale factor
+        let styleEl = document.getElementById('scale-factor-style');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'scale-factor-style';
+            document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = `:root { --scale-factor: ${scale}; }`;
+    }
+    
+    // Apply scale to elements with scale-ui class
+    const scalable = document.querySelectorAll('.scale-ui');
+    scalable.forEach(el => el.style.transform = `scale(${scale})`);
+}
+    
+window.addEventListener('resize', ui.utils.scaleUI);
 ui.toggle = {};
 ui.toggle.flip = (elem, callback) => {
     if (elem.classList.contains('on')) {
@@ -335,19 +358,21 @@ ui.views.cars = {
         start: 0,
         length: 100,
         view: 'grid',
+        prevView: 'grid',
     },
-    results: []
+    results: null,
+    footerHeight: 5.8,
+    hovered: null,
+    selected: null //result object that has been selected by the user
 };
 
 ui.views.cars.load = (e) => {
     //first, load filter settings from local storage
-    console.log('ui.views.cars.load', e);
     if (localStorage.getItem('RacerUI:cars-filter')) {
         ui.views.cars.filter = {...ui.views.cars.filter, ...JSON.parse(localStorage.getItem('RacerUI:cars-filter'))};
     }
     if (document.querySelector('.cars-toolbar') == null) {
         //view not loaded yet
-        console.log('loadComponent(Cars/cars)');
         ui.view.loadComponent(`Cars/cars`, (html) => {
             ui.nav.select('cars');
             ui.view.inject(html, 'cars');
@@ -361,9 +386,23 @@ ui.views.cars.load = (e) => {
         if (e && e.id) {
             ui.views.cars.updateNav(e.id);
         }
-        ui.views.cars.getFilteredList();
+        if (ui.views.cars.results == null) {
+            ui.views.cars.getFilteredList();
+        }
     }
+    window.addEventListener('resize', ui.views.cars.resize);
+    ui.views.cars.resize();
 };
+
+ui.views.cars.unload = () => {
+    window.removeEventListener('resize', ui.views.cars.resize);
+}
+
+ui.views.cars.resize = () => {
+    const el = document.querySelector('.cars-content');
+    const rect = el.getBoundingClientRect();
+    el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.cars.footerHeight : ((ui.views.cars.footerHeight / 1920) * window.innerWidth)}em)`;
+}
 
 ui.views.cars.nav = (e, section) => {
     e.preventDefault();
@@ -453,11 +492,22 @@ ui.views.cars.getFilteredList = () => {
 ui.views.cars.views = {};
 
 ui.views.cars.views.load = (list) => {
+    console.log('list', list);
     if (list) {
         ui.views.cars.results = list;
     }else{
         list = ui.views.cars.results;
     }
+    //check if a grid view is already loaded, if so, just update the class list
+    const gridview = document.querySelector('.grid-view');
+    console.log('grid-view', gridview, ui.views.cars.filter.view.indexOf('grid') > -1, ui.views.cars.filter.prevView.indexOf('grid') > -1);
+    if(gridview != null && ui.views.cars.filter.view.indexOf('grid') > -1 && ui.views.cars.filter.prevView.indexOf('grid') > -1){
+        var classname = ui.views.cars.filter.view.replace('grid', '');
+        gridview.classList.remove('xl', 'sm');
+        if(classname != '') gridview.classList.add(classname);
+        return;
+    }
+    //load view
     ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-view`, (htmlView) => {
         ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
             var output = '';
@@ -466,10 +516,31 @@ ui.views.cars.views.load = (list) => {
                 var preview = skin ? '/image/' + encodeURIComponent(ui.game.name) + '/skin/' + encodeURIComponent(car.path) + '/' + encodeURIComponent(skin.path) : '';
                 output += htmlItem.replace('{{preview}}', preview || 'no-preview.jpg')
                     .replace('{{name}}', car.name ?? car.path.replace(/_/g, ' '))
-                    .replace('{{description}}', car.description ?? '')
-                    ;
+                    .replace('{{description}}', car.description ?? '');
             });
-            ui.view.injectComponent(htmlView.replace('{{items}}', output), '.cars-content');
+
+            //set up view
+            const car = list.cars.length > 0 ? list.cars[0] : null;
+            if(car == null) return;
+            const skin = car ? car.skins.length > 0 ? car.skins[0] : null : null;
+            var preview = skin ? '/image/' + encodeURIComponent(ui.game.name) + '/skin/' + encodeURIComponent(car.path) + '/' + encodeURIComponent(skin.path) : '';
+            switch(ui.views.cars.filter.view){
+                case 'gallery':
+                    ui.view.injectComponent(htmlView
+                        .replace('{{name}}', car.name ?? car.path.replace(/_/g, ' '))
+                        .replace('{{items}}', output)
+                        .replace('{{preview}}', preview)
+                        , '.cars-content');
+                    ui.views.cars.views.gallery.setup();
+                    break;
+                case 'grid': case 'gridxl': case 'gridsm':
+                    ui.view.injectComponent(htmlView.replace('{{items}}', output), '.cars-content');
+                    ui.views.cars.views.grid.setup();
+                    break;
+                default:
+                    ui.view.injectComponent(htmlView.replace('{{items}}', output), '.cars-content');
+                    break;
+            }
         });
     });
 }
@@ -479,6 +550,71 @@ ui.views.cars.views.changeView = (view) => {
     ui.views.cars.views.load()
     ui.views.cars.saveFilter();
 };
+
+ui.views.cars.views.grid = {
+    setup: () => {
+        console.log('grid setup');
+        document.querySelectorAll('.grid-view > .car').forEach((item) => {
+            item.onmouseenter = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                //duplicate item and place it on top of the original
+                if(item.querySelector('.hovered-clone')) return;
+                if(ui.views.cars.hovered != null){
+                    const hovered = ui.views.cars.hovered;
+                    hovered.classList.add('hiding');
+                    setTimeout(() => {
+                        if(hovered != null){
+                            hovered.remove();
+                        }
+                    }, 250);
+                }
+
+                const clone = item.cloneNode(true);
+                clone.className += ' hovered-clone';
+                clone.onmouseover = null;
+                clone.style.zIndex = 1;
+                item.prepend(clone);
+                ui.views.cars.hovered = clone;
+                clone.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    ui.views.cars.views.grid.details(item);
+                };
+                clone.onmouseleave = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clone.classList.add('hiding');
+                    setTimeout(() => {
+                        if(clone != null){
+                            clone.remove();
+                        }
+                    }, 250);
+                };
+            };
+        });
+    },
+    details: (car, item) => {
+        ui.view.loadComponent(`Cars/grid-details`, (html) => {
+
+            ui.view.injectComponent(html
+                .replace('{{preview}}', car.preview)
+                .replace('{{name}}', car.name)
+                .replace('{{description}}', car.description), '.cars-content');
+        });
+    },
+    getCarFromItem: (item) => {
+        const car = ui.views.cars.results.cars.find((car) => {
+            return car.path == item.getAttribute('data-path');
+        });
+        return car;
+    }
+}
+
+ui.views.cars.views.gallery = {
+    setup: () => {
+    }
+}
 
 
 //#endregion
@@ -881,6 +1017,7 @@ ui.views.game.load = () => {
         });
     });
 };
+    
 
 // Check game assets (referenced in the HTML component)
 ui.views.game.checkAssets = () => {
@@ -982,11 +1119,11 @@ ui.views.tracks.load = () => {
 };
 
 ui.routes = [
-    { path: 'dashboard', action: ui.views.game.load },
+    { path: 'dashboard', action: ui.views.game.load, },
     { path: 'dashboard/game', action: ui.views.game.load },
     { path: 'dashboard/game/:id', action: ui.views.game.load }, 
-    { path: 'dashboard/cars', action: ui.views.cars.load },
-    { path: 'dashboard/cars/:id', action: ui.views.cars.load },
+    { path: 'dashboard/cars', action: ui.views.cars.load, unload: ui.views.cars.unload },
+    { path: 'dashboard/cars/:id', action: ui.views.cars.load, unload: ui.views.cars.unload },
     { path: 'dashboard/tracks', action: ui.views.tracks.load },
     { path: 'dashboard/history', action: ui.views.history.load },
     { path: 'dashboard/settings', action: ui.views.settings.load },
@@ -994,7 +1131,10 @@ ui.routes = [
     { path: 'dashboard/*', action: ui.notFound } // Wildcard route for 404
 ];
 
-ui.routing = {};
+ui.routing = {
+    prevPath: null,
+    prevRoute: null
+};
 
 // Parse path parameters according to route pattern
 ui.routing.parseParams = (pattern, path) => {
@@ -1077,6 +1217,13 @@ ui.routing.execute = (path) => {
     const result = ui.routing.get(path);
     if (result) {
         console.log('Executing route: ' + result.route.path);
+        if(ui.routing.prevPath != null){
+            if(ui.routing.prevRoute.unload){
+                ui.routing.prevRoute.unload();
+            }
+        }
+        ui.routing.prevPath = path;
+        ui.routing.prevRoute = result.route;
         result.route.action(result.params);
         return true;
     }
@@ -1191,31 +1338,7 @@ ui.ajax({
 });
 
 
-//window resize to scale UI
-ui.utils.scaleFactor = 0;
-ui.utils.scaleUI = () => {
-    let scale = window.innerWidth / 1920;
-    if (scale < 1) scale = 1;
-    if(scale != ui.utils.scaleFactor){
-        ui.utils.scaleFactor = scale;
-        // Create or update CSS variable for scale factor
-        let styleEl = document.getElementById('scale-factor-style');
-        if (!styleEl) {
-            styleEl = document.createElement('style');
-            styleEl.id = 'scale-factor-style';
-            document.head.appendChild(styleEl);
-        }
-        styleEl.textContent = `:root { --scale-factor: ${scale}; }`;
-    }
-    
-    // Apply scale to elements with scale-ui class
-    const scalable = document.querySelectorAll('.scale-ui');
-    scalable.forEach(el => el.style.transform = `scale(${scale})`);
-}
-    
-window.addEventListener('resize', () => {
-    ui.utils.scaleUI();
-});
+
 
 
 ui.hub.load();

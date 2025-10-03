@@ -21,6 +21,7 @@ ui.views.game.load = () => {
         });
     });
 };
+    
 
 // Check game assets (referenced in the HTML component)
 ui.views.game.checkAssets = () => {

@@ -1,4 +1,7 @@
-ui.routing = {};
+ui.routing = {
+    prevPath: null,
+    prevRoute: null
+};
 
 // Parse path parameters according to route pattern
 ui.routing.parseParams = (pattern, path) => {
@@ -81,6 +84,13 @@ ui.routing.execute = (path) => {
     const result = ui.routing.get(path);
     if (result) {
         console.log('Executing route: ' + result.route.path);
+        if(ui.routing.prevPath != null){
+            if(ui.routing.prevRoute.unload){
+                ui.routing.prevRoute.unload();
+            }
+        }
+        ui.routing.prevPath = path;
+        ui.routing.prevRoute = result.route;
         result.route.action(result.params);
         return true;
     }

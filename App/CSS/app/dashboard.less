@@ -45,6 +45,10 @@ body .game-loaded{
             margin-top:1.25em;
         }
 
+        .game-default-name{
+            display:none;
+        }
+
         & > .dropdown-menu {
             float:right;
             ul {
@@ -191,6 +195,15 @@ ul.select-list{
             li{
                 padding:0.5em 0.15em;
             }
+        }
+    }
+}@media screen and (max-width: 560px) {
+    .dash > nav{
+        #gameName{
+            display:none;
+        }
+        .game-default-name{
+            display:inline-block !important;
         }
     }
 }
