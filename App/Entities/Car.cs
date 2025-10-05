@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace RacerUI.Entities
 {
     public class Car
@@ -14,6 +11,7 @@ namespace RacerUI.Entities
         public string Name { get; set; }
         public string Path { get; set; }
         public int? TeamId { get; set; }
+        public bool IsNew { get; set; } = true;
         public string ShortDescription { get; set; }
         public string Author { get; set; }
         public string Class { get; set; }
@@ -31,8 +29,14 @@ namespace RacerUI.Entities
         public string PowerGraph { get; set; }
         public string TorqueGraph { get; set; }
         public string Notes { get; set; }
-        public string Biography { get; set; }
-        public string Drivers { get; set; }
+        public string Details { get; set; }
+        public string Engine { get; set; }
+        public string Brakes { get; set; }
+        public int? Seats { get; set; }
+        public int? DriverSide { get; set; }
+        public string Turbo { get; set; }
+        public string Nitrous { get; set; }
+        public string Modkit { get; set; }
 
         // Navigation properties
         public CarMake Make { get; set; }

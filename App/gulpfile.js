@@ -71,7 +71,6 @@ paths.compiled = {
 gulp.task('less:app', function () {
     // Find all LESS files in App/Pages/**
     var pagesLessFiles = glob.sync('Views/**/*.less');
-    //console.log(pagesLessFiles);
     // Generate import statements for each LESS file
     var imports = pagesLessFiles.map(function(file) {
         // Convert Windows path to proper import path with forward slashes

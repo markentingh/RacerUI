@@ -208,6 +208,7 @@
         gap: 1em;
         margin: 1em;
         box-sizing: border-box;
+        grid-auto-flow: dense;
 
         .car {
             aspect-ratio: 16/9;
@@ -262,6 +263,44 @@
 
         &.sm {
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        }
+    }
+
+    .grid-details{
+        grid-column-start: 1;
+        grid-column-end: -1;
+        display:grid;
+        grid-template-columns: 1fr 2fr;
+        animation: show-details 0.3334s ease-out forwards;
+        overflow:hidden;
+        .preview{
+            max-height: 40vh;
+            max-width: 60vw;
+        }
+        .info{
+            padding:0 0 0 1em;
+        }
+    }
+
+    .grid-details.hiding{
+        animation: hide-details 0.3334s ease-out forwards;
+    }
+
+    @keyframes show-details {
+        from {
+            max-height: 0vh;
+        }
+        to {
+            max-height: 40vh;
+        }
+    }
+
+    @keyframes hide-details {
+        from {
+            max-height: 40vh;
+        }
+        to {
+            max-height: 0vh;
         }
     }
 

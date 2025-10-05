@@ -273,7 +273,29 @@ namespace RacerUI.SignalR
                         await Clients.Caller.SendAsync("progress", progress);
                     }
                 }
-                await Clients.Caller.SendAsync("cars", JsonSerializer.Serialize(cars));
+
+                await Clients.Caller.SendAsync("progress", 0);
+                // get details about each car by using AI
+                await Clients.Caller.SendAsync("progress-title", "Getting details about all new cars by using AI");
+                i = 0;
+                lastProgress = 0;
+                var filteredCars = cars.Where(c => c.IsNew);
+                foreach (var car in filteredCars)
+                {
+                    i++;
+
+                    //update progress in UI
+                    await Clients.Caller.SendAsync("progress-title", $"Getting details about each car: Checking car # {i}");
+                    await Clients.Caller.SendAsync("progress-text", $"Getting details about car: {car.Path}");
+                    var details = await LLMs.Prompt("", "", "", car.Path);
+
+                    var progress = (int)Math.Floor((100.0 / cars.Count()) * i);
+                    if (lastProgress < progress)
+                    {
+                        lastProgress = progress;
+                        await Clients.Caller.SendAsync("progress", progress);
+                    }
+                }
             }
         }
 

@@ -100,6 +100,22 @@ ui.darkmode.toggle = (on) => {
         ui.darkmode.enabled = true;
     }
 };
+ui.easing = {
+  linear: t => t,
+  easeInQuad: t => t * t,
+  easeOutQuad: t => t * (2 - t),
+  easeInOutQuad: t => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
+  easeInCubic: t => t * t * t,
+  easeOutCubic: t => --t * t * t + 1,
+  easeInOutCubic: t => (t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1),
+  easeInQuart: t => t * t * t * t,
+  easeOutQuart: t => 1 - --t * t * t * t,
+  easeInOutQuart: t => (t < 0.5 ? 8 * t * t * t * t : 1 - 8 * --t * t * t * t),
+  easeInQuint: t => t * t * t * t * t,
+  easeOutQuint: t => 1 + --t * t * t * t * t,
+  easeInOutQuint: t => (t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * --t * t * t * t * t)
+};
+
 ui.game = {
     name: 'assetto corsa',
     path: null,
@@ -232,6 +248,30 @@ ui.utils.scaleUI = () => {
 }
     
 window.addEventListener('resize', ui.utils.scaleUI);
+ui.scrollTo = (scrollingElement, targetElement, duration, ease, offset = 0) => {
+    const startTime = performance.now();
+    const startY = scrollingElement.scrollTop;
+    const easingFunction = ui.easing[ease] || ui.easing.linear;
+
+    function animateScroll(currentTime) {
+        const elapsedTime = currentTime - startTime;
+        const rawProgress = Math.min(elapsedTime / duration, 1);
+        const easedProgress = easingFunction(rawProgress);
+
+        // The destination is the target's offsetTop, adjusted for scale and the user offset.
+        const destinationScrollTop = (targetElement.offsetTop + offset) * ui.utils.scaleFactor;
+
+        // Interpolate from the original startY to the calculated destination
+        const newY = startY + ((destinationScrollTop - startY) * easedProgress);
+        scrollingElement.scrollTo(0, newY);
+
+        if (rawProgress < 1) {
+            requestAnimationFrame(animateScroll);
+        }
+    }
+
+    requestAnimationFrame(animateScroll);
+};
 ui.toggle = {};
 ui.toggle.flip = (elem, callback) => {
     if (elem.classList.contains('on')) {
@@ -471,7 +511,6 @@ ui.views.cars.saveFilter = () => {
 ui.views.cars.getFilteredList = () => {
     //get list of cars based on filter
     const start = Math.round(1 + (10000 * Math.random()));
-    console.log('start', start);
 
     ui.views.cars.saveFilter();
     ui.ajax({
@@ -485,6 +524,14 @@ ui.views.cars.getFilteredList = () => {
     });
 };
 
+ui.views.cars.getCarDetails = (car, skin) => {
+    if(skin == null){
+        skin = car.skins.length > 0 ? car.skins[0] : null;
+    }
+    car.preview = skin ? '/image/' + encodeURIComponent(ui.game.name) + '/skin/' + encodeURIComponent(car.path) + '/' + encodeURIComponent(skin.path) : '';
+    car.name = car.name ?? car.path.replace(/_/g, ' ');
+    return car;
+}
 //#endregion
 
 //#region "Views"
@@ -492,7 +539,6 @@ ui.views.cars.getFilteredList = () => {
 ui.views.cars.views = {};
 
 ui.views.cars.views.load = (list) => {
-    console.log('list', list);
     if (list) {
         ui.views.cars.results = list;
     }else{
@@ -500,7 +546,6 @@ ui.views.cars.views.load = (list) => {
     }
     //check if a grid view is already loaded, if so, just update the class list
     const gridview = document.querySelector('.grid-view');
-    console.log('grid-view', gridview, ui.views.cars.filter.view.indexOf('grid') > -1, ui.views.cars.filter.prevView.indexOf('grid') > -1);
     if(gridview != null && ui.views.cars.filter.view.indexOf('grid') > -1 && ui.views.cars.filter.prevView.indexOf('grid') > -1){
         var classname = ui.views.cars.filter.view.replace('grid', '');
         gridview.classList.remove('xl', 'sm');
@@ -512,24 +557,24 @@ ui.views.cars.views.load = (list) => {
         ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
             var output = '';
             list.cars.forEach((car) => {
-                const skin = car.skins.length > 0 ? car.skins[0] : null;
-                var preview = skin ? '/image/' + encodeURIComponent(ui.game.name) + '/skin/' + encodeURIComponent(car.path) + '/' + encodeURIComponent(skin.path) : '';
-                output += htmlItem.replace('{{preview}}', preview || 'no-preview.jpg')
-                    .replace('{{name}}', car.name ?? car.path.replace(/_/g, ' '))
-                    .replace('{{description}}', car.description ?? '');
+                //prepare each car in list and render HTML output of all items
+                car = ui.views.cars.getCarDetails(car);
+                output += htmlItem
+                    .replace('{{preview}}', car.preview || 'no-preview.jpg')
+                    .replace('{{name}}', car.name)
+                    .replace('{{description}}', car.description ?? '')
+                    .replace('{{path}}', car.path ?? '');
             });
 
             //set up view
             const car = list.cars.length > 0 ? list.cars[0] : null;
             if(car == null) return;
-            const skin = car ? car.skins.length > 0 ? car.skins[0] : null : null;
-            var preview = skin ? '/image/' + encodeURIComponent(ui.game.name) + '/skin/' + encodeURIComponent(car.path) + '/' + encodeURIComponent(skin.path) : '';
             switch(ui.views.cars.filter.view){
                 case 'gallery':
                     ui.view.injectComponent(htmlView
-                        .replace('{{name}}', car.name ?? car.path.replace(/_/g, ' '))
+                        .replace('{{name}}', car.name)
                         .replace('{{items}}', output)
-                        .replace('{{preview}}', preview)
+                        .replace('{{preview}}', car.preview)
                         , '.cars-content');
                     ui.views.cars.views.gallery.setup();
                     break;
@@ -552,15 +597,17 @@ ui.views.cars.views.changeView = (view) => {
 };
 
 ui.views.cars.views.grid = {
+    detailsDiv: null,
     setup: () => {
-        console.log('grid setup');
         document.querySelectorAll('.grid-view > .car').forEach((item) => {
             item.onmouseenter = (e) => {
+                //hover over car grid item
                 e.preventDefault();
                 e.stopPropagation();
-                //duplicate item and place it on top of the original
+                //stop if already hovered
                 if(item.querySelector('.hovered-clone')) return;
                 if(ui.views.cars.hovered != null){
+                    //hide previously hovered car grid item clone
                     const hovered = ui.views.cars.hovered;
                     hovered.classList.add('hiding');
                     setTimeout(() => {
@@ -570,18 +617,23 @@ ui.views.cars.views.grid = {
                     }, 250);
                 }
 
+                //clone car grid item
+                const car = ui.views.cars.views.grid.getCarFromItem(item);
                 const clone = item.cloneNode(true);
                 clone.className += ' hovered-clone';
                 clone.onmouseover = null;
                 clone.style.zIndex = 1;
                 item.prepend(clone);
                 ui.views.cars.hovered = clone;
+
                 clone.onclick = (e) => {
+                    //click on car grid item clone
                     e.preventDefault();
                     e.stopPropagation();
-                    ui.views.cars.views.grid.details(item);
+                    ui.views.cars.views.grid.details(car, item);
                 };
                 clone.onmouseleave = (e) => {
+                    //leave car grid item clone
                     e.preventDefault();
                     e.stopPropagation();
                     clone.classList.add('hiding');
@@ -595,12 +647,28 @@ ui.views.cars.views.grid = {
         });
     },
     details: (car, item) => {
+        //display car details within the grid
         ui.view.loadComponent(`Cars/grid-details`, (html) => {
-
-            ui.view.injectComponent(html
-                .replace('{{preview}}', car.preview)
-                .replace('{{name}}', car.name)
-                .replace('{{description}}', car.description), '.cars-content');
+            const detailsDiv =document.querySelector('.grid-details');
+            if(detailsDiv != null){
+                detailsDiv.classList.add('hiding');
+                setTimeout(() => {
+                    if(detailsDiv != null){
+                        detailsDiv.remove();
+                    }
+                }, 350);
+            }
+            const view = html
+            .replace('{{preview}}', car.preview)
+            .replace('{{name}}', car.name)
+            .replace('{{description}}', car.description);
+            item.insertAdjacentHTML('afterend', view);
+            ui.views.cars.views.grid.detailsDiv = item.nextSibling;
+            ui.views.cars.selected = {car, item};
+            setTimeout(() => {
+                //scroll to car details
+                ui.scrollTo(document.querySelector('.cars-content'), item, 500, 'easeInOutQuad', 0);
+            }, 350);
         });
     },
     getCarFromItem: (item) => {

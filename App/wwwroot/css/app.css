@@ -717,6 +717,7 @@ button,
   gap: 1em;
   margin: 1em;
   box-sizing: border-box;
+  grid-auto-flow: dense;
 }
 .cars-content .grid-view .car {
   aspect-ratio: 16/9;
@@ -764,6 +765,40 @@ button,
 }
 .cars-content .grid-view.sm {
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+.cars-content .grid-details {
+  grid-column-start: 1;
+  grid-column-end: -1;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  animation: show-details 0.3334s ease-out forwards;
+  overflow: hidden;
+}
+.cars-content .grid-details .preview {
+  max-height: 40vh;
+  max-width: 60vw;
+}
+.cars-content .grid-details .info {
+  padding: 0 0 0 1em;
+}
+.cars-content .grid-details.hiding {
+  animation: hide-details 0.3334s ease-out forwards;
+}
+@keyframes show-details {
+  from {
+    max-height: 0vh;
+  }
+  to {
+    max-height: 40vh;
+  }
+}
+@keyframes hide-details {
+  from {
+    max-height: 40vh;
+  }
+  to {
+    max-height: 0vh;
+  }
 }
 @keyframes hover-grow {
   from {
