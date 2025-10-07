@@ -36,6 +36,7 @@ paths.working = {
             paths.scripts + 'app/ajax.js',
             paths.scripts + 'app/toggle.js',
             paths.scripts + 'app/dark-mode.js',
+            paths.scripts + 'app/scale-ui.js',
             paths.scripts + 'components/ui/darkmode-toggle.js',
             paths.scripts + 'init.js',
             paths.scripts + 'login.js',

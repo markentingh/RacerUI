@@ -1,4 +1,5 @@
-﻿using RacerUI.Models;
+﻿using RacerUI.Entities;
+using RacerUI.Models;
 using System.Text.Json;
 
 namespace RacerUI
@@ -22,6 +23,9 @@ namespace RacerUI
         {
             new GameInfo("assetto corsa", "Assetto Corsa", "", "assettocorsa")
         };
+        public static List<CarType> CarTypes { get; set; }
+        public static List<CarStyling> CarStylings { get; set; }
+        public static List<CarSpecialization> CarSpecializations { get; set; }
 
         private static string _rootPath { get; set; } = "";
 

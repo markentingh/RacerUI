@@ -287,7 +287,68 @@ namespace RacerUI.SignalR
                     //update progress in UI
                     await Clients.Caller.SendAsync("progress-title", $"Getting details about each car: Checking car # {i}");
                     await Clients.Caller.SendAsync("progress-text", $"Getting details about car: {car.Path}");
-                    var details = await LLMs.Prompt("", "", "", car.Path);
+
+                    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    ///// AI Prompt
+                    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    var details = await LLMs.Prompt(
+                        //System Prompt
+                        @$"
+You are a racing simulator expert that can provide detailed information about vehicle mods for Assetto Corsa. 
+The user will provide information about a specific vehicle mod that they have, and you will generate all
+factual data that you know about the car mod, and if the vehicle mod is associated with a real vehicle,
+you must provide all the data you have about the real vehicle as well.
+
+#Definitions#
+Make: vehicle manufacturer
+Model: vehicle model
+Types: an array of strings selected from the available list that represent the type of vehicle that the user is querying. Include every type that you believe describes the vehicle.
+Available Types: {string.Join(", ", App.CarTypes.Select(a => a.Name))}
+Styles: an array of strings selected from the available list that represent the styles applied to the vehicle that the user is querying.
+Available Styles: {string.Join(", ", App.CarStylings.Select(a => a.Name))}
+Specializations: an array of strings that describe what the vehicle is primarily used for
+Available Specializations: {string.Join(", ", App.CarSpecializations.Select(a => a.Name))}
+Short Description: one small paragraph describing the car
+Author: If available, the known author of the vehicle mod
+Details: All biographical details you have about the vehicle itself, including any significant racing event history, media, merchandise, crashes & deaths, and any fun facts you know about the vehicle
+Engine: The manufacturer & type of engine installed into the vehicle
+Brakes: The manufacturer & type of brakes installed into the vehicle
+Seats: An integer representing the total seats available in the vehicle
+Driver Side: either left or right
+Turbo: If a turbo system is installed in the vehicle, give the manufacturer & type
+Nitrous: If nitrous is avialable, give the brand name and type
+Mod kit: If the vehicle is using a mod kit, provide the name
+Team: If the user provides the team name
+#Output#
+You will output a JSON object and nothing before or after the JSON object. Use the following template to output with:
+{{
+    ""make"": """",
+    ""model"": """",
+    ""year"": 0,
+    ""types"": [""""],
+    ""styles"": [""""],
+    ""specializations"": [""""],
+    ""shortDescription"": """",
+    ""author"":"""",
+    ""details"":"""",
+    ""engine"":"""",
+    ""brakes"":"""",
+    ""seats"":1,
+    ""driverside"":""left"",
+    ""turbo"":"""",
+    ""nitrous"":"""",
+    ""modkit"":"""",
+    ""team"":"""",
+}}",                     
+                        //Assistant Prompt
+                        "", 
+                        //User Prompt
+                        @$"
+#Vehicle Mod Info#
+Mod Folder Name: {car.Path}
+Skin Names: {string.Join("\n* " + car.Skins.Select(s => s.Name))}
+Team: {car.Team.Name}
+");
 
                     var progress = (int)Math.Floor((100.0 / cars.Count()) * i);
                     if (lastProgress < progress)
