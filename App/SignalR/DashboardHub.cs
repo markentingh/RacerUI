@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 using RacerUI.Utils;
 using RacerUI.Entities;
 using RacerUI.Models;
+using AssettoTools;
+using System.Text;
 
 namespace RacerUI.SignalR
 {
@@ -82,16 +84,16 @@ namespace RacerUI.SignalR
             var gameInfo = SQL.GamesRepository.GetByName(game);
             if (gameInfo != null)
             {
-#region Check Game Assets
+
+                goto skipCheckCars;
+                #region Check Game Content Folder for Cars
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 var gameAppInfo = App.Game(game);
                 int i = 0;
                 int lastProgress = 0;
 
-                switch (game)
-                {
+                if(game == "assetto corsa"){
                     // Assetto Corsa ////////////////////////////////////////////////////////
-                    case "assetto corsa":
-
                         //get a list of all car folders
                         var carFolders = Directory.GetDirectories(gameInfo.Path + "\\content\\cars");
                         int totalFolders = carFolders.Count();
@@ -107,7 +109,7 @@ namespace RacerUI.SignalR
                             AllowTrailingCommas = true
                         };
                         jsonOptions.Converters.Add(new JsonHelper.NumberToStringConverter());
-                        
+
                         foreach (var folder in carFolders)
                         {
                             try
@@ -166,9 +168,9 @@ namespace RacerUI.SignalR
                                                 {
                                                     skin.Name = !string.IsNullOrEmpty(skinData.Name) ? skinData.Name : skin.Path;
                                                     skin.Number = skinData.Number;
-                                                    if(skin.Drivers == null) skin.Drivers = [];
-                                                    if(skin.Name == skinData.DriverName) skinData.DriverName = "";
-                                                    
+                                                    if (skin.Drivers == null) skin.Drivers = [];
+                                                    if (skin.Name == skinData.DriverName) skinData.DriverName = "";
+
                                                     //find driver by name, or create a driver if neccessary
                                                     if (!string.IsNullOrEmpty(skinData.DriverName))
                                                     {
@@ -245,18 +247,23 @@ namespace RacerUI.SignalR
                                 await Clients.Caller.SendAsync("update", "Error: " + ex.Message);
                             }
                         }
-                        break;
                 }
-#endregion
+            #endregion
 
+            skipCheckCars:;
+                //get all car IDs & Path values from database
                 await Clients.Caller.SendAsync("progress", 0);
+                var cars = SQL.CarsRepository.GetAllCarPaths();
+
+                goto skipFindChildCars;
+                #region Find Child Cars Based On Parent Car Path Name
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                 // find children for all cars in the database
                 await Clients.Caller.SendAsync("progress-title", "Finding cars that are related to other cars");
-                var cars = SQL.CarsRepository.GetAllCarPaths();
                 i = 0;
                 lastProgress = 0;
-                
+
                 foreach (var car in cars)
                 {
                     i++;
@@ -273,7 +280,12 @@ namespace RacerUI.SignalR
                         await Clients.Caller.SendAsync("progress", progress);
                     }
                 }
+            #endregion
 
+            skipFindChildCars:;
+
+                #region Get Car Details From AI Prompt
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 await Clients.Caller.SendAsync("progress", 0);
                 // get details about each car by using AI
                 await Clients.Caller.SendAsync("progress-title", "Getting details about all new cars by using AI");
@@ -288,12 +300,74 @@ namespace RacerUI.SignalR
                     await Clients.Caller.SendAsync("progress-title", $"Getting details about each car: Checking car # {i}");
                     await Clients.Caller.SendAsync("progress-text", $"Getting details about car: {car.Path}");
 
-                    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                    ///// AI Prompt
-                    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                    var details = await LLMs.Prompt(
-                        //System Prompt
-                        @$"
+                    //load car pack file to extract data from the car ///////////////////////////////////////////////////////////////////
+                    var carInfo = new StringBuilder();
+                    if (game == "assetto corsa")
+                    {
+                        // Assetto Corsa ////////////////////////////////////////////////////////
+                        var acdWorker = new ACDBackend.ACDWorker();
+                        var carFiles = acdWorker.getEntries(gameInfo.Path + "\\content\\cars\\" + car.Path);
+
+                        var model = new CarDetails
+                        {
+                            Path = car.Path
+                        };
+
+                        if (carFiles != null)
+                        {
+                            foreach (var file in carFiles)
+                            {
+                                if (file.name.EndsWith(".ini", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var iniContent = new Dictionary<string, string>();
+                                    using (var reader = new StringReader(file.fileData))
+                                    {
+                                        string line;
+                                        while ((line = reader.ReadLine()) != null)
+                                        {
+                                            var parts = line.Split(new[] { '=' }, 2);
+                                            if (parts.Length == 2)
+                                            {
+                                                iniContent[parts[0].Trim()] = parts[1].Trim();
+                                            }
+                                        }
+                                    }
+                                    if (!model.IniFiles.ContainsKey(file.name))
+                                    {
+                                        model.IniFiles[file.name] = iniContent;
+                                    }
+                                }
+                                else
+                                {
+                                    model.OtherFiles.Add(file.name);
+                                }
+                            }
+                        }
+
+                        //generate car info from Assetto Corsa car files data
+
+                    }
+
+                    //GetCarDetailsFromAI(car);
+
+                    var progress = (int)Math.Floor((100.0 / cars.Count()) * i);
+                    if (lastProgress < progress)
+                    {
+                        lastProgress = progress;
+                        await Clients.Caller.SendAsync("progress", progress);
+                    }
+                    break; //debug only
+                }
+                #endregion
+            }
+        }
+
+        private async void GetCarDetailsFromAI(Car car, string carInfo)
+        {
+            //send prompt to preferred LLM
+            var details = await LLMs.Prompt(
+                //System Prompt
+                @$"
 You are a racing simulator expert that can provide detailed information about vehicle mods for Assetto Corsa. 
 The user will provide information about a specific vehicle mod that they have, and you will generate all
 factual data that you know about the car mod, and if the vehicle mod is associated with a real vehicle,
@@ -339,25 +413,18 @@ You will output a JSON object and nothing before or after the JSON object. Use t
     ""nitrous"":"""",
     ""modkit"":"""",
     ""team"":"""",
-}}",                     
-                        //Assistant Prompt
-                        "", 
-                        //User Prompt
-                        @$"
+}}",
+                //Assistant Prompt
+                "",
+                //User Prompt
+                @$"
 #Vehicle Mod Info#
 Mod Folder Name: {car.Path}
 Skin Names: {string.Join("\n* " + car.Skins.Select(s => s.Name))}
-Team: {car.Team.Name}
+{(car.Team != null ? "Team: " + car.Team.Name : "")}
+{carInfo}
 ");
 
-                    var progress = (int)Math.Floor((100.0 / cars.Count()) * i);
-                    if (lastProgress < progress)
-                    {
-                        lastProgress = progress;
-                        await Clients.Caller.SendAsync("progress", progress);
-                    }
-                }
-            }
         }
 
         public async Task AddGameToLibrary(string game, string path)
