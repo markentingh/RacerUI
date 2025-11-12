@@ -6,6 +6,7 @@
         public string Title { get; set; }
         public string AppId { get; set; }
         public string GamePath { get; set; }
+        public int GameId { get; set; }
 
         public GameInfo(string name, string title, string appId, string gamePath) { 
             Name = name; 

@@ -61,8 +61,8 @@ namespace RacerUI.SQL
         public static int Add(CarModel carModel)
         {
             const string sql = @"
-                INSERT INTO CarModels (Name)
-                VALUES (@Name);
+                INSERT INTO CarModels (Name, MakeId)
+                VALUES (@Name, @MakeId);
                 SELECT last_insert_rowid();";
 
             using (var connection = Connection.GetConnection())

@@ -6,6 +6,20 @@ namespace RacerUI.SQL
     public static class CarSpecializationsRepository
     {
         /// <summary>
+        /// Gets all racing specializations
+        /// </summary>
+        /// <returns>A list of all racing specializations</returns>
+        public static IEnumerable<RacingSpecialization> GetAll()
+        {
+            const string sql = "SELECT * FROM RacingSpecializations ORDER BY Name";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query<RacingSpecialization>(sql);
+            }
+        }
+
+        /// <summary>
         /// Gets all specializations for a specific car
         /// </summary>
         /// <param name="carId">The ID of the car</param>
@@ -120,7 +134,7 @@ namespace RacerUI.SQL
                             foreach (var specializationId in specializationIds)
                             {
                                 connection.Execute(
-                                    "INSERT INTO Cars_Specializations (CarId, Specialization) VALUES (@CarId, @SpecializationId)",
+                                    "INSERT INTO Cars_Specializations (CarId, SpecializationId) VALUES (@CarId, @SpecializationId)",
                                     new { CarId = carId, SpecializationId = specializationId },
                                     transaction);
                             }

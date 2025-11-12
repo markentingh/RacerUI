@@ -34,6 +34,7 @@ ui.views.game.checkAssets = () => {
     dashHub.on('progress-text', ui.views.game.updateProgressText);
     dashHub.invoke('CheckGameAssets', ui.game.name).then(() => {
         //finished checking assets
+        console.log('Finished checking assets');
         ui.views.game.isCheckingAssets = false;
         ui.views.game.checkingAssetsShowUI();
         dashHub.off('progress', ui.views.game.updateProgress);
@@ -43,6 +44,7 @@ ui.views.game.checkAssets = () => {
 };
 
 ui.views.game.skipCheckAssets = () => {
+    console.log('Skipping check assets');
     ui.views.game.isCheckingAssets = false;
     ui.views.game.checkingAssetsShowUI();
 };

@@ -3,6 +3,8 @@ using Microsoft.Extensions.Caching.Memory;
 using RacerUI.Entities;
 using RacerUI.Models;
 using RacerUI.SQL;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace RacerUI.Controllers
 {
@@ -39,7 +41,52 @@ namespace RacerUI.Controllers
             };
             
             var results = CarsRepository.AdvancedFilter(filterEntity);
-            return Ok(results);
+            
+            // Strip null and empty array properties from the response
+            var options = new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            };
+            
+            // Manually clean up empty arrays in the results
+            CleanupEmptyCollections(results);
+            
+            return new JsonResult(results, options);
+        }
+        
+        private void CleanupEmptyCollections(CarResultsModel results)
+        {
+            if (results?.Cars != null)
+            {
+                foreach (var car in results.Cars)
+                {
+                    // Use reflection to find all List properties and set empty ones to null
+                    var listProperties = car.GetType().GetProperties()
+                        .Where(p => p.PropertyType.IsGenericType && 
+                                    p.PropertyType.GetGenericTypeDefinition() == typeof(List<>) &&
+                                    p.CanWrite);
+                    
+                    foreach (var prop in listProperties)
+                    {
+                        var value = prop.GetValue(car);
+                        if (value != null)
+                        {
+                            var count = (int)value.GetType().GetProperty("Count").GetValue(value);
+                            if (count == 0)
+                            {
+                                prop.SetValue(car, null);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (results?.Makes?.Count == 0) results.Makes = null;
+            if (results?.Types?.Count == 0) results.Types = null;
+            if (results?.Stylings?.Count == 0) results.Stylings = null;
+            if (results?.Specializations?.Count == 0) results.Specializations = null;
         }
     }
 }

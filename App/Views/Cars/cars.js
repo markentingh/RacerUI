@@ -263,6 +263,7 @@ ui.views.cars.views.grid = {
     },
     details: (car, item) => {
         //display car details within the grid
+        console.log('view car details', car, item);
         ui.view.loadComponent(`Cars/grid-details`, (html) => {
             const detailsDiv =document.querySelector('.grid-details');
             if(detailsDiv != null){

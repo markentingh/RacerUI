@@ -84,7 +84,7 @@ switch (app.Environment.EnvironmentName.ToLower())
         break;
 }
 
-//load application-wide cache
+//load application-wide config
 App.ConfigFilename = "config" +
     (App.IsDocker ? ".docker" : "") +
     (App.Environment == RacerUI.Environment.production ? ".prod" : "") + ".json";
@@ -94,12 +94,10 @@ var builtConfig = new ConfigurationBuilder()
                 .AddEnvironmentVariables().Build();
 builtConfig.Bind(App.Config);
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
-
-app.MapHub<RacerUI.SignalR.DashboardHub>("/dashboardhub");
+//get LLM private keys
+LLMs.Available[LLMs.Models.Qwen].PrivateKey = App.Config.LLM.Qwen.PrivateKey;
+LLMs.Available[LLMs.Models.ChatGPT].PrivateKey = App.Config.LLM.ChatGPT.PrivateKey;
+LLMs.Available[LLMs.Models.Gemini].PrivateKey = App.Config.LLM.Gemini.PrivateKey;
 
 //load game info from database
 var games = GamesRepository.GetAll();
@@ -109,8 +107,23 @@ foreach (var game in games)
     if(gameInfo != null)
     {
         gameInfo.GamePath = game.Path;
+        gameInfo.GameId = game.Id;
     }
 }
+
+//load car info from database
+App.CarTypes = CarTypesRepository.GetAll().ToList();
+App.CarStylings = CarStylingRepository.GetAll().ToList();
+App.CarSpecializations = CarSpecializationsRepository.GetAll().ToList();
+
+//map controllers
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+//map SignalR hubs
+app.MapHub<RacerUI.SignalR.DashboardHub>("/dashboardhub");
+
 
 app.Start();
 

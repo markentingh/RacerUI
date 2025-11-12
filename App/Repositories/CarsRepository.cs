@@ -18,12 +18,14 @@ namespace RacerUI.SQL
                     ParentId, GameId, Year, MakeId, ModelId, Name, TeamId, Path, 
                     ShortDescription, Author, Class, MinBHP, MaxBHP, MinTorque, MaxTorque, 
                     Weight, MaxSpeed, ZeroTo100kmph, ZeroTo60mph, PWRatioKgPerHp, 
-                    Status, Rating, PowerGraph, TorqueGraph, Notes, Biography, Drivers
+                    Status, Rating, PowerCurve, TorqueCurve, Notes, Details, Engine, Brakes, Seats, DriverSide, Turbo, Nitrous, Modkit, Credits, Tires, Suspension, Country, 
+                    Gears, Shifter, AutoClutch, MaxRPM, LimitRPM, MaxFuel, KPL, DriveType
                 ) VALUES (
                     @ParentId, @GameId, @Year, @MakeId, @ModelId, @Name, @TeamId, @Path, 
                     @ShortDescription, @Author, @Class, @MinBHP, @MaxBHP, @MinTorque, @MaxTorque, 
                     @Weight, @MaxSpeed, @ZeroTo100kmph, @ZeroTo60mph, @PWRatioKgPerHp, 
-                    @Status, @Rating, @PowerGraph, @TorqueGraph, @Notes, @Biography, @Drivers
+                    @Status, @Rating, @PowerCurve, @TorqueCurve, @Notes, @Details, @Engine, @Brakes, @Seats, @DriverSide, @Turbo, @Nitrous, @Modkit, @Credits, @Tires, @Suspension, @Country, 
+                    @Gears, @Shifter, @AutoClutch, @MaxRPM, @LimitRPM, @MaxFuel, @KPL, @DriveType
                 );
                 SELECT last_insert_rowid();";
 
@@ -205,12 +207,31 @@ namespace RacerUI.SQL
                     ZeroTo60mph = @ZeroTo60mph,
                     PWRatioKgPerHp = @PWRatioKgPerHp,
                     Status = @Status,
+                    IsNew = @IsNew,
                     Rating = @Rating,
-                    PowerGraph = @PowerGraph,
-                    TorqueGraph = @TorqueGraph,
+                    PowerCurve = @PowerCurve,
+                    TorqueCurve = @TorqueCurve,
                     Notes = @Notes,
-                    Biography = @Biography,
-                    Drivers = @Drivers
+                    Details = @Details,
+                    Engine = @Engine,
+                    Brakes = @Brakes,
+                    Seats = @Seats,
+                    DriverSide = @DriverSide,
+                    Turbo = @Turbo,
+                    Nitrous = @Nitrous,
+                    Modkit = @Modkit,
+                    Credits = @Credits,
+                    Tires = @Tires,
+                    Suspension = @Suspension,
+                    Country = @Country,
+                    Gears = @Gears,
+                    Shifter = @Shifter,
+                    AutoClutch = @AutoClutch,
+                    MaxRPM = @MaxRPM,
+                    LimitRPM = @LimitRPM,
+                    MaxFuel = @MaxFuel,
+                    KPL = @KPL,
+                    DriveType = @DriveType
                 WHERE Id = @Id";
 
             using (var connection = Connection.GetConnection())
@@ -396,6 +417,7 @@ namespace RacerUI.SQL
             var parameters = new DynamicParameters();
 
             var sql = @"
+                DROP TABLE IF EXISTS CarsFilter;
                 CREATE TEMP TABLE CarsFilter
                 (Id INTEGER PRIMARY KEY);
             
@@ -413,7 +435,7 @@ namespace RacerUI.SQL
             if (filter.Styles != null && filter.Styles.Count > 0)
             {
                 sql += @"
-                JOIN Cars_Styling cs ON c.Id = cs.CarId";
+                JOIN Cars_Styling cst ON c.Id = cst.CarId";
             }
             if (filter.Specializations != null && filter.Specializations.Count > 0)
             {
@@ -423,7 +445,7 @@ namespace RacerUI.SQL
             if (filter.HasSkins == true)
             {
                 sql += @"
-                JOIN Cars_Skins cs ON c.Id = cs.CarId";
+                JOIN Cars_Skins csk ON c.Id = csk.CarId";
             }
 
 
@@ -434,7 +456,7 @@ namespace RacerUI.SQL
             }
             if (filter.Countries != null && filter.Countries.Count > 0)
             {
-                conditions.Add("m.CountryCode IN @Countries");
+                conditions.Add("c.Country IN @Countries");
                 parameters.Add("Countries", filter.Countries);
             }
 
@@ -461,11 +483,12 @@ namespace RacerUI.SQL
                 c.Name LIKE @SearchTerm OR 
                 c.ShortDescription LIKE @SearchTerm OR 
                 c.Author LIKE @SearchTerm OR 
-                cm.Name LIKE @SearchTerm OR 
-                cm.Name LIKE @SearchTerm
+                cmk.Name LIKE @SearchTerm OR 
+                cmdl.Name LIKE @SearchTerm
             )");
                 parameters.Add("SearchTerm", $"%{filter.Search}%");
             }
+            conditions.Add("c.IsNew < 1");
 
             //join all conditions
             if (conditions.Count > 0)
@@ -605,6 +628,10 @@ namespace RacerUI.SQL
                         // Look up the styling details
                         if (stylingsById.TryGetValue(stylingId, out var styling))
                         {
+                            if (!stylingsByCarId.ContainsKey(carId))
+                            {
+                                stylingsByCarId[carId] = new List<CarStyling>();
+                            }
                             stylingsByCarId[carId].Add(styling);
                         }
                     }
@@ -622,6 +649,10 @@ namespace RacerUI.SQL
                         // Look up the specialization details
                         if (specsById.TryGetValue(specId, out var spec))
                         {
+                            if (!specsByCarId.ContainsKey(carId))
+                            {
+                                specsByCarId[carId] = new List<RacingSpecialization>();
+                            }
                             specsByCarId[carId].Add(spec);
                         }
                     }
@@ -652,7 +683,7 @@ namespace RacerUI.SQL
                         // Assign model details if available
                         if (car.ModelId.HasValue && car.ModelId > 0 && modelsById.TryGetValue(car.ModelId.Value, out var model))
                         {
-                            car.Model = modelsById[car.ModelId.Value];
+                            car.Model = model;
                         }
 
                         // Clear Make reference since it's in the shared collection
@@ -688,7 +719,7 @@ namespace RacerUI.SQL
         /// <returns>A list of cars with Id and Path.</returns>
         public static IEnumerable<Car> GetAllCarPaths()
         {
-            const string sql = "SELECT Id, Path FROM Cars ORDER BY Path;";
+            const string sql = "SELECT Id, ParentId, GameId, Path, IsNew, Status, Country FROM Cars ORDER BY Path;";
 
             using (var connection = Connection.GetConnection())
             {

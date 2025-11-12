@@ -1,4 +1,4 @@
-﻿using RacerUI.Entities;
+using RacerUI.Entities;
 using RacerUI.Models;
 using System.Text.Json;
 
@@ -25,7 +25,7 @@ namespace RacerUI
         };
         public static List<CarType> CarTypes { get; set; }
         public static List<CarStyling> CarStylings { get; set; }
-        public static List<CarSpecialization> CarSpecializations { get; set; }
+        public static List<RacingSpecialization> CarSpecializations { get; set; }
 
         private static string _rootPath { get; set; } = "";
 

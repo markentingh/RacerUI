@@ -20,7 +20,8 @@ namespace RacerUI.Utils
                 var json = Regex.Replace(rawJson, @"(""[^""]*"")\s*:\s*([a-zA-Z0-9_]+)([\,\s\}\r\n]+)", "$1: \"$2\"$3")
                     .Replace("\t","").Replace("\r", "").Replace("\n", "");
                 //fix properties that don't even have a value
-                return Regex.Replace(json, @"(""[^""]*"")\s*:\s*(\,)([,\s\}])", "$1: \"\"$2$3");
+                json = Regex.Replace(json, @"(""[^""]*"")\s*:\s*(\,)([,\s\}])", "$1: \"\"$2$3");
+                return json;
             }
             catch (Exception ex)
             {

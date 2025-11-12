@@ -124,7 +124,7 @@ namespace RacerUI.SQL
                             foreach (var stylingId in stylingIds)
                             {
                                 connection.Execute(
-                                    "INSERT INTO Cars_Styling (CarId, Styling) VALUES (@CarId, @StylingId)",
+                                    "INSERT INTO Cars_Styling (CarId, StylingId) VALUES (@CarId, @StylingId)",
                                     new { CarId = carId, StylingId = stylingId },
                                     transaction);
                             }

@@ -26,8 +26,8 @@ namespace RacerUI.Entities
         public decimal? PWRatioKgPerHp { get; set; }
         public int Status { get; set; }
         public int? Rating { get; set; }
-        public string PowerGraph { get; set; }
-        public string TorqueGraph { get; set; }
+        public string PowerCurve { get; set; }
+        public string TorqueCurve { get; set; }
         public string Notes { get; set; }
         public string Details { get; set; }
         public string Engine { get; set; }
@@ -37,6 +37,18 @@ namespace RacerUI.Entities
         public string Turbo { get; set; }
         public string Nitrous { get; set; }
         public string Modkit { get; set; }
+        public string Credits { get; set; }
+        public string Tires { get; set; }
+        public string Suspension { get; set; }
+        public string Country { get; set; }
+        public int? Gears { get; set; }
+        public bool? Shifter { get; set; }
+        public bool? AutoClutch { get; set; }
+        public int? MaxRPM { get; set; }
+        public int? LimitRPM { get; set; }
+        public int? MaxFuel { get; set; }
+        public float? KPL { get; set; }
+        public string DriveType { get; set; }
 
         // Navigation properties
         public CarMake Make { get; set; }

@@ -12,6 +12,7 @@ namespace RacerUI.SQL
         public static void Load(string? databasePath = null)
         {
             if (connecting) return;
+            if (_connection != null && _connection.State == System.Data.ConnectionState.Open) return;
             connecting = true;
             DatabasePath = databasePath ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "RacerUI.sqlite");
             if(File.Exists(DatabasePath))
@@ -29,7 +30,7 @@ namespace RacerUI.SQL
 
         public static SqliteConnection GetConnection()
         {
-            if (_connection == null) Load();
+            Load();
             return _connection!;
         }
 
