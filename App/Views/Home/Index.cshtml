@@ -32,11 +32,11 @@
         <form method="post">
             <div class="row hover">
                 <div class="col field">Username</div>
-                <div class="col input"><input type="text" name="username" /></div>
+                <div class="col input"><input type="text" name="username" value="admin" /></div>
             </div>
             <div class="row hover">
                 <div class="col field">Password</div>
-                <div class="col input"><input type="password" name="password" /></div>
+                <div class="col input"><input type="password" name="password" value="123456" /></div>
             </div>
             <div class="row buttons">
                 <button type="submit" class="login">
@@ -53,5 +53,9 @@
     <div class="login-footer">
         <p>Learn more about RacerUI at <a href="https://www.racerui.com" target="_blank">RacerUI.com</a> or on <a href="https://github.com/markentingh/racerUI">GitHub</a>.</p>
     </div>
+
+    <script>
+        document.querySelector('.login').click();
+    </script>
 </div>
 
