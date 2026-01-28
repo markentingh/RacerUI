@@ -173,32 +173,36 @@ ui.views.cars.views.load = (list) => {
             var output = '';
             list.cars.forEach((car) => {
                 //prepare each car in list and render HTML output of all items
+            var carName = car.year + ' ' + car.name.replace(car.year, '');
                 car = ui.views.cars.getCarDetails(car);
                 output += htmlItem
-                    .replace('{{preview}}', car.preview || 'no-preview.jpg')
-                    .replace('{{name}}', car.name)
-                    .replace('{{description}}', car.description ?? '')
-                    .replace('{{path}}', car.path ?? '');
+                    .split('{{preview}}').join(car.preview || 'no-preview.jpg')
+                    .split('{{name}}').join(carName)
+                    .split('{{description}}').join(car.description ?? '')
+                    .split('{{path}}').join(car.path ?? '')
+                    .split('{{countryCode}}').join((car.country || 'unknown').toLowerCase())
+                    .split('{{country}}').join(car.countryName || car.country || 'Unknown');
             });
 
             //set up view
             const car = list.cars.length > 0 ? list.cars[0] : null;
+            var carName = car.year + ' ' + car.name.replace(car.year, '');
             if(car == null) return;
             switch(ui.views.cars.filter.view){
                 case 'gallery':
                     ui.view.injectComponent(htmlView
-                        .replace('{{name}}', car.name)
-                        .replace('{{items}}', output)
-                        .replace('{{preview}}', car.preview)
+                        .split('{{name}}').join(carName)
+                        .split('{{items}}').join(output)
+                        .split('{{preview}}').join(car.preview)
                         , '.cars-content');
                     ui.views.cars.views.gallery.setup();
                     break;
                 case 'grid': case 'gridxl': case 'gridsm':
-                    ui.view.injectComponent(htmlView.replace('{{items}}', output), '.cars-content');
+                    ui.view.injectComponent(htmlView.split('{{items}}').join(output), '.cars-content');
                     ui.views.cars.views.grid.setup();
                     break;
                 default:
-                    ui.view.injectComponent(htmlView.replace('{{items}}', output), '.cars-content');
+                    ui.view.injectComponent(htmlView.split('{{items}}').join(output), '.cars-content');
                     break;
             }
         });
@@ -264,8 +268,23 @@ ui.views.cars.views.grid = {
     details: (car, item) => {
         //display car details within the grid
         console.log('view car details', car, item);
+        // Check if the clicked car is already selected
+        if (ui.views.cars.selected && ui.views.cars.selected.car.path === car.path) {
+            // Hide details if the same car is clicked again
+            const detailsDiv = document.querySelector('.grid-details');
+            if (detailsDiv) {
+                detailsDiv.classList.add('hiding');
+                setTimeout(() => {
+                    if (detailsDiv) {
+                        detailsDiv.remove();
+                    }
+                    ui.views.cars.selected = null;
+                }, 350);
+            }
+            return;
+        }
         ui.view.loadComponent(`Cars/grid-details`, (html) => {
-            const detailsDiv =document.querySelector('.grid-details');
+            const detailsDiv = document.querySelector('.grid-details');
             if(detailsDiv != null){
                 detailsDiv.classList.add('hiding');
                 setTimeout(() => {
@@ -275,9 +294,21 @@ ui.views.cars.views.grid = {
                 }, 350);
             }
             const view = html
-            .replace('{{preview}}', car.preview)
-            .replace('{{name}}', car.name)
-            .replace('{{description}}', car.description);
+            .split('{{preview}}').join(car.preview)
+            .split('{{name}}').join(car.year + ' ' + car.name.replace(car.year, ''))
+            .split('{{year}}').join(car.year || 'N/A')
+            .split('{{country}}').join(car.countryName || car.country || 'Unknown')
+            .split('{{countryCode}}').join((car.country || 'unknown').toLowerCase())
+            .split('{{class}}').join(car.class ? ui.utils.strings.capitalize(car.class).replace('Gt', 'GT').replace('Gr.', 'Group ') : '')
+            .split('{{shifter}}').join(car.gears ?? '')
+            .split('{{author}}').join(car.author || '')
+            .split('{{maxSpeed}}').join(car.maxSpeed ? car.maxSpeed + ' km/h' : 'N/A')
+            .split('{{maxBHP}}').join(car.maxBHP || 'N/A')
+            .split('{{zeroTo60mph}}').join(car.zeroTo60mph ? car.zeroTo60mph + 's' : 'N/A')
+            .split('{{gears}}').join(car.gears || 'N/A')
+            .split('{{description}}').join(car.description || '')
+            .hasBlock('has-country', car.countryName || car.country)
+            .hasBlock('has-shifter', car.shifter);
             item.insertAdjacentHTML('afterend', view);
             ui.views.cars.views.grid.detailsDiv = item.nextSibling;
             ui.views.cars.selected = {car, item};

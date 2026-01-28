@@ -13,7 +13,7 @@ ui.hub.load = () => {
 
         dashHub.start().catch(ui.hub.error);
         setTimeout(() => { 
-            dashHub.invoke('Handshake'); 
+            dashHub.send('Handshake'); 
             ui.hub.keepAliveAgain();
         }, 500);
     }
@@ -28,7 +28,7 @@ ui.hub.log = (msg) => {
 };
 
 ui.hub.keepAlive = () => {
-    dashHub.invoke('KeepAlive');
+    dashHub.send('KeepAlive');
     ui.hub.keepAliveAgain();
 }
 

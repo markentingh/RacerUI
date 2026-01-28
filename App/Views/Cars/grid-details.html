@@ -1,7 +1,31 @@
 <div class="grid-details">
-    <img class="preview" src="{{preview}}"/>
+    <img class="preview" src="{{preview}}" />
     <div class="info">
-        <h2>{{name}}</h2>
-        <p>{{description}}</p>
+        <h4>{{name}}</h4>
+        <div class="car-origin">
+            {{has-country}}
+                <div class="car-country">
+                    <img class="flag" src="/images/flags/80x60/{{countryCode}}.png" alt="{{country}} flag" />
+                    <span>{{country}}</span>
+                </div>
+            {{/has-country}}
+            <div class="car-class">
+                <span>{{class}}</span>
+            </div>
+            {{has-shifter}}
+            <div class="car-shifter">
+                <svg viewBox="0 0 64 64" class="dark">
+                    <use xlink:href="#icon-shifter" x="0" y="0" width="64" height="64"></use>
+                </svg>
+                <span>{{shifter}}</span>
+            </div>
+            {{/has-shifter}}
+        </div>
+        <div class="car-stats">
+            <div><strong>Max Speed:</strong> <span>{{maxSpeed}}</span></div>
+            <div><strong>Max BHP:</strong> <span>{{maxBHP}}</span></div>
+            <div><strong>0-60 mph:</strong> <span>{{zeroTo60mph}}</span></div>
+            <div><strong>Total Gears:</strong> <span>{{gears}}</span></div>
+        </div>
     </div>
 </div>

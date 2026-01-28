@@ -7,7 +7,7 @@ namespace RacerUI
     {
         public enum Models
         {
-            Unknown, Qwen, ChatGPT, Gemini
+            Unknown, Qwen, ChatGPT, Gemini, Claude
         }
 
         /// <summary>
@@ -18,7 +18,7 @@ namespace RacerUI
         public static Dictionary<Models, LLMInfo> Available = new Dictionary<Models, LLMInfo>()
         {
             {Models.Qwen, new LLMInfo(){
-                Model = "qwen-turbo-latest",
+                Model = "qwen-plus",
                 Endpoint = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
                 PrivateKey = ""
             }},
@@ -30,6 +30,11 @@ namespace RacerUI
             {Models.Gemini, new LLMInfo(){
                 Model = "gemini-2.0-flash-lite",
                 Endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/",
+                PrivateKey = ""
+            }},
+            {Models.Claude, new LLMInfo(){
+                Model = "claude-sonnet-4-5",
+                Endpoint = "https://api.anthropic.com/v1/",
                 PrivateKey = ""
             }}
         };

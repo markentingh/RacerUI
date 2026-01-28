@@ -29,24 +29,20 @@ ui.views.game.checkAssets = () => {
     ui.views.game.isCheckingAssets = true;
     ui.views.game.checkingProgress = 0;
     ui.views.game.checkingAssetsShowUI();
+    var checkNewCars = document.querySelector('#checkNewCars').checked;
+    var findChildCars = document.querySelector('#findChildCars').checked;
+    var getCarDetails = document.querySelector('#getCarDetails').checked;
+    var verifyCarDetails = document.querySelector('#verifyCarDetails').checked;
     dashHub.on('progress', ui.views.game.updateProgress);
     dashHub.on('progress-title', ui.views.game.updateProgressTitle);
     dashHub.on('progress-text', ui.views.game.updateProgressText);
-    dashHub.invoke('CheckGameAssets', ui.game.name).then(() => {
-        //finished checking assets
-        console.log('Finished checking assets');
-        ui.views.game.isCheckingAssets = false;
-        ui.views.game.checkingAssetsShowUI();
-        dashHub.off('progress', ui.views.game.updateProgress);
-        dashHub.off('progress-title', ui.views.game.updateProgressTitle);
-        dashHub.off('progress-text', ui.views.game.updateProgressText);
-    });
+    dashHub.on('progress-complete', ui.views.game.updateProgressComplete);
+    dashHub.send('CheckGameAssets', ui.game.name, checkNewCars, findChildCars, getCarDetails, verifyCarDetails);
 };
 
 ui.views.game.skipCheckAssets = () => {
     console.log('Skipping check assets');
-    ui.views.game.isCheckingAssets = false;
-    ui.views.game.checkingAssetsShowUI();
+    ui.views.game.updateProgressComplete();
 };
 
 ui.views.game.updateProgressTitle = (title) => {
@@ -61,6 +57,15 @@ ui.views.game.updateProgress = (progress) => {
     var el = document.querySelector('.checking-assets .progress .bar');
     if(el != null) el.style.width = progress + '%';
     ui.views.game.checkingProgress = progress;
+}
+
+ui.views.game.updateProgressComplete = () => {
+    ui.views.game.isCheckingAssets = false;
+    dashHub.off('progress', ui.views.game.updateProgress);
+    dashHub.off('progress-title', ui.views.game.updateProgressTitle);
+    dashHub.off('progress-text', ui.views.game.updateProgressText);
+    dashHub.off('progress-complete', ui.views.game.updateProgressComplete);
+    ui.views.game.checkingAssetsShowUI();
 }
 
 ui.views.game.checkingAssetsShowUI = () => {

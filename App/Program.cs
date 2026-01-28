@@ -98,6 +98,7 @@ builtConfig.Bind(App.Config);
 LLMs.Available[LLMs.Models.Qwen].PrivateKey = App.Config.LLM.Qwen.PrivateKey;
 LLMs.Available[LLMs.Models.ChatGPT].PrivateKey = App.Config.LLM.ChatGPT.PrivateKey;
 LLMs.Available[LLMs.Models.Gemini].PrivateKey = App.Config.LLM.Gemini.PrivateKey;
+LLMs.Available[LLMs.Models.Claude].PrivateKey = App.Config.LLM.Claude.PrivateKey;
 
 //load game info from database
 var games = GamesRepository.GetAll();

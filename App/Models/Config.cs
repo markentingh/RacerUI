@@ -24,6 +24,7 @@ namespace RacerUI.Models
         public LLMConfig Qwen { get; set; }
         public LLMConfig ChatGPT { get; set; }
         public LLMConfig Gemini { get; set; }
+        public LLMConfig Claude { get; set; }
         public LLMConfig StabilityAI { get; set; }
     }
 }

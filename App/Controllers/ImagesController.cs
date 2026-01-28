@@ -44,6 +44,18 @@ namespace RacerUI.Controllers
                     skinFolderName,
                     "preview.jpg"
                 );
+                if (!System.IO.File.Exists(imagePath))
+                {
+                    imagePath = Path.Combine(
+                        game.GamePath,
+                        "content",
+                        "cars",
+                        carFolderName,
+                        "skins",
+                        skinFolderName,
+                        "preview.png"
+                    );
+                }
             }
             else
             {

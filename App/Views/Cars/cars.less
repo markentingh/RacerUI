@@ -212,10 +212,10 @@
 
         .car {
             aspect-ratio: 16/9;
-            width:100%;
-            top:0%;
-            position:relative;
-            border-width:0;
+            width: 100%;
+            top: 0%;
+            position: relative;
+            border-width: 0;
             box-shadow: none;
 
             img {
@@ -225,34 +225,49 @@
 
             .info {
                 margin: -2.4em 0 0 0.6em;
+                white-space: nowrap;
+                vertical-align: top;
 
                 h2 {
                     font-size: 1em;
                     font-weight: normal;
-                    margin: 0.25em 0 0.5em 0;
                     line-height: 1.25;
                     opacity: 0.75;
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
                     background-color: rgba(0, 0, 0, 0.75);
-                    float: left;
+                    display: inline-block;
                     padding: 0.25em 0.5em;
                     border-radius: 0.5em;
                 }
             }
 
-            &.hovered-clone{
-                z-index:10;
-                margin:0 auto;
-                position:absolute;
-                border-style:solid;
+            .flag {
+                position: relative;
+                display: inline-block;
+                vertical-align: top;
+                width: 2em;
+                margin-right: 0.5em;
+
+                img {
+                    width: 100%;
+                    border: 1px solid rgba(128, 128, 128, 0.25);
+                    border-radius: 0.2em;
+                }
+            }
+
+            &.hovered-clone {
+                z-index: 10;
+                margin: 0 auto;
+                position: absolute;
+                border-style: solid;
                 border-radius: 0.5em;
                 animation: hover-grow 0.25s ease-in-out forwards;
             }
 
             &.hovered-clone.hiding {
-                z-index:9;
+                z-index: 9;
                 animation: hover-shrink 0.25s ease-in-out forwards;
             }
         }
@@ -266,23 +281,92 @@
         }
     }
 
-    .grid-details{
+    .grid-details {
         grid-column-start: 1;
         grid-column-end: -1;
-        display:grid;
+        display: grid;
         grid-template-columns: 1fr 2fr;
         animation: show-details 0.3334s ease-out forwards;
-        overflow:hidden;
-        .preview{
+        overflow: hidden;
+
+        .preview {
             max-height: 40vh;
             max-width: 60vw;
         }
-        .info{
-            padding:0 0 0 1em;
+
+        .info {
+            padding: 0 0 0 1em;
+            line-height: 1.5em;
+            width: 100%;
+            box-sizing: border-box;
+
+            h4 {
+                font-size: 1.8em;
+                font-weight: normal;
+                margin: 0 0 0.25em 0;
+                background: rgb(88 88 88 / 38%);
+                padding: 0.25em 0.5em 0.3em 0.5em;
+                border-radius: 0.15em;
+            }
+        }
+
+        .car-origin {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            margin-bottom:0.4em;
+
+            &>div {
+                display: flex;
+                align-items: center;
+                padding: 0.3em 0.5em 0.4em 0.5em;
+                background: rgb(88 88 88 / 38%);
+                border-radius: 0.15em;
+                margin-right: 0.5em;
+            }
+
+            .flag {
+                vertical-align: top;
+                width: 1.5em;
+                margin: 0.25em 0.5em 0 0;
+                align-self: flex-start;
+            }
+
+            .car-shifter{
+                svg {
+                    width: 1em;
+                    margin: 0.25em 0.5em 0 0;
+                    align-self: flex-start;
+                }
+                span{
+                    display:inline-block;
+                    padding-right:0.25em;
+                }
+            }
+        }
+
+        .car-stats {
+            white-space: nowrap;
+            padding: 0.25em 0.5em;
+            background: rgb(88 88 88 / 38%);
+            border-radius: 0.15em;
+
+            &>div {
+                display: inline-block;
+                padding: 0 0.5em 0 0;
+
+                span {
+                    display: inline-block;
+                    padding: 0 0.4em;
+                    background: rgba(60, 76, 136, 0.7);
+                    border-radius: 0.15em;
+                    margin-right: 0.5em;
+                }
+            }
         }
     }
 
-    .grid-details.hiding{
+    .grid-details.hiding {
         animation: hide-details 0.3334s ease-out forwards;
     }
 
@@ -290,6 +374,7 @@
         from {
             max-height: 0vh;
         }
+
         to {
             max-height: 40vh;
         }
@@ -299,6 +384,7 @@
         from {
             max-height: 40vh;
         }
+
         to {
             max-height: 0vh;
         }
@@ -312,6 +398,7 @@
             border-color: rgba(255, 255, 255, 0);
             box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
         }
+
         to {
             width: 120%;
             top: -10%;
@@ -329,6 +416,7 @@
             border-color: rgba(255, 255, 255, 0.7);
             box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
         }
+
         to {
             width: 100%;
             top: 0%;
@@ -387,6 +475,7 @@
                 width: calc((100vw / 4) - 4em);
                 margin: 0 0.5em;
                 border-radius: 0.5em;
+
                 img {
                     width: 100%;
                 }
@@ -414,17 +503,18 @@
 }
 
 @media screen and (max-width: 1630px) {
-    .cars-toolbar .search-input{
-        max-width:calc(100vw - 50em);
+    .cars-toolbar .search-input {
+        max-width: calc(100vw - 50em);
     }
 }
 
 @media screen and (max-width: 1480px) {
-    .cars-toolbar nav > ul.menu li{
-        font-size:0.8em;
+    .cars-toolbar nav>ul.menu li {
+        font-size: 0.8em;
         margin-top: 0.15em;
     }
-    .cars-toolbar nav > ul.menu li:not(.search-input){
+
+    .cars-toolbar nav>ul.menu li:not(.search-input) {
         margin-top: 0.2em;
     }
 }

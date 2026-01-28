@@ -27,3 +27,25 @@ ui.view.injectComponent = (html, selector) => {
     content.innerHTML = html;
     ui.utils.scaleUI();
 }
+
+ui.view.hasBlock = (html, name, visible) => {
+    const template = typeof html === 'string' ? html : '';
+    if (!name) {
+        return template;
+    }
+
+    const blockName = String(name).trim();
+    if (!blockName) {
+        return template;
+    }
+
+    const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`{{${escapeRegex(blockName)}}}([\\s\\S]*?){{\/${escapeRegex(blockName)}}}`, 'g');
+    return template.replace(pattern, (_match, content) => visible ? content : '');
+}
+
+if (!String.prototype.hasBlock) {
+    String.prototype.hasBlock = function(name, visible) {
+        return ui.view.hasBlock(String(this), name, visible);
+    }
+}

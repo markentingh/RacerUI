@@ -527,6 +527,19 @@ button,
 .content.game .check-assets p {
   padding: 2em 0;
 }
+.content.game .check-assets .check-options {
+  margin-bottom: 2em;
+}
+.content.game .check-assets .check-options label {
+  display: inline-block;
+  margin-right: 2em;
+  white-space: nowrap;
+}
+.content.game .check-assets .check-options label input[type="checkbox"] {
+  display: inline-block;
+  width: 1em;
+  margin-right: 5px;
+}
 .content.game .set-game-path {
   padding: 2em;
   text-align: center;
@@ -550,6 +563,7 @@ button,
   padding: 1em 0 0.5em 0;
   font-size: 1.2em;
   line-height: 1;
+  white-space: nowrap;
 }
 .content.game .checking-assets .progress-text {
   padding: 1em 0 0.5em 0;
@@ -562,6 +576,9 @@ button,
 }
 .content.game .checking-assets .progress .bar {
   width: 0%;
+}
+.content.game .checking-assets .skip-btn {
+  margin-top: 1em;
 }
 .content.cars .coming-soon {
   padding: 2em;
@@ -733,20 +750,33 @@ button,
 }
 .cars-content .grid-view .car .info {
   margin: -2.4em 0 0 0.6em;
+  white-space: nowrap;
+  vertical-align: top;
 }
 .cars-content .grid-view .car .info h2 {
   font-size: 1em;
   font-weight: normal;
-  margin: 0.25em 0 0.5em 0;
   line-height: 1.25;
   opacity: 0.75;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   background-color: rgba(0, 0, 0, 0.75);
-  float: left;
+  display: inline-block;
   padding: 0.25em 0.5em;
   border-radius: 0.5em;
+}
+.cars-content .grid-view .car .flag {
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+  width: 2em;
+  margin-right: 0.5em;
+}
+.cars-content .grid-view .car .flag img {
+  width: 100%;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 0.2em;
 }
 .cars-content .grid-view .car.hovered-clone {
   z-index: 10;
@@ -780,6 +810,63 @@ button,
 }
 .cars-content .grid-details .info {
   padding: 0 0 0 1em;
+  line-height: 1.5em;
+  width: 100%;
+  box-sizing: border-box;
+}
+.cars-content .grid-details .info h4 {
+  font-size: 1.8em;
+  font-weight: normal;
+  margin: 0 0 0.25em 0;
+  background: rgba(88, 88, 88, 0.38);
+  padding: 0.25em 0.5em 0.3em 0.5em;
+  border-radius: 0.15em;
+}
+.cars-content .grid-details .car-origin {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0.4em;
+}
+.cars-content .grid-details .car-origin > div {
+  display: flex;
+  align-items: center;
+  padding: 0.3em 0.5em 0.4em 0.5em;
+  background: rgba(88, 88, 88, 0.38);
+  border-radius: 0.15em;
+  margin-right: 0.5em;
+}
+.cars-content .grid-details .car-origin .flag {
+  vertical-align: top;
+  width: 1.5em;
+  margin: 0.25em 0.5em 0 0;
+  align-self: flex-start;
+}
+.cars-content .grid-details .car-origin .car-shifter svg {
+  width: 1em;
+  margin: 0.25em 0.5em 0 0;
+  align-self: flex-start;
+}
+.cars-content .grid-details .car-origin .car-shifter span {
+  display: inline-block;
+  padding-right: 0.25em;
+}
+.cars-content .grid-details .car-stats {
+  white-space: nowrap;
+  padding: 0.25em 0.5em;
+  background: rgba(88, 88, 88, 0.38);
+  border-radius: 0.15em;
+}
+.cars-content .grid-details .car-stats > div {
+  display: inline-block;
+  padding: 0 0.5em 0 0;
+}
+.cars-content .grid-details .car-stats > div span {
+  display: inline-block;
+  padding: 0 0.4em;
+  background: rgba(60, 76, 136, 0.7);
+  border-radius: 0.15em;
+  margin-right: 0.5em;
 }
 .cars-content .grid-details.hiding {
   animation: hide-details 0.3334s ease-out forwards;

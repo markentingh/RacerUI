@@ -6,6 +6,19 @@
         p{
             padding:2em 0;
         }
+        .check-options {
+            margin-bottom: 2em;
+            label {
+                display:inline-block;
+                margin-right:2em;
+                white-space: nowrap;
+                input[type="checkbox"] {
+                    display:inline-block;
+                    width:1em;
+                    margin-right: 5px;
+                }
+            }
+        }
     }
     .set-game-path{
         padding:2em;
@@ -30,6 +43,7 @@
             padding:1em 0 0.5em 0;
             font-size:1.2em;
             line-height:1;
+            white-space:nowrap;
         }
         .progress-text{
             padding:1em 0 0.5em 0;
@@ -42,6 +56,9 @@
             .bar{
                 width:0%;
             }
+        }
+        .skip-btn{
+            margin-top:1em;
         }
     }
 }

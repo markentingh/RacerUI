@@ -41,6 +41,7 @@ namespace RacerUI.Entities
         public string Tires { get; set; }
         public string Suspension { get; set; }
         public string Country { get; set; }
+        public string CountryName { get; set; }
         public int? Gears { get; set; }
         public bool? Shifter { get; set; }
         public bool? AutoClutch { get; set; }
@@ -49,6 +50,7 @@ namespace RacerUI.Entities
         public int? MaxFuel { get; set; }
         public float? KPL { get; set; }
         public string DriveType { get; set; }
+        public string Version { get; set; }
 
         // Navigation properties
         public CarMake Make { get; set; }

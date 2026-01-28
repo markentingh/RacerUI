@@ -289,6 +289,134 @@ namespace RacerUI.SQL
         }
 
         /// <summary>
+        /// Updates only the IsNew field of a car
+        /// </summary>
+        /// <param name="id">The ID of the car to update</param>
+        /// <param name="isNew">The new IsNew value</param>
+        /// <returns>True if the update was successful</returns>
+        public static bool UpdateIsNew(int id, int isNew)
+        {
+            const string sql = "UPDATE Cars SET IsNew = @IsNew WHERE Id = @Id";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(sql, new { Id = id, IsNew = isNew }) > 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates only the Class field of a car
+        /// </summary>
+        /// <param name="id">The ID of the car to update</param>
+        /// <param name="carClass">The new class value</param>
+        /// <returns>True if the update was successful</returns>
+        public static bool UpdateClass(int id, string carClass)
+        {
+            const string sql = "UPDATE Cars SET Class = @Class WHERE Id = @Id";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(sql, new { Id = id, Class = carClass }) > 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates only the Year field of a car
+        /// </summary>
+        /// <param name="id">The ID of the car to update</param>
+        /// <param name="year">The new year value</param>
+        /// <returns>True if the update was successful</returns>
+        public static bool UpdateYear(int id, int? year)
+        {
+            const string sql = "UPDATE Cars SET Year = @Year WHERE Id = @Id";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(sql, new { Id = id, Year = year }) > 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates only the Name field of a car
+        /// </summary>
+        /// <param name="id">The ID of the car to update</param>
+        /// <param name="name">The new name value</param>
+        /// <returns>True if the update was successful</returns>
+        public static bool UpdateName(int id, string name)
+        {
+            const string sql = "UPDATE Cars SET Name = @Name WHERE Id = @Id";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(sql, new { Id = id, Name = name }) > 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates only the Version field of a car
+        /// </summary>
+        /// <param name="id">The ID of the car to update</param>
+        /// <param name="version">The new version value</param>
+        /// <returns>True if the update was successful</returns>
+        public static bool UpdateVersion(int id, string version)
+        {
+            const string sql = "UPDATE Cars SET Version = @Version WHERE Id = @Id";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(sql, new { Id = id, Version = version }) > 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates only the MakeId field of a car
+        /// </summary>
+        /// <param name="id">The ID of the car to update</param>
+        /// <param name="makeId">The new make ID value</param>
+        /// <returns>True if the update was successful</returns>
+        public static bool UpdateMakeId(int id, int? makeId)
+        {
+            const string sql = "UPDATE Cars SET MakeId = @MakeId WHERE Id = @Id";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(sql, new { Id = id, MakeId = makeId }) > 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates only the ModelId field of a car
+        /// </summary>
+        /// <param name="id">The ID of the car to update</param>
+        /// <param name="modelId">The new model ID value</param>
+        /// <returns>True if the update was successful</returns>
+        public static bool UpdateModelId(int id, int? modelId)
+        {
+            const string sql = "UPDATE Cars SET ModelId = @ModelId WHERE Id = @Id";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(sql, new { Id = id, ModelId = modelId }) > 0;
+            }
+        }
+
+        /// <summary>
+        /// Updates only the Country field of a car
+        /// </summary>
+        /// <param name="id">The ID of the car to update</param>
+        /// <param name="country">The new country code value</param>
+        /// <returns>True if the update was successful</returns>
+        public static bool UpdateCountry(int id, string country)
+        {
+            const string sql = "UPDATE Cars SET Country = @Country WHERE Id = @Id";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(sql, new { Id = id, Country = country }) > 0;
+            }
+        }
+
+        /// <summary>
         /// Gets a car by its ID
         /// </summary>
         /// <param name="id">The ID of the car to retrieve</param>
@@ -553,8 +681,14 @@ namespace RacerUI.SQL
                 LEFT JOIN CarModels m ON c.ModelId = m.Id
                 WHERE c.Id IN (SELECT Id FROM CarsFilter);";
 
+            // get country names for all cars in the result set
+            var countrySql = @"
+                SELECT DISTINCT c.Country, co.Name AS CountryName FROM Cars c
+                LEFT JOIN Countries co ON c.Country = co.Code
+                WHERE c.Id IN (SELECT Id FROM CarsFilter);";
+
             // Combine all queries for QueryMultiple
-            var combinedSql = sql + carsSql + skinsSql + typesSql + stylingsSql + specsSql + makeSql + modelSql + @"
+            var combinedSql = sql + carsSql + skinsSql + typesSql + stylingsSql + specsSql + makeSql + modelSql + countrySql + @"
                 DROP TABLE CarsFilter";
 
             using (var connection = Connection.GetConnection())
@@ -581,12 +715,20 @@ namespace RacerUI.SQL
                     var makesData = multi.Read<CarMake>().ToList();
                     var modelsData = multi.Read<CarModel>().ToList();
 
+                    // Read country data, handling potential null values
+                    var countryDataRaw = multi.Read<dynamic>().ToList();
+                    var countryData = countryDataRaw
+                        .Where(d => d.Country != null)
+                        .ToDictionary(d => (string)d.Country, d => (string)d.CountryName ?? "Unknown");
+
                     // Group skins by car ID (already ordered by Favorite DESC in the SQL)
                     var skinsByCarId = skins.GroupBy(s => s.CarId)
                         .ToDictionary(g => g.Key, g => g.ToList());
 
-                    // Create a dictionary of types by ID for quick lookup
-                    var typesById = typesDetails.ToDictionary(t => t.Id);
+                    // Create a dictionary of types by ID for quick lookup, handling potential null IDs
+                    var typesById = typesDetails
+                        .Where(t => t.Id != 0)
+                        .ToDictionary(t => t.Id);
 
                     // Group types by car ID using the relationships
                     var typesByCarId = new Dictionary<int, List<CarType>>();
@@ -615,8 +757,10 @@ namespace RacerUI.SQL
                         }
                     }
 
-                    // Create a dictionary of stylings by ID for quick lookup
-                    var stylingsById = stylingsDetails.ToDictionary(s => s.Id);
+                    // Create a dictionary of stylings by ID for quick lookup, handling potential null IDs
+                    var stylingsById = stylingsDetails
+                        .Where(s => s.Id != 0)
+                        .ToDictionary(s => s.Id);
 
                     // Group stylings by car ID using the relationships
                     var stylingsByCarId = new Dictionary<int, List<CarStyling>>();
@@ -636,8 +780,10 @@ namespace RacerUI.SQL
                         }
                     }
 
-                    // Create a dictionary of specializations by ID for quick lookup
-                    var specsById = specsDetails.ToDictionary(s => s.Id);
+                    // Create a dictionary of specializations by ID for quick lookup, handling potential null IDs
+                    var specsById = specsDetails
+                        .Where(s => s.Id != 0)
+                        .ToDictionary(s => s.Id);
 
                     // Group specializations by car ID using the relationships
                     var specsByCarId = new Dictionary<int, List<RacingSpecialization>>();
@@ -657,9 +803,13 @@ namespace RacerUI.SQL
                         }
                     }
 
-                    // Create dictionaries for makes and models by ID for quick lookup
-                    var makesById = makesData.ToDictionary(m => m.Id);
-                    var modelsById = modelsData.ToDictionary(m => m.Id);
+                    // Create dictionaries for makes and models by ID for quick lookup, handling potential null IDs
+                    var makesById = makesData
+                        .Where(m => m.Id != 0)
+                        .ToDictionary(m => m.Id);
+                    var modelsById = modelsData
+                        .Where(m => m.Id != 0)
+                        .ToDictionary(m => m.Id);
 
                     // Create the result model
                     var result = new CarResultsModel
@@ -706,6 +856,22 @@ namespace RacerUI.SQL
                         {
                             car.Specializations = carSpecs.Select(s => new CarSpecialization { Id = s.Id }).ToList();
                         }
+
+                        // If Country is not set or empty, try to get it from the associated CarMake
+                        if (string.IsNullOrEmpty(car.Country) && car.MakeId.HasValue && car.MakeId > 0 && makesById.TryGetValue(car.MakeId.Value, out var make) && !string.IsNullOrEmpty(make.CountryCode))
+                        {
+                            car.Country = make.CountryCode;
+                        }
+
+                        // Assign country name based on country code
+                        if (!string.IsNullOrEmpty(car.Country) && countryData.TryGetValue(car.Country, out var countryName) && !string.IsNullOrEmpty(countryName))
+                        {
+                            car.CountryName = countryName;
+                        }
+                        else
+                        {
+                            car.CountryName = car.Country ?? "Unknown";
+                        }
                     }
 
                     return result;
@@ -719,7 +885,7 @@ namespace RacerUI.SQL
         /// <returns>A list of cars with Id and Path.</returns>
         public static IEnumerable<Car> GetAllCarPaths()
         {
-            const string sql = "SELECT Id, ParentId, GameId, Path, IsNew, Status, Country FROM Cars ORDER BY Path;";
+            const string sql = "SELECT Id, ParentId, GameId, MakeId, Path, IsNew, Status, Country, Year FROM Cars ORDER BY Path;";
 
             using (var connection = Connection.GetConnection())
             {
