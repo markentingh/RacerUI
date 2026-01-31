@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
-namespace RacerUI.Utils {
+namespace RacerUI.Helpers {
     public static class SteamHelper {
         public static string GetSteamDirectory() {
             var regKey = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam");

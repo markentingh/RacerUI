@@ -26,6 +26,8 @@ namespace RacerUI
         public static List<CarType> CarTypes { get; set; }
         public static List<CarStyling> CarStylings { get; set; }
         public static List<RacingSpecialization> CarSpecializations { get; set; }
+        public static Dictionary<string, string> AvailableCountries { get; set; } = new Dictionary<string, string>();
+        public static List<int> AvailableYears { get; set; } = new List<int>();
 
         private static string _rootPath { get; set; } = "";
 

@@ -33,15 +33,15 @@ ui.views.game.checkAssets = () => {
     var findChildCars = document.querySelector('#findChildCars').checked;
     var getCarDetails = document.querySelector('#getCarDetails').checked;
     var verifyCarDetails = document.querySelector('#verifyCarDetails').checked;
+    var checkNewTracks = document.querySelector('#checkNewTracks').checked;
     dashHub.on('progress', ui.views.game.updateProgress);
     dashHub.on('progress-title', ui.views.game.updateProgressTitle);
     dashHub.on('progress-text', ui.views.game.updateProgressText);
     dashHub.on('progress-complete', ui.views.game.updateProgressComplete);
-    dashHub.send('CheckGameAssets', ui.game.name, checkNewCars, findChildCars, getCarDetails, verifyCarDetails);
+    dashHub.send('CheckGameAssets', ui.game.name, checkNewCars, findChildCars, getCarDetails, verifyCarDetails, checkNewTracks);
 };
 
 ui.views.game.skipCheckAssets = () => {
-    console.log('Skipping check assets');
     ui.views.game.updateProgressComplete();
 };
 

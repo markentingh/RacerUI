@@ -21,7 +21,7 @@ namespace RacerUI.Models
         public string Class { get; set; }
 
         [JsonPropertyName("specs")]
-        public UICarSpecs Specs { get; set; }
+        public UICarSpecs Specs { get; set; } = new UICarSpecs();
 
         [JsonPropertyName("year")]
         public string Year { get; set; }
@@ -58,5 +58,9 @@ namespace RacerUI.Models
 
         [JsonPropertyName("pwratio")]
         public string PwRatio { get; set; }
+
+        public bool HasTurbo { get; set; } = false;
+        public string SuspensionType { get; set; }
+        public string Tires { get; set; }
     }
 }

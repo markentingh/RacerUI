@@ -495,6 +495,246 @@ button,
 .content.tracks .coming-soon p {
   padding: 2em 0;
 }
+.tracks-toolbar nav ul.menu li.search-input {
+  padding-top: 0.35em;
+  vertical-align: top;
+  position: relative;
+}
+.tracks-toolbar nav ul.menu li.search-input input {
+  max-width: 15vw;
+  padding-right: 2.5em;
+}
+.tracks-toolbar nav ul.menu li.search-input svg.search-arrow {
+  position: absolute;
+  right: -1.5em;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.5em;
+  height: 1.5em;
+  pointer-events: none;
+}
+.tracks-toolbar nav ul.menu li.search-input svg.search-clear {
+  position: absolute;
+  right: 1em;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.8em;
+  height: 0.8em;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.25s ease-in-out;
+}
+.tracks-toolbar nav ul.menu li.search-input svg.search-clear:hover {
+  opacity: 1;
+}
+.tracks-toolbar nav ul.menu li.clear-filter-btn {
+  padding-top: 0.35em;
+  vertical-align: top;
+  margin-left: 1em;
+  display: none;
+}
+.tracks-toolbar nav ul.menu li.clear-filter-btn:hover {
+  background: none !important;
+}
+.tracks-toolbar nav ul.menu li.clear-filter-btn:hover svg use {
+  color: #9d7bb8 !important;
+}
+.tracks-toolbar nav ul.menu li.clear-filter-btn button {
+  background: rgba(157, 123, 184, 0.2);
+  color: #9d7bb8;
+  padding: 0.5em 1em;
+  border-radius: 0.3em;
+  cursor: pointer;
+  font-size: 0.7em;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  transition: all 0.25s ease-in-out;
+}
+.tracks-toolbar nav ul.menu li.clear-filter-btn button svg {
+  width: 1em;
+  height: 1em;
+}
+.tracks-toolbar nav ul.menu li.clear-filter-btn button svg use {
+  color: #9d7bb8;
+}
+.tracks-toolbar nav ul.menu li.clear-filter-btn button:hover {
+  background: rgba(157, 123, 184, 0.3);
+  border-color: rgba(157, 123, 184, 0.6);
+  color: #b89dd4;
+}
+.tracks-toolbar nav ul.menu li.clear-filter-btn button:hover use {
+  color: #b25ef7 !important;
+}
+.tracks-toolbar .close-btn {
+  width: 2em;
+  margin: 0.75em 2em 0 0;
+  opacity: 0.3;
+  cursor: pointer;
+  transition: opacity 0.25s ease-in-out;
+}
+.tracks-toolbar .close-btn:hover {
+  opacity: 1;
+}
+.tracks-filter {
+  position: absolute;
+  z-index: 100;
+  background-color: rgba(0, 0, 0, 0.8);
+  width: 100%;
+  overflow-y: auto;
+  max-height: calc(100vh - 5em);
+}
+.tracks-filter::-webkit-scrollbar {
+  width: 0.5em;
+}
+.tracks-filter::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+.tracks-filter::-webkit-scrollbar-thumb {
+  background: #3b2c75;
+  border-radius: 3px;
+}
+.tracks-filter::-webkit-scrollbar-thumb:hover {
+  background: #4a3690;
+}
+.filter-country ul.select-list,
+.filter-type ul.select-list {
+  padding: 0 2em 0 2em;
+}
+.filter-country ul.select-list li,
+.filter-type ul.select-list li {
+  padding: 1em 1.5em;
+  height: 1em;
+}
+.filter-country ul.select-list li img,
+.filter-type ul.select-list li img {
+  width: 1.5em;
+  padding: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+.tracks-content {
+  position: relative;
+  z-index: 1;
+  width: 100vw;
+  height: calc(100vh - 15em);
+  max-height: calc(100vh - 1em);
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-top: 0.5em;
+}
+.tracks-content::-webkit-scrollbar {
+  width: 10px;
+}
+.tracks-content::-webkit-scrollbar-track {
+  background: #000000;
+}
+.tracks-content::-webkit-scrollbar-thumb {
+  background: #3f265a;
+  border-radius: 10px;
+}
+.tracks-content .grid-view {
+  width: calc(100vw - 2.5em);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1em;
+  margin: 1em;
+  box-sizing: border-box;
+  grid-auto-flow: dense;
+}
+.tracks-content .grid-view .track {
+  aspect-ratio: 16/9;
+  width: 100%;
+  top: 0%;
+  position: relative;
+  border-width: 0;
+  box-shadow: none;
+  background-size: cover;
+  background-position: center;
+  border-radius: 0.5em;
+  background-color: #88afd1;
+}
+.tracks-content .grid-view .track .info {
+  position: absolute;
+  bottom: 0.6em;
+  left: 0.6em;
+  white-space: nowrap;
+  vertical-align: top;
+}
+.tracks-content .grid-view .track .info h2 {
+  font-size: 1em;
+  font-weight: normal;
+  line-height: 1.25;
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: inline-block;
+  padding: 0.25em 0.5em;
+  border-radius: 0.5em;
+}
+.tracks-content .grid-view .track .flag {
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+  width: 2em;
+  margin-right: 0.5em;
+}
+.tracks-content .grid-view .track .flag img {
+  width: 100%;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 0.2em;
+}
+.tracks-content .grid-view .track.hovered-clone {
+  z-index: 10;
+  margin: 0 auto;
+  position: absolute;
+  border-style: solid;
+  border-radius: 0.5em;
+  animation: hover-grow 0.25s ease-in-out forwards;
+}
+.tracks-content .grid-view .track.hovered-clone.hiding {
+  z-index: 9;
+  animation: hover-shrink 0.25s ease-in-out forwards;
+}
+.tracks-content .grid-view.xl {
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+}
+.tracks-content .grid-view.sm {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+@keyframes hover-grow {
+  from {
+    width: 100%;
+    top: 0%;
+    left: 0%;
+    border-color: rgba(255, 255, 255, 0);
+    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
+  }
+  to {
+    width: 120%;
+    top: -10%;
+    left: -10%;
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
+  }
+}
+@keyframes hover-shrink {
+  from {
+    width: 120%;
+    top: -10%;
+    left: -10%;
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
+  }
+  to {
+    width: 100%;
+    top: 0%;
+    left: 0%;
+    border-color: rgba(255, 255, 255, 0);
+    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
+  }
+}
 .content.settings .coming-soon {
   padding: 2em;
   text-align: center;
@@ -591,9 +831,73 @@ button,
 .cars-toolbar nav ul.menu li.search-input {
   padding-top: 0.35em;
   vertical-align: top;
+  position: relative;
 }
 .cars-toolbar nav ul.menu li.search-input input {
   max-width: 15vw;
+  padding-right: 2.5em;
+}
+.cars-toolbar nav ul.menu li.search-input svg.search-arrow {
+  position: absolute;
+  right: -1.5em;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.5em;
+  height: 1.5em;
+  pointer-events: none;
+}
+.cars-toolbar nav ul.menu li.search-input svg.search-clear {
+  position: absolute;
+  right: 1em;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.8em;
+  height: 0.8em;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.25s ease-in-out;
+}
+.cars-toolbar nav ul.menu li.search-input svg.search-clear:hover {
+  opacity: 1;
+}
+.cars-toolbar nav ul.menu li.clear-filter-btn {
+  padding-top: 0.35em;
+  vertical-align: top;
+  margin-left: 1em;
+  display: none;
+}
+.cars-toolbar nav ul.menu li.clear-filter-btn:hover {
+  background: none !important;
+}
+.cars-toolbar nav ul.menu li.clear-filter-btn:hover svg use {
+  color: #9d7bb8 !important;
+}
+.cars-toolbar nav ul.menu li.clear-filter-btn button {
+  background: rgba(157, 123, 184, 0.2);
+  color: #9d7bb8;
+  padding: 0.5em 1em;
+  border-radius: 0.3em;
+  cursor: pointer;
+  font-size: 0.7em;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  transition: all 0.25s ease-in-out;
+}
+.cars-toolbar nav ul.menu li.clear-filter-btn button svg {
+  width: 1em;
+  height: 1em;
+}
+.cars-toolbar nav ul.menu li.clear-filter-btn button svg use {
+  color: #9d7bb8;
+}
+.cars-toolbar nav ul.menu li.clear-filter-btn button:hover {
+  background: rgba(157, 123, 184, 0.3);
+  border-color: rgba(157, 123, 184, 0.6);
+  color: #b89dd4;
+}
+.cars-toolbar nav ul.menu li.clear-filter-btn button:hover use {
+  color: #b25ef7 !important;
 }
 .cars-toolbar .close-btn {
   width: 2em;
@@ -610,6 +914,21 @@ button,
   z-index: 100;
   background-color: rgba(0, 0, 0, 0.8);
   width: 100%;
+  overflow-y: auto;
+  max-height: calc(100vh - 5em);
+}
+.cars-filter::-webkit-scrollbar {
+  width: 0.5em;
+}
+.cars-filter::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+.cars-filter::-webkit-scrollbar-thumb {
+  background: #3b2c75;
+  border-radius: 3px;
+}
+.cars-filter::-webkit-scrollbar-thumb:hover {
+  background: #4a3690;
 }
 .filter-view ul.select-list {
   padding: 0 2em 0 2em;
@@ -683,6 +1002,21 @@ button,
   padding: 0 0.5em 0 0;
   vertical-align: middle;
 }
+.filter-class .class-category h4 {
+  margin: 1em 0 1em 0.5em;
+  font-size: 1.25em;
+  font-weight: normal;
+  color: #9d7bb8;
+}
+.filter-class .class-category ul.class-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.filter-class .class-category ul.class-list li {
+  padding: 1em 1em 0 1em;
+  height: 1em;
+}
 .filter-style ul.select-list {
   padding: 0 2em 0 2em;
 }
@@ -747,6 +1081,19 @@ button,
 .cars-content .grid-view .car img {
   width: 100%;
   border-radius: 0.5em;
+}
+.cars-content .grid-view .car .info-top {
+  position: absolute;
+  top: 0.5em;
+  right: 0.5em;
+  font-size: 0.875em;
+}
+.cars-content .grid-view .car .info-top .car-class {
+  background-color: rgba(0, 0, 0, 0.75);
+  padding: 0.25em 0.5em;
+  border-radius: 0.5em;
+  margin-left: 0.5em;
+  line-height: 1.25;
 }
 .cars-content .grid-view .car .info {
   margin: -2.4em 0 0 0.6em;

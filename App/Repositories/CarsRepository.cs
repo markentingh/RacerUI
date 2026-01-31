@@ -100,82 +100,7 @@ namespace RacerUI.SQL
             return carId;
         }
 
-        /// <summary>
-        /// Filters cars based on various criteria
-        /// </summary>
-        /// <param name="gameId">Optional game ID filter</param>
-        /// <param name="make">Optional make filter</param>
-        /// <param name="model">Optional model filter</param>
-        /// <param name="year">Optional year filter</param>
-        /// <param name="status">Optional status filter</param>
-        /// <param name="minRating">Optional minimum rating filter</param>
-        /// <param name="class">Optional class filter</param>
-        /// <returns>A list of cars matching the filter criteria</returns>
-        public static IEnumerable<Car> Filter(
-            int? gameId = null,
-            string make = null,
-            string model = null,
-            int? year = null,
-            int? status = null,
-            int? minRating = null,
-            string carClass = null)
-        {
-            var conditions = new List<string>();
-            var parameters = new DynamicParameters();
-
-            if (gameId.HasValue)
-            {
-                conditions.Add("GameId = @GameId");
-                parameters.Add("GameId", gameId.Value);
-            }
-
-            if (!string.IsNullOrEmpty(make))
-            {
-                conditions.Add("Make LIKE @Make");
-                parameters.Add("Make", $"%{make}%");
-            }
-
-            if (!string.IsNullOrEmpty(model))
-            {
-                conditions.Add("Model LIKE @Model");
-                parameters.Add("Model", $"%{model}%");
-            }
-
-            if (year.HasValue)
-            {
-                conditions.Add("Year = @Year");
-                parameters.Add("Year", year.Value);
-            }
-
-            if (status.HasValue)
-            {
-                conditions.Add("Status = @Status");
-                parameters.Add("Status", status.Value);
-            }
-
-            if (minRating.HasValue)
-            {
-                conditions.Add("Rating >= @MinRating");
-                parameters.Add("MinRating", minRating.Value);
-            }
-
-            if (!string.IsNullOrEmpty(carClass))
-            {
-                conditions.Add("Class LIKE @Class");
-                parameters.Add("Class", $"%{carClass}%");
-            }
-
-            var whereClause = conditions.Count > 0
-                ? $"WHERE {string.Join(" AND ", conditions)}"
-                : string.Empty;
-
-            var sql = $"SELECT * FROM Cars {whereClause} ORDER BY Make, Model, Year";
-
-            using (var connection = Connection.GetConnection())
-            {
-                return connection.Query<Car>(sql, parameters);
-            }
-        }
+        
 
         /// <summary>
         /// Updates all fields of a car
@@ -535,351 +460,6 @@ namespace RacerUI.SQL
         }
 
         /// <summary>
-        /// Advanced filtering of cars based on multiple criteria with pagination support
-        /// </summary>
-        /// <param name="filter">The filter entity containing all filter criteria including pagination parameters</param>
-        /// <returns>A list of cars matching the filter criteria with pagination applied</returns>
-        public static CarResultsModel AdvancedFilter(CarFilter filter)
-        {
-            var conditions = new List<string>();
-            var parameters = new DynamicParameters();
-
-            var sql = @"
-                DROP TABLE IF EXISTS CarsFilter;
-                CREATE TEMP TABLE CarsFilter
-                (Id INTEGER PRIMARY KEY);
-            
-                INSERT INTO CarsFilter (Id)
-                SELECT DISTINCT c.Id FROM Cars c
-                LEFT JOIN CarMakes cmk ON cmk.Id = c.MakeId
-                LEFT JOIN CarModels cmdl ON cmdl.Id = c.ModelId";
-
-            //determine which joins to include based on filter
-            if (filter.Types != null && filter.Types.Count > 0)
-            {
-                sql += @"
-                JOIN Cars_Types ct ON c.Id = ct.CarId";
-            }
-            if (filter.Styles != null && filter.Styles.Count > 0)
-            {
-                sql += @"
-                JOIN Cars_Styling cst ON c.Id = cst.CarId";
-            }
-            if (filter.Specializations != null && filter.Specializations.Count > 0)
-            {
-                sql += @"
-                JOIN Cars_Specializations csp ON c.Id = csp.CarId";
-            }
-            if (filter.HasSkins == true)
-            {
-                sql += @"
-                JOIN Cars_Skins csk ON c.Id = csk.CarId";
-            }
-
-
-            //determine which where clauses to include based on filter
-            if (filter.HasParent == false)
-            {
-                conditions.Add("c.ParentId IS NULL");
-            }
-            if (filter.Countries != null && filter.Countries.Count > 0)
-            {
-                conditions.Add("c.Country IN @Countries");
-                parameters.Add("Countries", filter.Countries);
-            }
-
-            if (filter.Makes != null && filter.Makes.Count > 0)
-            {
-                conditions.Add("c.MakeId IN @Makes");
-                parameters.Add("Makes", filter.Makes);
-            }
-
-            if (filter.Models != null && filter.Models.Count > 0)
-            {
-                conditions.Add("c.ModelId IN @Models");
-                parameters.Add("Models", filter.Models);
-            }
-
-            if (filter.Years != null && filter.Years.Count > 0)
-            {
-                conditions.Add("c.Year IN @Years");
-                parameters.Add("Years", filter.Years);
-            }
-            if (!string.IsNullOrEmpty(filter.Search))
-            {
-                conditions.Add(@"(
-                c.Name LIKE @SearchTerm OR 
-                c.ShortDescription LIKE @SearchTerm OR 
-                c.Author LIKE @SearchTerm OR 
-                cmk.Name LIKE @SearchTerm OR 
-                cmdl.Name LIKE @SearchTerm
-            )");
-                parameters.Add("SearchTerm", $"%{filter.Search}%");
-            }
-            conditions.Add("c.IsNew < 1");
-
-            //join all conditions
-            if (conditions.Count > 0)
-            {
-                sql += @"
-                WHERE " + string.Join(" AND ", conditions);
-            }
-
-            //add sorting & pagination
-            sql += @"
-                ORDER BY cmk.Name, cmdl.Name, c.Year
-                LIMIT @Length OFFSET @Start;";
-            parameters.Add("Start", filter.Start.HasValue ? filter.Start.Value : 0);
-            parameters.Add("Length", filter.Length.HasValue ? filter.Length.Value : 20);
-
-            // get all filtered cars with their related data
-            var carsSql = @"
-                SELECT c.* FROM Cars c WHERE c.Id IN (SELECT Id FROM CarsFilter);";
-
-            // get skins for all cars in the result set, ordered by Favorite DESC
-            var skinsSql = @"
-                SELECT s.* FROM Cars_Skins s
-                WHERE s.CarId IN (SELECT Id FROM CarsFilter)
-                ORDER BY s.Favorite DESC;";
-
-            // get car types for all cars in the result set - relationships and details
-            var typesSql = @"
-                SELECT ct.CarId, ct.TypeId FROM Cars_Types ct
-                WHERE ct.CarId IN (SELECT Id FROM CarsFilter);
-                
-                SELECT DISTINCT t.* FROM CarTypes t
-                INNER JOIN Cars_Types ct ON ct.TypeId = t.Id
-                WHERE ct.CarId IN (SELECT Id FROM CarsFilter);";
-
-            // get car stylings for all cars in the result set - relationships and details
-            var stylingsSql = @"
-                SELECT cs.CarId, cs.StylingId FROM Cars_Styling cs
-                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);
-                
-                SELECT DISTINCT s.* FROM CarStyling s
-                INNER JOIN Cars_Styling cs ON cs.StylingId = s.Id
-                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);";
-
-            // get car specializations for all cars in the result set - relationships and details
-            var specsSql = @"
-                SELECT cs.CarId, cs.SpecializationId FROM Cars_Specializations cs
-                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);
-                
-                SELECT DISTINCT rs.* FROM RacingSpecializations rs
-                INNER JOIN Cars_Specializations cs ON cs.SpecializationId = rs.Id
-                WHERE cs.CarId IN (SELECT Id FROM CarsFilter);";
-
-            // get car makes for all cars in the result set
-            var makeSql = @"
-                SELECT DISTINCT m.* FROM Cars c
-                LEFT JOIN CarMakes m ON c.MakeId = m.Id
-                WHERE c.Id IN (SELECT Id FROM CarsFilter);";
-
-            // get car models for all cars in the result set
-            var modelSql = @"
-                SELECT DISTINCT m.* FROM Cars c
-                LEFT JOIN CarModels m ON c.ModelId = m.Id
-                WHERE c.Id IN (SELECT Id FROM CarsFilter);";
-
-            // get country names for all cars in the result set
-            var countrySql = @"
-                SELECT DISTINCT c.Country, co.Name AS CountryName FROM Cars c
-                LEFT JOIN Countries co ON c.Country = co.Code
-                WHERE c.Id IN (SELECT Id FROM CarsFilter);";
-
-            // Combine all queries for QueryMultiple
-            var combinedSql = sql + carsSql + skinsSql + typesSql + stylingsSql + specsSql + makeSql + modelSql + countrySql + @"
-                DROP TABLE CarsFilter";
-
-            using (var connection = Connection.GetConnection())
-            {
-                using (var multi = connection.QueryMultiple(combinedSql, parameters))
-                {
-                    // Get cars and related data from the result sets
-                    var cars = multi.Read<Car>().ToList();
-                    var skins = multi.Read<CarSkin>().ToList();
-
-                    // Read types data (relationships and details)
-                    var typesRelationships = multi.Read<dynamic>().ToList();
-                    var typesDetails = multi.Read<CarType>().ToList();
-
-                    // Read stylings data (relationships and details)
-                    var stylingsRelationships = multi.Read<dynamic>().ToList();
-                    var stylingsDetails = multi.Read<CarStyling>().ToList();
-
-                    // Read specializations data (relationships and details)
-                    var specsRelationships = multi.Read<dynamic>().ToList();
-                    var specsDetails = multi.Read<RacingSpecialization>().ToList();
-
-                    // Read makes and models data
-                    var makesData = multi.Read<CarMake>().ToList();
-                    var modelsData = multi.Read<CarModel>().ToList();
-
-                    // Read country data, handling potential null values
-                    var countryDataRaw = multi.Read<dynamic>().ToList();
-                    var countryData = countryDataRaw
-                        .Where(d => d.Country != null)
-                        .ToDictionary(d => (string)d.Country, d => (string)d.CountryName ?? "Unknown");
-
-                    // Group skins by car ID (already ordered by Favorite DESC in the SQL)
-                    var skinsByCarId = skins.GroupBy(s => s.CarId)
-                        .ToDictionary(g => g.Key, g => g.ToList());
-
-                    // Create a dictionary of types by ID for quick lookup, handling potential null IDs
-                    var typesById = typesDetails
-                        .Where(t => t.Id != 0)
-                        .ToDictionary(t => t.Id);
-
-                    // Group types by car ID using the relationships
-                    var typesByCarId = new Dictionary<int, List<CarType>>();
-                    foreach (var rel in typesRelationships)
-                    {
-                        int carId = (int)rel.CarId;
-                        int typeId = (int)rel.TypeId;
-
-                        // Look up the type details
-                        if (typesById.TryGetValue(typeId, out var carType))
-                        {
-                            // Create a new instance with the car ID set
-                            var typeWithCarId = new CarType
-                            {
-                                Id = carType.Id,
-                                Name = carType.Name,
-                                CarId = carId
-                                // Copy any other properties from carType as needed
-                            };
-
-                            if (!typesByCarId.ContainsKey(carId))
-                            {
-                                typesByCarId[carId] = new List<CarType>();
-                            }
-                            typesByCarId[carId].Add(typeWithCarId);
-                        }
-                    }
-
-                    // Create a dictionary of stylings by ID for quick lookup, handling potential null IDs
-                    var stylingsById = stylingsDetails
-                        .Where(s => s.Id != 0)
-                        .ToDictionary(s => s.Id);
-
-                    // Group stylings by car ID using the relationships
-                    var stylingsByCarId = new Dictionary<int, List<CarStyling>>();
-                    foreach (var rel in stylingsRelationships)
-                    {
-                        int carId = (int)rel.CarId;
-                        int stylingId = (int)rel.StylingId;
-
-                        // Look up the styling details
-                        if (stylingsById.TryGetValue(stylingId, out var styling))
-                        {
-                            if (!stylingsByCarId.ContainsKey(carId))
-                            {
-                                stylingsByCarId[carId] = new List<CarStyling>();
-                            }
-                            stylingsByCarId[carId].Add(styling);
-                        }
-                    }
-
-                    // Create a dictionary of specializations by ID for quick lookup, handling potential null IDs
-                    var specsById = specsDetails
-                        .Where(s => s.Id != 0)
-                        .ToDictionary(s => s.Id);
-
-                    // Group specializations by car ID using the relationships
-                    var specsByCarId = new Dictionary<int, List<RacingSpecialization>>();
-                    foreach (var rel in specsRelationships)
-                    {
-                        int carId = (int)rel.CarId;
-                        int specId = (int)rel.SpecializationId;
-
-                        // Look up the specialization details
-                        if (specsById.TryGetValue(specId, out var spec))
-                        {
-                            if (!specsByCarId.ContainsKey(carId))
-                            {
-                                specsByCarId[carId] = new List<RacingSpecialization>();
-                            }
-                            specsByCarId[carId].Add(spec);
-                        }
-                    }
-
-                    // Create dictionaries for makes and models by ID for quick lookup, handling potential null IDs
-                    var makesById = makesData
-                        .Where(m => m.Id != 0)
-                        .ToDictionary(m => m.Id);
-                    var modelsById = modelsData
-                        .Where(m => m.Id != 0)
-                        .ToDictionary(m => m.Id);
-
-                    // Create the result model
-                    var result = new CarResultsModel
-                    {
-                        Cars = cars,
-                        Makes = makesData.Count > 0 && makesData[0].Id > 0 ? makesData : new List<CarMake>(),
-                        Types = typesDetails.ToList(),
-                        Stylings = stylingsDetails.ToList(),
-                        Specializations = specsDetails.ToList()
-                    };
-
-                    // Assign only model and skins to each car (these are unique to each car)
-                    foreach (var car in result.Cars)
-                    {
-                        // Assign skins
-                        if (skinsByCarId.TryGetValue(car.Id, out var carSkins))
-                        {
-                            car.Skins = carSkins;
-                        }
-
-                        // Assign model details if available
-                        if (car.ModelId.HasValue && car.ModelId > 0 && modelsById.TryGetValue(car.ModelId.Value, out var model))
-                        {
-                            car.Model = model;
-                        }
-
-                        // Clear Make reference since it's in the shared collection
-                        car.Make = null;
-
-                        // Keep only the IDs in the Types list
-                        if (typesByCarId.TryGetValue(car.Id, out var carTypes))
-                        {
-                            car.Types = carTypes.Select(t => new CarType { Id = t.Id }).ToList();
-                        }
-
-                        // Keep only the IDs in the Stylings list
-                        if (stylingsByCarId.TryGetValue(car.Id, out var carStylings))
-                        {
-                            car.Stylings = carStylings.Select(s => new CarStyling { Id = s.Id }).ToList();
-                        }
-
-                        // Keep only the IDs in the Specializations list
-                        if (specsByCarId.TryGetValue(car.Id, out var carSpecs))
-                        {
-                            car.Specializations = carSpecs.Select(s => new CarSpecialization { Id = s.Id }).ToList();
-                        }
-
-                        // If Country is not set or empty, try to get it from the associated CarMake
-                        if (string.IsNullOrEmpty(car.Country) && car.MakeId.HasValue && car.MakeId > 0 && makesById.TryGetValue(car.MakeId.Value, out var make) && !string.IsNullOrEmpty(make.CountryCode))
-                        {
-                            car.Country = make.CountryCode;
-                        }
-
-                        // Assign country name based on country code
-                        if (!string.IsNullOrEmpty(car.Country) && countryData.TryGetValue(car.Country, out var countryName) && !string.IsNullOrEmpty(countryName))
-                        {
-                            car.CountryName = countryName;
-                        }
-                        else
-                        {
-                            car.CountryName = car.Country ?? "Unknown";
-                        }
-                    }
-
-                    return result;
-                }
-            }
-        }
-
-        /// <summary>
         /// Gets a list of all cars with only their Id and Path properties populated.
         /// </summary>
         /// <returns>A list of cars with Id and Path.</returns>
@@ -890,6 +470,90 @@ namespace RacerUI.SQL
             using (var connection = Connection.GetConnection())
             {
                 return connection.Query<Car>(sql);
+            }
+        }
+
+        /// <summary>
+        /// Gets all distinct country codes from the Cars table.
+        /// </summary>
+        /// <returns>A list of distinct country codes.</returns>
+        public static IEnumerable<string> GetDistinctCountries()
+        {
+            const string sql = "SELECT DISTINCT Country FROM Cars WHERE Country IS NOT NULL AND Country != '' ORDER BY Country;";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query<string>(sql);
+            }
+        }
+
+        /// <summary>
+        /// Gets all distinct years from the Cars table.
+        /// </summary>
+        /// <returns>A list of distinct years.</returns>
+        public static IEnumerable<int> GetDistinctYears()
+        {
+            const string sql = "SELECT DISTINCT Year FROM Cars WHERE Year IS NOT NULL ORDER BY Year DESC;";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query<int>(sql);
+            }
+        }
+
+        /// <summary>
+        /// Gets all car makes (manufacturers) from the CarMakes table.
+        /// </summary>
+        /// <returns>A list of car makes with Id and Name.</returns>
+        public static IEnumerable<dynamic> GetAllMakes()
+        {
+            const string sql = "SELECT Id, Name FROM CarMakes ORDER BY Name;";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query(sql);
+            }
+        }
+
+        /// <summary>
+        /// Gets all car types from the CarTypes table.
+        /// </summary>
+        /// <returns>A list of car types with Id and Name.</returns>
+        public static IEnumerable<dynamic> GetAllTypes()
+        {
+            const string sql = "SELECT Id, Name FROM CarTypes ORDER BY Name;";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query(sql);
+            }
+        }
+
+        /// <summary>
+        /// Gets all car stylings from the CarStyling table.
+        /// </summary>
+        /// <returns>A list of car stylings with Id and Name.</returns>
+        public static IEnumerable<dynamic> GetAllStyles()
+        {
+            const string sql = "SELECT Id, Name FROM CarStyling ORDER BY Name;";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query(sql);
+            }
+        }
+
+        /// <summary>
+        /// Gets all racing specializations from the RacingSpecializations table.
+        /// </summary>
+        /// <returns>A list of racing specializations with Id and Name.</returns>
+        public static IEnumerable<dynamic> GetAllSpecializations()
+        {
+            const string sql = "SELECT Id, Name FROM RacingSpecializations ORDER BY Name;";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query(sql);
             }
         }
 
@@ -916,6 +580,257 @@ namespace RacerUI.SQL
                 }
 
                 return children;
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of cars matching the specified filter criteria without loading car data.
+        /// </summary>
+        /// <param name="countryCodes">Array of country codes to filter by (e.g., "US", "DE", "JP"). Pass null or empty to skip this filter.</param>
+        /// <param name="makeIds">Array of manufacturer IDs to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="years">Array of years to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="classes">Array of car class names to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="typeIds">Array of car type IDs to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="styleIds">Array of car styling IDs to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="specializationIds">Array of racing specialization IDs to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="searchText">Plain text search to filter by car name. Pass null or empty to skip this filter.</param>
+        /// <returns>The count of cars matching all specified filter criteria.</returns>
+        public static int FilterCount(
+            IEnumerable<string> countryCodes = null,
+            IEnumerable<int> makeIds = null,
+            IEnumerable<int> years = null,
+            IEnumerable<string> classes = null,
+            IEnumerable<int> typeIds = null,
+            IEnumerable<int> styleIds = null,
+            IEnumerable<int> specializationIds = null,
+            string searchText = null)
+        {
+            var sql = "SELECT COUNT(*) FROM Cars c";
+            var parameters = new DynamicParameters();
+            var whereClauses = new List<string>();
+            var joins = new List<string>();
+
+            // Type filter (requires join to Cars_Types)
+            if (typeIds != null && typeIds.Any())
+            {
+                joins.Add("INNER JOIN Cars_Types ct ON c.Id = ct.CarId");
+                whereClauses.Add("ct.TypeId IN @TypeIds");
+                parameters.Add("TypeIds", typeIds.ToList());
+            }
+
+            // Style filter (requires join to Cars_Styling)
+            if (styleIds != null && styleIds.Any())
+            {
+                joins.Add("INNER JOIN Cars_Styling cs ON c.Id = cs.CarId");
+                whereClauses.Add("cs.StylingId IN @StyleIds");
+                parameters.Add("StyleIds", styleIds.ToList());
+            }
+
+            // Specialization filter (requires join to Cars_Specializations)
+            if (specializationIds != null && specializationIds.Any())
+            {
+                joins.Add("INNER JOIN Cars_Specializations csp ON c.Id = csp.CarId");
+                whereClauses.Add("csp.SpecializationId IN @SpecializationIds");
+                parameters.Add("SpecializationIds", specializationIds.ToList());
+            }
+
+            // Add joins to SQL
+            if (joins.Any())
+            {
+                sql += " " + string.Join(" ", joins);
+            }
+
+            // Country filter
+            if (countryCodes != null && countryCodes.Any())
+            {
+                whereClauses.Add("c.Country IN @CountryCodes");
+                parameters.Add("CountryCodes", countryCodes.ToList());
+            }
+
+            // Manufacturer filter
+            if (makeIds != null && makeIds.Any())
+            {
+                whereClauses.Add("c.MakeId IN @MakeIds");
+                parameters.Add("MakeIds", makeIds.ToList());
+            }
+
+            // Year filter
+            if (years != null && years.Any())
+            {
+                whereClauses.Add("c.Year IN @Years");
+                parameters.Add("Years", years.ToList());
+            }
+
+            // Class filter
+            if (classes != null && classes.Any())
+            {
+                whereClauses.Add("c.Class IN @Classes");
+                parameters.Add("Classes", classes.ToList());
+            }
+
+            // Text search filter
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                whereClauses.Add("c.Name LIKE @SearchText");
+                parameters.Add("SearchText", $"%{searchText}%");
+            }
+
+            // Always exclude cars with null/invalid name or year
+            whereClauses.Add("c.Name IS NOT NULL");
+            whereClauses.Add("c.Year IS NOT NULL");
+            whereClauses.Add("c.Year > 0");
+
+            // Add WHERE clause (always has at least the validation clauses)
+            sql += " WHERE " + string.Join(" AND ", whereClauses);
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.ExecuteScalar<int>(sql, parameters);
+            }
+        }
+
+        /// <summary>
+        /// Filters cars based on multiple criteria including countries, manufacturers, years, classes, types, styles, specializations, and text search.
+        /// </summary>
+        /// <param name="countryCodes">Array of country codes to filter by (e.g., "US", "DE", "JP"). Pass null or empty to skip this filter.</param>
+        /// <param name="makeIds">Array of manufacturer IDs to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="years">Array of years to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="classes">Array of car class names to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="typeIds">Array of car type IDs to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="styleIds">Array of car styling IDs to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="specializationIds">Array of racing specialization IDs to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="searchText">Plain text search to filter by car name. Pass null or empty to skip this filter.</param>
+        /// <param name="start">Starting index for pagination. Pass null to skip pagination.</param>
+        /// <param name="length">Number of records to return for pagination. Pass null to skip pagination.</param>
+        /// <returns>A list of cars matching all specified filter criteria.</returns>
+        public static IEnumerable<Car> Filter(
+            IEnumerable<string> countryCodes = null,
+            IEnumerable<int> makeIds = null,
+            IEnumerable<int> years = null,
+            IEnumerable<string> classes = null,
+            IEnumerable<int> typeIds = null,
+            IEnumerable<int> styleIds = null,
+            IEnumerable<int> specializationIds = null,
+            string searchText = null,
+            int? start = null,
+            int? length = null)
+        {
+            var sql = "SELECT c.* FROM Cars c";
+            var parameters = new DynamicParameters();
+            var whereClauses = new List<string>();
+            var joins = new List<string>();
+
+            // Type filter (requires join to Cars_Types)
+            if (typeIds != null && typeIds.Any())
+            {
+                joins.Add("INNER JOIN Cars_Types ct ON c.Id = ct.CarId");
+                whereClauses.Add("ct.TypeId IN @TypeIds");
+                parameters.Add("TypeIds", typeIds.ToList());
+            }
+
+            // Style filter (requires join to Cars_Styling)
+            if (styleIds != null && styleIds.Any())
+            {
+                joins.Add("INNER JOIN Cars_Styling cs ON c.Id = cs.CarId");
+                whereClauses.Add("cs.StylingId IN @StyleIds");
+                parameters.Add("StyleIds", styleIds.ToList());
+            }
+
+            // Specialization filter (requires join to Cars_Specializations)
+            if (specializationIds != null && specializationIds.Any())
+            {
+                joins.Add("INNER JOIN Cars_Specializations csp ON c.Id = csp.CarId");
+                whereClauses.Add("csp.SpecializationId IN @SpecializationIds");
+                parameters.Add("SpecializationIds", specializationIds.ToList());
+            }
+
+            // Add joins to SQL
+            if (joins.Any())
+            {
+                sql += " " + string.Join(" ", joins);
+            }
+
+            // Country filter
+            if (countryCodes != null && countryCodes.Any())
+            {
+                whereClauses.Add("c.Country IN @CountryCodes");
+                parameters.Add("CountryCodes", countryCodes.ToList());
+            }
+
+            // Manufacturer filter
+            if (makeIds != null && makeIds.Any())
+            {
+                whereClauses.Add("c.MakeId IN @MakeIds");
+                parameters.Add("MakeIds", makeIds.ToList());
+            }
+
+            // Year filter
+            if (years != null && years.Any())
+            {
+                whereClauses.Add("c.Year IN @Years");
+                parameters.Add("Years", years.ToList());
+            }
+
+            // Class filter
+            if (classes != null && classes.Any())
+            {
+                whereClauses.Add("c.Class IN @Classes");
+                parameters.Add("Classes", classes.ToList());
+            }
+
+            // Text search filter
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                whereClauses.Add("c.Name LIKE @SearchText");
+                parameters.Add("SearchText", $"%{searchText}%");
+            }
+
+            // Always exclude cars with null/invalid name or year
+            whereClauses.Add("c.Name IS NOT NULL");
+            whereClauses.Add("c.Year IS NOT NULL");
+            whereClauses.Add("c.Year > 0");
+
+            // Add WHERE clause (always has at least the validation clauses)
+            sql += " WHERE " + string.Join(" AND ", whereClauses);
+
+            sql += " ORDER BY c.Name";
+
+            // Add pagination if both start and length are provided
+            if (start.HasValue && length.HasValue)
+            {
+                sql += " LIMIT @Length OFFSET @Start";
+                parameters.Add("Start", start.Value);
+                parameters.Add("Length", length.Value);
+            }
+
+            using (var connection = Connection.GetConnection())
+            {
+                var cars = connection.Query<Car>(sql, parameters).ToList();
+                
+                // Load top 1 skin for each car
+                if (cars.Any())
+                {
+                    var carIds = cars.Select(c => c.Id).ToList();
+                    var skinsSql = @"
+                        SELECT s.* 
+                        FROM Cars_Skins s
+                        INNER JOIN (
+                            SELECT CarId, MIN(Id) as MinId
+                            FROM Cars_Skins
+                            WHERE CarId IN @CarIds
+                            GROUP BY CarId
+                        ) t ON s.CarId = t.CarId AND s.Id = t.MinId";
+                    
+                    var skins = connection.Query<CarSkin>(skinsSql, new { CarIds = carIds }).ToList();
+                    
+                    // Attach skins to cars
+                    foreach (var car in cars)
+                    {
+                        car.Skins = skins.Where(s => s.CarId == car.Id).ToList();
+                    }
+                }
+                
+                return cars;
             }
         }
     }

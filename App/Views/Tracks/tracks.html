@@ -1,3 +1,35 @@
-<div class="coming-soon scale-ui">
-    <p>Tracks Coming Soon!</p>
+<div class="tracks-toolbar sub-menu scale-ui">
+    <nav>
+        <ul class="menu">
+            <li class="item-view" onclick="RacerUI.views.tracks.nav(event, 'view')"><a href="/dashboard/tracks/views">View</a></li>
+            <li class="item-country" onclick="RacerUI.views.tracks.nav(event, 'country')"><a href="/dashboard/tracks/country">Country</a></li>
+            <li class="item-type" onclick="RacerUI.views.tracks.nav(event, 'type')"><a href="/dashboard/tracks/type">Type</a></li>
+            <li class="search-input">
+                <input type="text" id="search_tracks" placeholder="Search"/>
+                <svg viewBox="0 0 64 64" class="dark search-arrow">
+                    <use xlink:href="#icon-arrow-right" x="0" y="0" width="64" height="64"></use>
+                </svg>
+                <svg viewBox="0 0 64 64" class="dark search-clear" id="search_clear" style="display:none;">
+                    <use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use>
+                </svg>
+            </li>
+            <li class="clear-filter-btn">
+                <button id="clear_filter_btn" title="Clear All Filters">
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use>
+                    </svg>
+                    Clear Filters
+                </button>
+            </li>
+        </ul>
+        <div class="right">
+            <div class="close-btn" onclick="RacerUI.views.tracks.hideFilter()" style="display:none;">
+                <svg viewBox="0 0 64 64" class="dark">
+                    <use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use>
+                </svg>
+            </div>
+        </div>
+    </nav>
 </div>
+<div class="tracks-filter"></div>
+<div class="tracks-content"></div>

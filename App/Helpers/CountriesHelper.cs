@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace RacerUI.Utils
+namespace RacerUI.Helpers
 {
-    public static class Countries
+    public static class CountriesHelper
     {
         // Complete list of all valid ISO 3166-1 alpha-2 country codes
         private static readonly HashSet<string> _validCountryCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -288,6 +284,15 @@ namespace RacerUI.Utils
 
             // Check if the code exists in the valid country codes list
             return _validCountryCodes.Contains(code);
+        }
+
+        /// <summary>
+        /// Gets all valid ISO 3166-1 alpha-2 country codes
+        /// </summary>
+        /// <returns>Collection of all valid country codes</returns>
+        public static IEnumerable<string> GetAllCountryCodes()
+        {
+            return _validCountryCodes;
         }
     }
 }

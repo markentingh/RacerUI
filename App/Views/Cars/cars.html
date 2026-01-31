@@ -6,14 +6,26 @@
             <li class="item-manufacturer" onclick="RacerUI.views.cars.nav(event, 'manufacturer')"><a href="/dashboard/cars/manufacturer">Manufacturer</a></li>
             <li class="item-model" onclick="RacerUI.views.cars.nav(event, 'model')"><a href="/dashboard/cars/model">Model</a></li>
             <li class="item-year" onclick="RacerUI.views.cars.nav(event, 'year')"><a href="/dashboard/cars/year">Year</a></li>
+            <li class="item-class" onclick="RacerUI.views.cars.nav(event, 'class')"><a href="/dashboard/cars/class">Class</a></li>
             <li class="item-type" onclick="RacerUI.views.cars.nav(event, 'type')"><a href="/dashboard/cars/type">Type</a></li>
             <li class="item-style" onclick="RacerUI.views.cars.nav(event, 'style')"><a href="/dashboard/cars/style">Style</a></li>
             <li class="item-specialization" onclick="RacerUI.views.cars.nav(event, 'specialization')"><a href="/dashboard/cars/specialization">Specialization</a></li>
             <li class="search-input">
                 <input type="text" id="search_cars" placeholder="Search"/>
-                <svg viewBox="0 0 64 64" class="dark">
+                <svg viewBox="0 0 64 64" class="dark search-arrow">
                     <use xlink:href="#icon-arrow-right" x="0" y="0" width="64" height="64"></use>
                 </svg>
+                <svg viewBox="0 0 64 64" class="dark search-clear" id="search_clear" style="display:none;">
+                    <use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use>
+                </svg>
+            </li>
+            <li class="clear-filter-btn">
+                <button id="clear_filter_btn" title="Clear All Filters">
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use>
+                    </svg>
+                    Clear Filters
+                </button>
             </li>
         </ul>
         <div class="right">

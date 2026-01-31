@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 
-namespace RacerUI.Utils
+namespace RacerUI.Helpers
 {
     public static class JsonHelper
     {

@@ -1,4 +1,4 @@
-﻿namespace RacerUI.Utils
+﻿namespace RacerUI.Helpers
 {
     public static class StringHelper
     {

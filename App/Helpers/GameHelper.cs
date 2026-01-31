@@ -1,7 +1,7 @@
 using Microsoft.Win32;
 using System.IO;
 
-namespace RacerUI.Utils {
+namespace RacerUI.Helpers {
     public static class GameHelper {
         public static string GetGameFromPath(string path) {
             // Normalize path to use OS-specific separators

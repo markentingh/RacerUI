@@ -34,6 +34,8 @@ ui.views.cars.load = (e) => {
             if (e && e.id) {
                 ui.views.cars.updateNav(e.id);
             }
+            ui.views.cars.setupSearchListener();
+            ui.views.cars.updateClearFilterButton();
             ui.views.cars.getFilteredList();
         });
     } else {
@@ -42,11 +44,126 @@ ui.views.cars.load = (e) => {
             ui.views.cars.updateNav(e.id);
         }
         if (ui.views.cars.results == null) {
+            ui.views.cars.updateClearFilterButton();
             ui.views.cars.getFilteredList();
         }
     }
     window.addEventListener('resize', ui.views.cars.resize);
     ui.views.cars.resize();
+};
+
+ui.views.cars.setupSearchListener = () => {
+    const searchInput = document.getElementById('search_cars');
+    const searchClear = document.getElementById('search_clear');
+    const clearFilterBtn = document.getElementById('clear_filter_btn');
+    
+    if (searchInput) {
+        // Handle Enter key to search
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                ui.views.cars.filter.search = searchInput.value;
+                ui.views.cars.getFilteredList();
+            }
+        });
+        
+        // Show/hide clear button based on input value
+        searchInput.addEventListener('input', (e) => {
+            if (searchClear) {
+                searchClear.style.display = e.target.value ? 'inline-block' : 'none';
+            }
+        });
+    }
+    
+    // Handle search clear button click
+    if (searchClear) {
+        searchClear.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (searchInput) {
+                searchInput.value = '';
+                ui.views.cars.filter.search = '';
+                searchClear.style.display = 'none';
+                ui.views.cars.getFilteredList();
+            }
+        });
+    }
+    
+    // Handle clear all filters button click
+    if (clearFilterBtn) {
+        clearFilterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Reset all filters to default
+            ui.views.cars.filter.countries = ['all'];
+            ui.views.cars.filter.makes = [];
+            ui.views.cars.filter.models = [];
+            ui.views.cars.filter.years = [];
+            ui.views.cars.filter.classes = [];
+            ui.views.cars.filter.types = [];
+            ui.views.cars.filter.styles = [];
+            ui.views.cars.filter.specializations = [];
+            ui.views.cars.filter.search = '';
+            
+            // Clear search input
+            if (searchInput) {
+                searchInput.value = '';
+                if (searchClear) {
+                    searchClear.style.display = 'none';
+                }
+            }
+            
+            // Reset UI state of any open filter section
+            // Country filter
+            document.querySelectorAll('.filter-country li').forEach((li) => {
+                li.classList.remove('selected');
+            });
+            document.querySelector('.filter-country li[data-country="all"]')?.classList.add('selected');
+            
+            // Manufacturer filter
+            document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+                li.classList.remove('selected');
+            });
+            document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+            
+            // Year filter
+            document.querySelectorAll('.filter-year li').forEach((li) => {
+                li.classList.remove('selected');
+            });
+            document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+            
+            // Class filter
+            document.querySelectorAll('.filter-class li').forEach((li) => {
+                li.classList.remove('selected');
+            });
+            document.querySelector('.filter-class li[data-class="all"]')?.classList.add('selected');
+            
+            // Type filter
+            document.querySelectorAll('.filter-type li').forEach((li) => {
+                li.classList.remove('selected');
+            });
+            document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+            
+            // Style filter
+            document.querySelectorAll('.filter-style li').forEach((li) => {
+                li.classList.remove('selected');
+            });
+            document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+            
+            // Specialization filter
+            document.querySelectorAll('.filter-specialization li').forEach((li) => {
+                li.classList.remove('selected');
+            });
+            document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+            
+            // Update clear filter button visibility
+            ui.views.cars.updateClearFilterButton();
+            
+            // Reload the filtered list
+            ui.views.cars.getFilteredList();
+        });
+    }
 };
 
 ui.views.cars.unload = () => {
@@ -95,6 +212,9 @@ ui.views.cars.updateNav = (section) => {
             case 'year':
                 ui.views.cars.year.load();
                 break;
+            case 'class':
+                ui.views.cars.class.load();
+                break;
             case 'type':
                 ui.views.cars.type.load();
                 break;
@@ -123,14 +243,70 @@ ui.views.cars.saveFilter = () => {
     localStorage.setItem('RacerUI:cars-filter', JSON.stringify(ui.views.cars.filter));
 };
 
-ui.views.cars.getFilteredList = () => {
-    //get list of cars based on filter
-    const start = Math.round(1 + (10000 * Math.random()));
+ui.views.cars.hasActiveFilters = () => {
+    // Check if any filters are active (not default state)
+    const hasCountryFilter = ui.views.cars.filter.countries.length > 0 && !ui.views.cars.filter.countries.includes('all');
+    const hasMakesFilter = ui.views.cars.filter.makes.length > 0;
+    const hasYearsFilter = ui.views.cars.filter.years.length > 0;
+    const hasClassesFilter = ui.views.cars.filter.classes && ui.views.cars.filter.classes.length > 0;
+    const hasTypesFilter = ui.views.cars.filter.types.length > 0;
+    const hasStylesFilter = ui.views.cars.filter.styles.length > 0;
+    const hasSpecializationsFilter = ui.views.cars.filter.specializations.length > 0;
+    const hasSearchFilter = ui.views.cars.filter.search && ui.views.cars.filter.search.length > 0;
+    
+    return hasCountryFilter || hasMakesFilter || hasYearsFilter || hasClassesFilter || 
+           hasTypesFilter || hasStylesFilter || hasSpecializationsFilter || hasSearchFilter;
+};
 
+ui.views.cars.updateClearFilterButton = () => {
+    const clearFilterBtn = document.getElementById('clear_filter_btn');
+    if (clearFilterBtn) {
+        if (ui.views.cars.hasActiveFilters()) {
+            clearFilterBtn.parentElement.style.display = 'inline-block';
+        } else {
+            clearFilterBtn.parentElement.style.display = 'none';
+        }
+    }
+};
+
+ui.views.cars.getFilterData = (excludeFilter) => {
+    // Build filter data object, excluding the specified filter type
+    const filterData = {
+        Countries: excludeFilter === 'countries' ? [] : (ui.views.cars.filter.countries.includes('all') ? [] : ui.views.cars.filter.countries),
+        Makes: excludeFilter === 'makes' ? [] : ui.views.cars.filter.makes,
+        Years: excludeFilter === 'years' ? [] : ui.views.cars.filter.years,
+        Classes: excludeFilter === 'classes' ? [] : (ui.views.cars.filter.classes || []),
+        Types: excludeFilter === 'types' ? [] : ui.views.cars.filter.types,
+        Styles: excludeFilter === 'styles' ? [] : ui.views.cars.filter.styles,
+        Specializations: excludeFilter === 'specializations' ? [] : ui.views.cars.filter.specializations,
+        Search: ui.views.cars.filter.search || ''
+    };
+    return filterData;
+};
+
+ui.views.cars.getFilteredList = () => {
     ui.views.cars.saveFilter();
+    ui.views.cars.updateClearFilterButton();
+    
+    // Prepare filter data for API (using PascalCase to match C# model)
+    const filterData = {
+        Countries: ui.views.cars.filter.countries.includes('all') ? [] : ui.views.cars.filter.countries,
+        Makes: ui.views.cars.filter.makes,
+        Models: ui.views.cars.filter.models,
+        Years: ui.views.cars.filter.years,
+        Classes: ui.views.cars.filter.classes || [],
+        Types: ui.views.cars.filter.types,
+        Styles: ui.views.cars.filter.styles,
+        Specializations: ui.views.cars.filter.specializations,
+        Search: ui.views.cars.filter.search || '',
+        Start: ui.views.cars.filter.start,
+        Length: ui.views.cars.filter.length
+    };
+    
     ui.ajax({
-        url: `/api/cars/filter`,
-        data: {...ui.views.cars.filter, start: start},
+        url: '/api/cars/filter',
+        method: 'POST',
+        data: filterData,
         complete: (response) => {
             if (response.status == 200) {
                 ui.views.cars.views.load(JSON.parse(response.responseText));
@@ -141,7 +317,7 @@ ui.views.cars.getFilteredList = () => {
 
 ui.views.cars.getCarDetails = (car, skin) => {
     if(skin == null){
-        skin = car.skins.length > 0 ? car.skins[0] : null;
+        skin = car.skins?.length > 0 ? car.skins[0] : null;
     }
     car.preview = skin ? '/image/' + encodeURIComponent(ui.game.name) + '/skin/' + encodeURIComponent(car.path) + '/' + encodeURIComponent(skin.path) : '';
     car.name = car.name ?? car.path.replace(/_/g, ' ');
@@ -159,25 +335,27 @@ ui.views.cars.views.load = (list) => {
     }else{
         list = ui.views.cars.results;
     }
-    //check if a grid view is already loaded, if so, just update the class list
-    const gridview = document.querySelector('.grid-view');
-    if(gridview != null && ui.views.cars.filter.view.indexOf('grid') > -1 && ui.views.cars.filter.prevView.indexOf('grid') > -1){
-        var classname = ui.views.cars.filter.view.replace('grid', '');
-        gridview.classList.remove('xl', 'sm');
-        if(classname != '') gridview.classList.add(classname);
+    
+    // Check if no cars found - show empty results view
+    if (!list.cars || list.cars.length === 0) {
+        ui.view.loadComponent('Cars/empty-results', (htmlEmpty) => {
+            ui.view.injectComponent(htmlEmpty, '.cars-content');
+        });
         return;
     }
+    
     //load view
     ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-view`, (htmlView) => {
         ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
             var output = '';
             list.cars.forEach((car) => {
                 //prepare each car in list and render HTML output of all items
-            var carName = car.year + ' ' + car.name.replace(car.year, '');
+            var carName = (car.year ?? '') + ' ' + car.name.replace(car.year, '');
                 car = ui.views.cars.getCarDetails(car);
                 output += htmlItem
                     .split('{{preview}}').join(car.preview || 'no-preview.jpg')
                     .split('{{name}}').join(carName)
+                    .split('{{class}}').join(car.class)
                     .split('{{description}}').join(car.description ?? '')
                     .split('{{path}}').join(car.path ?? '')
                     .split('{{countryCode}}').join((car.country || 'unknown').toLowerCase())
@@ -186,7 +364,7 @@ ui.views.cars.views.load = (list) => {
 
             //set up view
             const car = list.cars.length > 0 ? list.cars[0] : null;
-            var carName = car.year + ' ' + car.name.replace(car.year, '');
+            var carName = (car.year ?? '') + ' ' + car.name.replace(car.year, '');
             if(car == null) return;
             switch(ui.views.cars.filter.view){
                 case 'gallery':
@@ -267,7 +445,6 @@ ui.views.cars.views.grid = {
     },
     details: (car, item) => {
         //display car details within the grid
-        console.log('view car details', car, item);
         // Check if the clicked car is already selected
         if (ui.views.cars.selected && ui.views.cars.selected.car.path === car.path) {
             // Hide details if the same car is clicked again
@@ -299,7 +476,7 @@ ui.views.cars.views.grid = {
             .split('{{year}}').join(car.year || 'N/A')
             .split('{{country}}').join(car.countryName || car.country || 'Unknown')
             .split('{{countryCode}}').join((car.country || 'unknown').toLowerCase())
-            .split('{{class}}').join(car.class ? ui.utils.strings.capitalize(car.class).replace('Gt', 'GT').replace('Gr.', 'Group ') : '')
+            .split('{{class}}').join(car.class ? ui.utils.strings.capitalize(car.class).replace('Gt', 'GT') : '')
             .split('{{shifter}}').join(car.gears ?? '')
             .split('{{author}}').join(car.author || '')
             .split('{{maxSpeed}}').join(car.maxSpeed ? car.maxSpeed + ' km/h' : 'N/A')
@@ -375,22 +552,57 @@ ui.views.cars.view.select = (view) => {
 ui.views.cars.country = {};
 
 ui.views.cars.country.load = () => {
-    //load selected countries
-    if (ui.views.cars.filter.countries.length > 0) {
-        document.querySelectorAll('.filter-country li').forEach((li) => {
-            if (ui.views.cars.filter.countries.includes(li.getAttribute('data-country'))) {
-                li.classList.add('selected');
-            } else {
-                li.classList.remove('selected');
+    // Load template
+    ui.view.loadComponent('Cars/filter-country-item', (itemTemplate) => {
+        // Fetch countries data with current filter state
+        ui.ajax({
+            url: '/api/cars/countries',
+            method: 'POST',
+            data: ui.views.cars.getFilterData('countries'),
+            complete: (response) => {
+                try {
+                    const countries = JSON.parse(response.responseText);
+                    
+                    const container = document.querySelector('.filter-country .select-list');
+                    if (!container) {
+                        console.error('Container .filter-country .select-list not found');
+                        return;
+                    }
+                    
+                    container.innerHTML = '<li data-country="all"><image src="/images/flags/80x60/all.png"/>All Countries</li>';
+                    
+                    // Add each country item
+                    countries.forEach(country => {
+                        let itemHtml = itemTemplate
+                            .split('{{code}}').join(country.code)
+                            .split('{{name}}').join(country.name);
+                        container.innerHTML += itemHtml;
+                    });
+                    
+                    // Set up click handlers after populating
+                    document.querySelectorAll('.filter-country li').forEach((li) => {
+                        li.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ui.views.cars.country.select(li.getAttribute('data-country'));
+                        }
+                    });
+                    
+                    // Load selected countries
+                    if (ui.views.cars.filter.countries.length > 0) {
+                        document.querySelectorAll('.filter-country li').forEach((li) => {
+                            if (ui.views.cars.filter.countries.includes(li.getAttribute('data-country'))) {
+                                li.classList.add('selected');
+                            } else {
+                                li.classList.remove('selected');
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading countries:', error);
+                }
             }
         });
-    }
-    document.querySelectorAll('.filter-country li').forEach((li) => {
-        li.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ui.views.cars.country.select(li.getAttribute('data-country'));
-        }
     });
 };
 
@@ -426,22 +638,54 @@ ui.views.cars.country.select = (country) => {
 ui.views.cars.manufacturer = {};
 
 ui.views.cars.manufacturer.load = () => {
-    //load selected manufacturers
-    if (ui.views.cars.filter.makes.length > 0) {
-        document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
-            if (ui.views.cars.filter.makes.includes(parseInt(li.getAttribute('data-make')))) {
-                li.classList.add('selected');
-            } else {
-                li.classList.remove('selected');
+    ui.view.loadComponent('Cars/filter-manufacturer-item', (itemTemplate) => {
+        ui.ajax({
+            url: '/api/cars/manufacturers',
+            method: 'POST',
+            data: ui.views.cars.getFilterData('makes'),
+            complete: (response) => {
+                try {
+                    const manufacturers = JSON.parse(response.responseText);
+                    
+                    const container = document.querySelector('.filter-manufacturer .select-list');
+                    if (!container) {
+                        console.error('Container .filter-manufacturer .select-list not found');
+                        return;
+                    }
+                    
+                    container.innerHTML = '<li data-make="0">All Manufacturers</li>';
+                    
+                    manufacturers.forEach(make => {
+                        let itemHtml = itemTemplate
+                            .split('{{id}}').join(make.id)
+                            .split('{{name}}').join(make.name);
+                        container.innerHTML += itemHtml;
+                    });
+                    
+                    document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+                        li.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ui.views.cars.manufacturer.select(parseInt(li.getAttribute('data-make')));
+                        }
+                    });
+                    
+                    if (ui.views.cars.filter.makes.length > 0) {
+                        document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+                            if (ui.views.cars.filter.makes.includes(parseInt(li.getAttribute('data-make')))) {
+                                li.classList.add('selected');
+                            } else {
+                                li.classList.remove('selected');
+                            }
+                        });
+                    } else {
+                        document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+                    }
+                } catch (error) {
+                    console.error('Error loading manufacturers:', error);
+                }
             }
         });
-    }
-    document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
-        li.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ui.views.cars.manufacturer.select(parseInt(li.getAttribute('data-make')));
-        }
     });
 };
 
@@ -451,6 +695,7 @@ ui.views.cars.manufacturer.select = (makeId) => {
         document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.makes.includes(makeId)) {
             ui.views.cars.filter.makes.splice(ui.views.cars.filter.makes.indexOf(makeId), 1);
@@ -460,10 +705,14 @@ ui.views.cars.manufacturer.select = (makeId) => {
         document.querySelectorAll('.filter-manufacturer li[data-make="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelectorAll('.filter-manufacturer li[data-make="' + makeId + '"]').forEach((li) => {
+            li.classList.toggle('selected');
+        });
+        // If no manufacturers selected, select 'All'
+        if (ui.views.cars.filter.makes.length === 0) {
+            document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+        }
     }
-    document.querySelectorAll('.filter-manufacturer li[data-make="' + makeId + '"]').forEach((li) => {
-        li.classList.toggle('selected');
-    });
     ui.views.cars.getFilteredList();
 };
 
@@ -522,22 +771,53 @@ ui.views.cars.model.select = (modelId) => {
 ui.views.cars.year = {};
 
 ui.views.cars.year.load = () => {
-    //load selected years
-    if (ui.views.cars.filter.years.length > 0) {
-        document.querySelectorAll('.filter-year li').forEach((li) => {
-            if (ui.views.cars.filter.years.includes(parseInt(li.getAttribute('data-year')))) {
-                li.classList.add('selected');
-            } else {
-                li.classList.remove('selected');
+    ui.view.loadComponent('Cars/filter-year-item', (itemTemplate) => {
+        ui.ajax({
+            url: '/api/cars/years',
+            method: 'POST',
+            data: ui.views.cars.getFilterData('years'),
+            complete: (response) => {
+                try {
+                    const years = JSON.parse(response.responseText);
+                    
+                    const container = document.querySelector('.filter-year .select-list');
+                    if (!container) {
+                        console.error('Container .filter-year .select-list not found');
+                        return;
+                    }
+                    
+                    container.innerHTML = '<li data-year="0">All Years</li>';
+                    
+                    years.forEach(year => {
+                        let itemHtml = itemTemplate
+                            .split('{{year}}').join(year);
+                        container.innerHTML += itemHtml;
+                    });
+                    
+                    document.querySelectorAll('.filter-year li').forEach((li) => {
+                        li.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ui.views.cars.year.select(parseInt(li.getAttribute('data-year')));
+                        }
+                    });
+                    
+                    if (ui.views.cars.filter.years.length > 0) {
+                        document.querySelectorAll('.filter-year li').forEach((li) => {
+                            if (ui.views.cars.filter.years.includes(parseInt(li.getAttribute('data-year')))) {
+                                li.classList.add('selected');
+                            } else {
+                                li.classList.remove('selected');
+                            }
+                        });
+                    } else {
+                        document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+                    }
+                } catch (error) {
+                    console.error('Error loading years:', error);
+                }
             }
         });
-    }
-    document.querySelectorAll('.filter-year li').forEach((li) => {
-        li.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ui.views.cars.year.select(parseInt(li.getAttribute('data-year')));
-        }
     });
 };
 
@@ -547,6 +827,7 @@ ui.views.cars.year.select = (year) => {
         document.querySelectorAll('.filter-year li').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.years.includes(year)) {
             ui.views.cars.filter.years.splice(ui.views.cars.filter.years.indexOf(year), 1);
@@ -556,10 +837,14 @@ ui.views.cars.year.select = (year) => {
         document.querySelectorAll('.filter-year li[data-year="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelectorAll('.filter-year li[data-year="' + year + '"]').forEach((li) => {
+            li.classList.toggle('selected');
+        });
+        // If no years selected, select 'All'
+        if (ui.views.cars.filter.years.length === 0) {
+            document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+        }
     }
-    document.querySelectorAll('.filter-year li[data-year="' + year + '"]').forEach((li) => {
-        li.classList.toggle('selected');
-    });
     ui.views.cars.getFilteredList();
 };
 
@@ -570,22 +855,54 @@ ui.views.cars.year.select = (year) => {
 ui.views.cars.type = {};
 
 ui.views.cars.type.load = () => {
-    //load selected types
-    if (ui.views.cars.filter.types.length > 0) {
-        document.querySelectorAll('.filter-type li').forEach((li) => {
-            if (ui.views.cars.filter.types.includes(parseInt(li.getAttribute('data-type')))) {
-                li.classList.add('selected');
-            } else {
-                li.classList.remove('selected');
+    ui.view.loadComponent('Cars/filter-type-item', (itemTemplate) => {
+        ui.ajax({
+            url: '/api/cars/types',
+            method: 'POST',
+            data: ui.views.cars.getFilterData('types'),
+            complete: (response) => {
+                try {
+                    const types = JSON.parse(response.responseText);
+                    
+                    const container = document.querySelector('.filter-type .select-list');
+                    if (!container) {
+                        console.error('Container .filter-type .select-list not found');
+                        return;
+                    }
+                    
+                    container.innerHTML = '<li data-type="0">All Types</li>';
+                    
+                    types.forEach(type => {
+                        let itemHtml = itemTemplate
+                            .split('{{id}}').join(type.id)
+                            .split('{{name}}').join(type.name);
+                        container.innerHTML += itemHtml;
+                    });
+                    
+                    document.querySelectorAll('.filter-type li').forEach((li) => {
+                        li.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ui.views.cars.type.select(parseInt(li.getAttribute('data-type')));
+                        }
+                    });
+                    
+                    if (ui.views.cars.filter.types.length > 0) {
+                        document.querySelectorAll('.filter-type li').forEach((li) => {
+                            if (ui.views.cars.filter.types.includes(parseInt(li.getAttribute('data-type')))) {
+                                li.classList.add('selected');
+                            } else {
+                                li.classList.remove('selected');
+                            }
+                        });
+                    } else {
+                        document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+                    }
+                } catch (error) {
+                    console.error('Error loading types:', error);
+                }
             }
         });
-    }
-    document.querySelectorAll('.filter-type li').forEach((li) => {
-        li.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ui.views.cars.type.select(parseInt(li.getAttribute('data-type')));
-        }
     });
 };
 
@@ -595,6 +912,7 @@ ui.views.cars.type.select = (typeId) => {
         document.querySelectorAll('.filter-type li').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.types.includes(typeId)) {
             ui.views.cars.filter.types.splice(ui.views.cars.filter.types.indexOf(typeId), 1);
@@ -604,10 +922,114 @@ ui.views.cars.type.select = (typeId) => {
         document.querySelectorAll('.filter-type li[data-type="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelectorAll('.filter-type li[data-type="' + typeId + '"]').forEach((li) => {
+            li.classList.toggle('selected');
+        });
+        // If no types selected, select 'All'
+        if (ui.views.cars.filter.types.length === 0) {
+            document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+        }
     }
-    document.querySelectorAll('.filter-type li[data-type="' + typeId + '"]').forEach((li) => {
-        li.classList.toggle('selected');
+    ui.views.cars.getFilteredList();
+};
+
+//#endregion
+
+//#region "Class Filter"
+
+ui.views.cars.class = {};
+
+ui.views.cars.class.load = () => {
+    // Load templates
+    ui.view.loadComponent('Cars/filter-class-category', (categoryTemplate) => {
+        ui.view.loadComponent('Cars/filter-class-item', (itemTemplate) => {
+            // Fetch car classes data
+            ui.ajax({
+                url: '/api/cars/classes',
+                method: 'POST',
+                data: ui.views.cars.getFilterData('classes'),
+                complete: (response) => {
+                    try {
+                        const classesByCategory = JSON.parse(response.responseText);
+                        
+                        const container = document.querySelector('.filter-class .select-list');
+                        container.innerHTML = '<li data-class="all">All Classes</li>';
+                        
+                        classesByCategory.forEach(category => {
+                            // Create category section from template
+                            let categoryHtml = categoryTemplate.split('{{category}}').join(category.category);
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = categoryHtml;
+                            const categoryElement = tempDiv.firstElementChild;
+                            
+                            // Get the class list UL element
+                            const classList = categoryElement.querySelector('.class-list');
+                            
+                            // Add each class item
+                            category.classes.forEach(carClass => {
+                                let itemHtml = itemTemplate
+                                    .split('{{class}}').join(carClass.name)
+                                    .split('{{name}}').join(carClass.name);
+                                classList.innerHTML += itemHtml;
+                            });
+                            
+                            container.appendChild(categoryElement);
+                        });
+                        
+                        // Set up click handlers after populating
+                        document.querySelectorAll('.filter-class li').forEach((li) => {
+                            li.onclick = (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                ui.views.cars.class.select(li.getAttribute('data-class'));
+                            }
+                        });
+                        
+                        // Load selected classes
+                        if (ui.views.cars.filter.classes && ui.views.cars.filter.classes.length > 0) {
+                            document.querySelectorAll('.filter-class li').forEach((li) => {
+                                if (ui.views.cars.filter.classes.includes(li.getAttribute('data-class'))) {
+                                    li.classList.add('selected');
+                                }
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error loading car classes:', error);
+                    }
+                }
+            });
+        });
     });
+};
+
+ui.views.cars.class.select = (className) => {
+    if (!ui.views.cars.filter.classes) {
+        ui.views.cars.filter.classes = [];
+    }
+    
+    if (className === 'all') {
+        ui.views.cars.filter.classes = [];
+        document.querySelectorAll('.filter-class li').forEach((li) => {
+            li.classList.remove('selected');
+        });
+        document.querySelector('.filter-class li[data-class="all"]')?.classList.add('selected');
+    } else {
+        if (ui.views.cars.filter.classes.includes(className)) {
+            ui.views.cars.filter.classes.splice(ui.views.cars.filter.classes.indexOf(className), 1);
+        } else {
+            ui.views.cars.filter.classes.push(className);
+        }
+        document.querySelectorAll('.filter-class li[data-class="all"]').forEach((li) => {
+            li.classList.remove('selected');
+        });
+        document.querySelectorAll('.filter-class li[data-class="' + className + '"]').forEach((li) => {
+            li.classList.toggle('selected');
+        });
+        // If no classes selected, select 'All'
+        if (ui.views.cars.filter.classes.length === 0) {
+            document.querySelector('.filter-class li[data-class="all"]')?.classList.add('selected');
+        }
+    }
     ui.views.cars.getFilteredList();
 };
 
@@ -618,22 +1040,49 @@ ui.views.cars.type.select = (typeId) => {
 ui.views.cars.style = {};
 
 ui.views.cars.style.load = () => {
-    //load selected styles
-    if (ui.views.cars.filter.styles.length > 0) {
-        document.querySelectorAll('.filter-style li').forEach((li) => {
-            if (ui.views.cars.filter.styles.includes(parseInt(li.getAttribute('data-style')))) {
-                li.classList.add('selected');
-            } else {
-                li.classList.remove('selected');
+    ui.view.loadComponent('Cars/filter-style-item', (itemTemplate) => {
+        ui.ajax({
+            url: '/api/cars/styles',
+            method: 'POST',
+            data: ui.views.cars.getFilterData('styles'),
+            complete: (response) => {
+                try {
+                    const styles = JSON.parse(response.responseText);
+                    
+                    const container = document.querySelector('.filter-style .select-list');
+                    container.innerHTML = '<li data-style="0">All Styles</li>';
+                    
+                    styles.forEach(style => {
+                        let itemHtml = itemTemplate
+                            .split('{{id}}').join(style.id)
+                            .split('{{name}}').join(style.name);
+                        container.innerHTML += itemHtml;
+                    });
+                    
+                    document.querySelectorAll('.filter-style li').forEach((li) => {
+                        li.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ui.views.cars.style.select(parseInt(li.getAttribute('data-style')));
+                        }
+                    });
+                    
+                    if (ui.views.cars.filter.styles.length > 0) {
+                        document.querySelectorAll('.filter-style li').forEach((li) => {
+                            if (ui.views.cars.filter.styles.includes(parseInt(li.getAttribute('data-style')))) {
+                                li.classList.add('selected');
+                            } else {
+                                li.classList.remove('selected');
+                            }
+                        });
+                    } else {
+                        document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+                    }
+                } catch (error) {
+                    console.error('Error loading styles:', error);
+                }
             }
         });
-    }
-    document.querySelectorAll('.filter-style li').forEach((li) => {
-        li.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ui.views.cars.style.select(parseInt(li.getAttribute('data-style')));
-        }
     });
 };
 
@@ -643,6 +1092,7 @@ ui.views.cars.style.select = (styleId) => {
         document.querySelectorAll('.filter-style li').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.styles.includes(styleId)) {
             ui.views.cars.filter.styles.splice(ui.views.cars.filter.styles.indexOf(styleId), 1);
@@ -652,10 +1102,14 @@ ui.views.cars.style.select = (styleId) => {
         document.querySelectorAll('.filter-style li[data-style="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelectorAll('.filter-style li[data-style="' + styleId + '"]').forEach((li) => {
+            li.classList.toggle('selected');
+        });
+        // If no styles selected, select 'All'
+        if (ui.views.cars.filter.styles.length === 0) {
+            document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+        }
     }
-    document.querySelectorAll('.filter-style li[data-style="' + styleId + '"]').forEach((li) => {
-        li.classList.toggle('selected');
-    });
     ui.views.cars.getFilteredList();
 };
 
@@ -666,22 +1120,54 @@ ui.views.cars.style.select = (styleId) => {
 ui.views.cars.specialization = {};
 
 ui.views.cars.specialization.load = () => {
-    //load selected specializations
-    if (ui.views.cars.filter.specializations.length > 0) {
-        document.querySelectorAll('.filter-specialization li').forEach((li) => {
-            if (ui.views.cars.filter.specializations.includes(parseInt(li.getAttribute('data-specialization')))) {
-                li.classList.add('selected');
-            } else {
-                li.classList.remove('selected');
+    ui.view.loadComponent('Cars/filter-specialization-item', (itemTemplate) => {
+        ui.ajax({
+            url: '/api/cars/specializations',
+            method: 'POST',
+            data: ui.views.cars.getFilterData('specializations'),
+            complete: (response) => {
+                try {
+                    const specializations = JSON.parse(response.responseText);
+                    
+                    const container = document.querySelector('.filter-specialization .select-list');
+                    if (!container) {
+                        console.error('Container .filter-specialization .select-list not found');
+                        return;
+                    }
+                    
+                    container.innerHTML = '<li data-specialization="0">All Specializations</li>';
+                    
+                    specializations.forEach(spec => {
+                        let itemHtml = itemTemplate
+                            .split('{{id}}').join(spec.id)
+                            .split('{{name}}').join(spec.name);
+                        container.innerHTML += itemHtml;
+                    });
+                    
+                    document.querySelectorAll('.filter-specialization li').forEach((li) => {
+                        li.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ui.views.cars.specialization.select(parseInt(li.getAttribute('data-specialization')));
+                        }
+                    });
+                    
+                    if (ui.views.cars.filter.specializations.length > 0) {
+                        document.querySelectorAll('.filter-specialization li').forEach((li) => {
+                            if (ui.views.cars.filter.specializations.includes(parseInt(li.getAttribute('data-specialization')))) {
+                                li.classList.add('selected');
+                            } else {
+                                li.classList.remove('selected');
+                            }
+                        });
+                    } else {
+                        document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+                    }
+                } catch (error) {
+                    console.error('Error loading specializations:', error);
+                }
             }
         });
-    }
-    document.querySelectorAll('.filter-specialization li').forEach((li) => {
-        li.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ui.views.cars.specialization.select(parseInt(li.getAttribute('data-specialization')));
-        }
     });
 };
 
@@ -691,6 +1177,7 @@ ui.views.cars.specialization.select = (specializationId) => {
         document.querySelectorAll('.filter-specialization li').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.specializations.includes(specializationId)) {
             ui.views.cars.filter.specializations.splice(ui.views.cars.filter.specializations.indexOf(specializationId), 1);
@@ -700,10 +1187,14 @@ ui.views.cars.specialization.select = (specializationId) => {
         document.querySelectorAll('.filter-specialization li[data-specialization="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelectorAll('.filter-specialization li[data-specialization="' + specializationId + '"]').forEach((li) => {
+            li.classList.toggle('selected');
+        });
+        // If no specializations selected, select 'All'
+        if (ui.views.cars.filter.specializations.length === 0) {
+            document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+        }
     }
-    document.querySelectorAll('.filter-specialization li[data-specialization="' + specializationId + '"]').forEach((li) => {
-        li.classList.toggle('selected');
-    });
     ui.views.cars.getFilteredList();
 };
 

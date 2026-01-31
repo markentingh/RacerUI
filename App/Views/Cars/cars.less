@@ -14,9 +14,80 @@
             li.search-input {
                 padding-top: 0.35em;
                 vertical-align: top;
+                position: relative;
 
                 input {
                     max-width: 15vw;
+                    padding-right: 2.5em;
+                }
+                
+                svg.search-arrow {
+                    position: absolute;
+                    right: -1.5em;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 1.5em;
+                    height: 1.5em;
+                    pointer-events: none;
+                }
+                
+                svg.search-clear { 
+                    position: absolute;
+                    right: 1em;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 0.8em;
+                    height: 0.8em;
+                    opacity: 0.5;
+                    cursor: pointer;
+                    transition: opacity 0.25s ease-in-out;
+                    
+                    &:hover {
+                        opacity: 1;
+                    }
+                }
+            }
+            
+            li.clear-filter-btn {
+                padding-top: 0.35em;
+                vertical-align: top;
+                margin-left: 1em;
+                display: none;
+                &:hover{
+                    background:none !important;
+                    svg use{
+                        color:#9d7bb8 !important;
+                    }
+                }
+                
+                button {
+                    background: rgba(157, 123, 184, 0.2);
+                    color: #9d7bb8;
+                    padding: 0.5em 1em;
+                    border-radius: 0.3em;
+                    cursor: pointer;
+                    font-size: 0.7em;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5em;
+                    transition: all 0.25s ease-in-out;
+                    
+                    svg {
+                        width: 1em;
+                        height: 1em;
+                        use{
+                            color:#9d7bb8;
+                        }
+                    }
+                    
+                    &:hover {
+                        background: rgba(157, 123, 184, 0.3);
+                        border-color: rgba(157, 123, 184, 0.6);
+                        color: #b89dd4;
+                        use{
+                            color:#b25ef7 !important;
+                        }
+                    }
                 }
             }
         }
@@ -40,6 +111,25 @@
     z-index: 100;
     background-color: rgba(0, 0, 0, 0.8);
     width: 100%;
+    overflow-y:auto;
+    max-height: calc(100vh - 5em);
+
+    &::-webkit-scrollbar {
+        width: 0.5em;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #3b2c75;
+        border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: #4a3690;
+    }
 }
 
 .filter-view {
@@ -144,6 +234,28 @@
     }
 }
 
+.filter-class{
+    .class-category {
+        h4 {
+            margin:1em 0 1em 0.5em;
+            font-size: 1.25em;
+            font-weight:normal;
+            color: #9d7bb8;
+        }
+
+        ul.class-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+
+            li {
+                padding: 1em 1em 0 1em;
+                height: 1em;
+            }
+        }
+    }
+}
+
 .filter-style {
     ul.select-list {
         padding: 0 2em 0 2em;
@@ -221,6 +333,20 @@
             img {
                 width: 100%;
                 border-radius: 0.5em;
+            }
+
+            .info-top{
+                position: absolute;
+                top: 0.5em;
+                right: 0.5em;
+                font-size: 0.875em;
+                .car-class{
+                    background-color: rgba(0, 0, 0, 0.75);
+                    padding: 0.25em 0.5em;
+                    border-radius: 0.5em;
+                    margin-left:0.5em;
+                    line-height: 1.25;
+                }
             }
 
             .info {
