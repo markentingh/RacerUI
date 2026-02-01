@@ -938,17 +938,6 @@ button,
     transform: translate(50%, 50%);
   }
 }
-@media (min-width: 1920px) {
-  .tracks-content .grid-view .track .track-outline {
-    max-width: 5em;
-  }
-  .tracks-content .grid-details .preview {
-    width: 50em;
-  }
-  .tracks-content .grid-details .preview .track-outline {
-    max-width: 10em;
-  }
-}
 .content.settings .coming-soon {
   padding: 2em;
   text-align: center;

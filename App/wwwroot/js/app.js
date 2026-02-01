@@ -2682,6 +2682,8 @@ ui.views.tracks.views.renderTrackItem = (track, itemTemplate) => {
     if (track.subPath) {
         outlineUrl += `/${track.subPath}`;
     }
+
+    var city = track.city && track.city != 'null' ? track.city : '';
     
     return itemTemplate
         .split('{{id}}').join(track.id)
@@ -2691,10 +2693,11 @@ ui.views.tracks.views.renderTrackItem = (track, itemTemplate) => {
         .split('{{outline}}').join(outlineUrl)
         .split('{{country}}').join(track.country || '')
         .split('{{countryName}}').join(track.countryName || '')
-        .split('{{city}}').join(track.city || '')
+        .split('{{city}}').join(city)
         .split('{{typeName}}').join(track.typeName || '')
         .split('{{length}}').join(track.length ? (track.length / 1000).toFixed(1) + ' km' : '')
-        .split('{{distance}}').join(track.distance ? track.distance.toFixed(2) + ' km' : '');
+        .split('{{distance}}').join(track.distance ? track.distance.toFixed(2) + ' km' : '')
+        .hasBlock('has-city', city != '');
 };
 
 ui.views.tracks.views.load = (data) => {
