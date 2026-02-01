@@ -337,7 +337,7 @@
             }
 
             &.selected {
-                opacity: 0.25;
+                opacity: 0.15;
                 pointer-events: none;
             }
 
@@ -639,13 +639,16 @@
     }
 }
 
-@media screen and (max-width: 1630px) {
-    .cars-toolbar .search-input {
-        max-width: calc(100vw - 50em);
+@media screen and (max-width: 1300px) {
+    .cars-toolbar nav {
+        height:7.4em !important;
+    }
+    .dash .sub-menu{
+        height:calc(7.4em * var(--scale-factor)) !important;
     }
 }
 
-@media screen and (max-width: 1480px) {
+@media screen and (max-width: 1920px) {
     .cars-toolbar nav>ul.menu li {
         font-size: 0.8em;
         margin-top: 0.15em;

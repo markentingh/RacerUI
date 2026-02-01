@@ -387,12 +387,7 @@ ul.select-list li {
 ul.select-list li a {
   text-decoration: none;
 }
-@media screen and (max-width: 1630px) {
-  .dash nav {
-    height: 76px;
-  }
-}
-@media screen and (max-width: 1480px) {
+@media screen and (max-width: 1920px) {
   .dash > nav {
     height: 60px;
     font-size: 0.8em;
@@ -401,7 +396,7 @@ ul.select-list li a {
     padding: 0.5em 0.5em;
   }
 }
-@media screen and (max-width: 1070px) {
+@media screen and (max-width: 1300px) {
   .dash > nav {
     height: 46px;
     font-size: 0.6em;
@@ -655,7 +650,7 @@ button,
   transition: opacity 0.3s ease-in-out;
 }
 .tracks-content .grid-view .track.selected {
-  opacity: 0.25;
+  opacity: 0.15;
   pointer-events: none;
 }
 .tracks-content .grid-view .track.selected .hovered-clone {
@@ -1303,7 +1298,7 @@ button,
   border-radius: 0.5em;
 }
 .cars-content .grid-view .car.selected {
-  opacity: 0.25;
+  opacity: 0.15;
   pointer-events: none;
 }
 .cars-content .grid-view .car.selected .hovered-clone {
@@ -1557,12 +1552,15 @@ button,
   z-index: 10;
   border-radius: 0.5em;
 }
-@media screen and (max-width: 1630px) {
-  .cars-toolbar .search-input {
-    max-width: calc(100vw - 50em);
+@media screen and (max-width: 1300px) {
+  .cars-toolbar nav {
+    height: 7.4em !important;
+  }
+  .dash .sub-menu {
+    height: calc(7.4em * var(--scale-factor)) !important;
   }
 }
-@media screen and (max-width: 1480px) {
+@media screen and (max-width: 1920px) {
   .cars-toolbar nav > ul.menu li {
     font-size: 0.8em;
     margin-top: 0.15em;
