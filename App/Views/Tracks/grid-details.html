@@ -1,0 +1,52 @@
+<div class="grid-details">
+    <div class="preview" style="background-image: url('{{preview}}');">
+        <img class="track-outline" src="{{outline}}" onerror="this.style.display='none'" alt="" />
+    </div>
+    <div class="info">
+        <h4>{{name}}</h4>
+        <div class="track-origin">
+            {{has-country}}
+                <div class="track-country">
+                    <img class="flag" src="/images/flags/80x60/{{countryCode}}.png" alt="{{country}} flag" />
+                    <span>{{country}}</span>
+                </div>
+            {{/has-country}}
+            {{has-city}}
+                <div class="track-city">
+                    <span>{{city}}</span>
+                </div>
+            {{/has-city}}
+            {{has-year}}
+                <div class="track-year">
+                    <span>{{year}}</span>
+                </div>
+            {{/has-year}}
+            {{has-type}}
+                <div class="track-type">
+                    <span>{{typeName}}</span>
+                </div>
+            {{/has-type}}
+        </div>
+        <div class="track-stats">
+            {{has-length}}
+                <div><strong>Length:</strong> <span>{{length}}</span></div>
+            {{/has-length}}
+            {{has-width}}
+                <div><strong>Width:</strong> <span>{{width}}</span></div>
+            {{/has-width}}
+            {{has-pitboxes}}
+                <div><strong>Pit Boxes:</strong> <span>{{pitBoxes}}</span></div>
+            {{/has-pitboxes}}
+            {{has-author}}
+                <div class="track-author">
+                    <strong>Author:</strong> <span>{{author}}</span>
+                </div>
+            {{/has-author}}
+        </div>
+        {{has-details}}
+            <div class="track-description">
+                <p>{{details}}</p>
+            </div>
+        {{/has-details}}
+    </div>
+</div>

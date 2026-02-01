@@ -262,8 +262,8 @@ body .game-loaded {
   grid-row: 1;
 }
 .dash nav {
-  max-width: calc(1920px * var(--scale-factor));
-  width: 100%;
+  /*max-width: calc(1920px * var(--scale-factor));*/
+  /*width:100%;*/
   height: calc(76px * var(--scale-factor));
   display: block;
   line-height: 1.35;
@@ -444,7 +444,7 @@ ul.select-list li a {
 }
 input {
   padding: 0.5em;
-  border-radius: 0.25em;
+  border-radius: 0.75em;
   outline: none;
   width: 100%;
   box-sizing: border-box;
@@ -633,11 +633,11 @@ button,
   border-radius: 10px;
 }
 .tracks-content .grid-view {
-  width: calc(100vw - 2.5em);
+  width: 100vw;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1em;
-  margin: 1em;
+  padding: 1em;
   box-sizing: border-box;
   grid-auto-flow: dense;
 }
@@ -652,6 +652,54 @@ button,
   background-position: center;
   border-radius: 0.5em;
   background-color: #88afd1;
+  transition: opacity 0.3s ease-in-out;
+}
+.tracks-content .grid-view .track.selected {
+  opacity: 0.25;
+  pointer-events: none;
+}
+.tracks-content .grid-view .track.selected .hovered-clone {
+  opacity: 0;
+  pointer-events: none;
+}
+.tracks-content .grid-view .track .track-outline {
+  position: absolute;
+  bottom: 0.5em;
+  right: 0.5em;
+  height: 40%;
+  width: auto;
+  pointer-events: none;
+  transition: all 0.4s ease-in-out 0.1s;
+  transform: translate(0, 0);
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
+}
+.tracks-content .grid-view .track:hover .track-outline {
+  height: 90%;
+  bottom: 50%;
+  right: 50%;
+  transform: translate(50%, 50%);
+}
+.tracks-content .grid-view .track .info-top {
+  position: absolute;
+  top: 0.5em;
+  right: 0.5em;
+  font-size: 0.875em;
+  text-align: right;
+  white-space: nowrap;
+}
+.tracks-content .grid-view .track .info-top .track-length,
+.tracks-content .grid-view .track .info-top .track-type {
+  display: inline-block;
+  padding: 0.25em 0.5em;
+  border-radius: 0.5em;
+  margin-left: 0.25em;
+  line-height: 1.25;
+}
+.tracks-content .grid-view .track .info-top .track-length {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+.tracks-content .grid-view .track .info-top .track-type {
+  background-color: rgba(89, 37, 131, 0.75);
 }
 .tracks-content .grid-view .track .info {
   position: absolute;
@@ -659,8 +707,10 @@ button,
   left: 0.6em;
   white-space: nowrap;
   vertical-align: top;
+  display: inline-block;
 }
-.tracks-content .grid-view .track .info h2 {
+.tracks-content .grid-view .track .info .track-name,
+.tracks-content .grid-view .track .info .city {
   font-size: 1em;
   font-weight: normal;
   line-height: 1.25;
@@ -671,6 +721,7 @@ button,
   background-color: rgba(0, 0, 0, 0.75);
   display: inline-block;
   padding: 0.25em 0.5em;
+  margin-right: 0.5em;
   border-radius: 0.5em;
 }
 .tracks-content .grid-view .track .flag {
@@ -686,22 +737,165 @@ button,
   border-radius: 0.2em;
 }
 .tracks-content .grid-view .track.hovered-clone {
-  z-index: 10;
+  z-index: 15;
   margin: 0 auto;
   position: absolute;
   border-style: solid;
   border-radius: 0.5em;
-  animation: hover-grow 0.25s ease-in-out forwards;
+  animation: hover-grow 0.2s ease-in-out forwards;
+}
+.tracks-content .grid-view .track.hovered-clone .track-outline {
+  position: absolute;
+  bottom: 0.5em;
+  right: 0.5em;
+  height: 40%;
+  width: auto;
+  pointer-events: none;
+  transform: translate(0, 0);
+  transition: all 0.4s ease-in-out 0.1s;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
+}
+.tracks-content .grid-view .track.hovered-clone:hover .track-outline {
+  height: 90%;
+  bottom: 50%;
+  right: 50%;
+  transform: translate(50%, 50%);
 }
 .tracks-content .grid-view .track.hovered-clone.hiding {
   z-index: 9;
-  animation: hover-shrink 0.25s ease-in-out forwards;
+  animation: hover-shrink 0.4s ease-in-out forwards;
 }
 .tracks-content .grid-view.xl {
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
 }
 .tracks-content .grid-view.sm {
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+.tracks-content .grid-details {
+  grid-column-start: 1;
+  grid-column-end: -1;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  animation: show-details 0.3334s ease-out forwards;
+  overflow: hidden;
+}
+.tracks-content .grid-details .preview {
+  width: 40vw;
+  aspect-ratio: 16/9;
+  background-size: cover;
+  background-position: center;
+  border-radius: 0.5em;
+  position: relative;
+}
+.tracks-content .grid-details .preview .track-outline {
+  position: absolute;
+  bottom: 0.5em;
+  right: 0.5em;
+  max-width: 5vw;
+  height: auto;
+  opacity: 0.8;
+  pointer-events: none;
+}
+.tracks-content .grid-details .info {
+  padding: 0 0 0 1em;
+  line-height: 1.5em;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  overflow: hidden;
+}
+.tracks-content .grid-details .info h4 {
+  font-size: 1.8em;
+  font-weight: normal;
+  margin: 0 0 0.25em 0;
+  background: rgba(88, 88, 88, 0.38);
+  padding: 0.25em 0.5em 0.3em 0.5em;
+  border-radius: 0.15em;
+}
+.tracks-content .grid-details .track-origin {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0.4em;
+}
+.tracks-content .grid-details .track-origin > div {
+  display: flex;
+  align-items: center;
+  padding: 0.3em 0.5em 0.4em 0.5em;
+  background: rgba(88, 88, 88, 0.38);
+  border-radius: 0.15em;
+  margin-right: 0.5em;
+}
+.tracks-content .grid-details .track-origin .flag {
+  vertical-align: top;
+  width: 1.5em;
+  margin: 0.25em 0.5em 0 0;
+  align-self: flex-start;
+}
+.tracks-content .grid-details .track-stats {
+  white-space: nowrap;
+  padding: 0.25em 0.5em;
+  background: rgba(88, 88, 88, 0.38);
+  border-radius: 0.15em;
+  margin-bottom: 0.4em;
+}
+.tracks-content .grid-details .track-stats > div {
+  display: inline-block;
+  padding: 0 0.5em 0 0;
+}
+.tracks-content .grid-details .track-stats > div span {
+  display: inline-block;
+  padding: 0 0.4em;
+  background: rgba(60, 76, 136, 0.7);
+  border-radius: 0.15em;
+  margin-right: 0.5em;
+}
+.tracks-content .grid-details .track-description {
+  padding: 0.5em;
+  background: rgba(88, 88, 88, 0.38);
+  border-radius: 0.15em;
+  margin-bottom: 0.4em;
+  overflow-y: auto;
+}
+.tracks-content .grid-details .track-description::-webkit-scrollbar {
+  width: 10px;
+}
+.tracks-content .grid-details .track-description::-webkit-scrollbar-track {
+  background: #000000;
+}
+.tracks-content .grid-details .track-description::-webkit-scrollbar-thumb {
+  background: #3f265a;
+  border-radius: 10px;
+}
+.tracks-content .grid-details .track-description p {
+  margin: 0 0 2em 0;
+  line-height: 1.4em;
+}
+.tracks-content .grid-details .track-author {
+  padding: 0.3em 0.5em;
+  background: rgba(88, 88, 88, 0.38);
+  border-radius: 0.15em;
+}
+.tracks-content .grid-details.hiding {
+  animation: hide-details 0.3334s ease-out forwards;
+}
+@keyframes show-details {
+  from {
+    max-height: 0vh;
+  }
+  to {
+    max-height: 40vh;
+  }
+}
+@keyframes hide-details {
+  from {
+    max-height: 40vh;
+  }
+  to {
+    max-height: 0vh;
+  }
 }
 @keyframes hover-grow {
   from {
@@ -733,6 +927,31 @@ button,
     left: 0%;
     border-color: rgba(255, 255, 255, 0);
     box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
+  }
+}
+@keyframes outline-to-center {
+  from {
+    height: 40%;
+    bottom: 0.5em;
+    right: 0.5em;
+    transform: translate(0, 0);
+  }
+  to {
+    height: 90%;
+    bottom: 50%;
+    right: 50%;
+    transform: translate(50%, 50%);
+  }
+}
+@media (min-width: 1920px) {
+  .tracks-content .grid-view .track .track-outline {
+    max-width: 5em;
+  }
+  .tracks-content .grid-details .preview {
+    width: 50em;
+  }
+  .tracks-content .grid-details .preview .track-outline {
+    max-width: 10em;
   }
 }
 .content.settings .coming-soon {
@@ -1062,11 +1281,11 @@ button,
   border-radius: 10px;
 }
 .cars-content .grid-view {
-  width: calc(100vw - 2.5em);
+  width: 100vw;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1em;
-  margin: 1em;
+  padding: 1em;
   box-sizing: border-box;
   grid-auto-flow: dense;
 }
@@ -1077,10 +1296,19 @@ button,
   position: relative;
   border-width: 0;
   box-shadow: none;
+  transition: opacity 0.3s ease-in-out;
 }
 .cars-content .grid-view .car img {
   width: 100%;
   border-radius: 0.5em;
+}
+.cars-content .grid-view .car.selected {
+  opacity: 0.25;
+  pointer-events: none;
+}
+.cars-content .grid-view .car.selected .hovered-clone {
+  opacity: 0;
+  pointer-events: none;
 }
 .cars-content .grid-view .car .info-top {
   position: absolute;
@@ -1089,7 +1317,7 @@ button,
   font-size: 0.875em;
 }
 .cars-content .grid-view .car .info-top .car-class {
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: rgba(115, 49, 170, 0.5);
   padding: 0.25em 0.5em;
   border-radius: 0.5em;
   margin-left: 0.5em;

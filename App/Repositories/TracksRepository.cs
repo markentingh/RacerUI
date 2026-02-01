@@ -67,6 +67,22 @@ namespace RacerUI.SQL
         }
 
         /// <summary>
+        /// Updates only the length of a track
+        /// </summary>
+        public static void UpdateLength(int trackId, double length)
+        {
+            const string sql = @"
+                UPDATE Tracks SET
+                    Length = @Length
+                WHERE Id = @Id";
+
+            using (var connection = Connection.GetConnection())
+            {
+                connection.Execute(sql, new { Id = trackId, Length = length });
+            }
+        }
+
+        /// <summary>
         /// Gets a track by ID
         /// </summary>
         public static Track GetById(int id)

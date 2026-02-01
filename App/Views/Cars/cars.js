@@ -11,14 +11,23 @@ ui.views.cars = {
         specializations: [],//specializationId int
         search: '',
         start: 0,
-        length: 100,
+        length: 20,
         view: 'grid',
         prevView: 'grid',
     },
     results: null,
+    allCars: [],
     footerHeight: 5.8,
     hovered: null,
-    selected: null //result object that has been selected by the user
+    selected: null, //result object that has been selected by the user
+    isLoading: false,
+    hasMore: true,
+    scrollListener: null,
+    resizeListener: null,
+    virtualDOM: {
+        topHiddenRows: 0,
+        bottomHiddenRows: 0
+    }
 };
 
 ui.views.cars.load = (e) => {
@@ -50,6 +59,7 @@ ui.views.cars.load = (e) => {
     }
     window.addEventListener('resize', ui.views.cars.resize);
     ui.views.cars.resize();
+    ui.views.cars.setupInfiniteScroll();
 };
 
 ui.views.cars.setupSearchListener = () => {
@@ -58,6 +68,14 @@ ui.views.cars.setupSearchListener = () => {
     const clearFilterBtn = document.getElementById('clear_filter_btn');
     
     if (searchInput) {
+        // Populate search field from cached filter
+        if (ui.views.cars.filter.search) {
+            searchInput.value = ui.views.cars.filter.search;
+            if (searchClear) {
+                searchClear.style.display = 'inline-block';
+            }
+        }
+        
         // Handle Enter key to search
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -168,6 +186,10 @@ ui.views.cars.setupSearchListener = () => {
 
 ui.views.cars.unload = () => {
     window.removeEventListener('resize', ui.views.cars.resize);
+    const container = document.querySelector('.cars-content');
+    if (container && ui.views.cars.scrollListener) {
+        container.removeEventListener('scroll', ui.views.cars.scrollListener);
+    }
 }
 
 ui.views.cars.resize = () => {
@@ -284,9 +306,17 @@ ui.views.cars.getFilterData = (excludeFilter) => {
     return filterData;
 };
 
-ui.views.cars.getFilteredList = () => {
+ui.views.cars.getFilteredList = (reset = true) => {
     ui.views.cars.saveFilter();
     ui.views.cars.updateClearFilterButton();
+    
+    if (reset) {
+        ui.views.cars.filter.start = 0;
+        ui.views.cars.allCars = [];
+        ui.views.cars.hasMore = true;
+        ui.views.cars.virtualDOM.topHiddenRows = 0;
+        ui.views.cars.virtualDOM.bottomHiddenRows = 0;
+    }
     
     // Prepare filter data for API (using PascalCase to match C# model)
     const filterData = {
@@ -309,10 +339,211 @@ ui.views.cars.getFilteredList = () => {
         data: filterData,
         complete: (response) => {
             if (response.status == 200) {
-                ui.views.cars.views.load(JSON.parse(response.responseText));
+                const data = JSON.parse(response.responseText);
+                if (reset) {
+                    ui.views.cars.views.load(data);
+                } else {
+                    ui.views.cars.views.appendCars(data);
+                }
             }
         }
     });
+};
+
+ui.views.cars.setupInfiniteScroll = () => {
+    const container = document.querySelector('.cars-content');
+    if (!container) return;
+    
+    // Remove existing listener if any
+    if (ui.views.cars.scrollListener) {
+        container.removeEventListener('scroll', ui.views.cars.scrollListener);
+    }
+    
+    ui.views.cars.scrollListener = () => {
+        const scrollTop = container.scrollTop;
+        const scrollHeight = container.scrollHeight;
+        const clientHeight = container.clientHeight;
+        
+        // Load more when 80% scrolled
+        if (scrollTop + clientHeight >= scrollHeight * 0.8 && !ui.views.cars.isLoading && ui.views.cars.hasMore) {
+            ui.views.cars.loadMore();
+        }
+        
+        // Manage virtual DOM
+        ui.views.cars.manageVirtualDOM();
+    };
+    
+    container.addEventListener('scroll', ui.views.cars.scrollListener);
+    
+    // Add resize listener to recalculate virtual DOM
+    if (ui.views.cars.resizeListener) {
+        window.removeEventListener('resize', ui.views.cars.resizeListener);
+    }
+    
+    ui.views.cars.resizeListener = () => {
+        // Reset virtual DOM state and recalculate
+        ui.views.cars.virtualDOM.topHiddenRows = 0;
+        ui.views.cars.virtualDOM.bottomHiddenRows = 0;
+        
+        const gridView = container?.querySelector('.grid-view');
+        if (gridView) {
+            gridView.style.paddingTop = '0px';
+            gridView.style.paddingBottom = '0px';
+            
+            // Show all items
+            const items = Array.from(gridView.querySelectorAll('.car:not(.hovered-clone):not(.grid-details)'));
+            items.forEach(item => {
+                if (item.style.display === 'none') {
+                    item.style.display = '';
+                }
+            });
+        }
+        
+        // Recalculate virtual DOM after a short delay to let layout settle
+        setTimeout(() => {
+            ui.views.cars.manageVirtualDOM();
+        }, 100);
+    };
+    
+    window.addEventListener('resize', ui.views.cars.resizeListener);
+};
+
+ui.views.cars.loadMore = () => {
+    if (ui.views.cars.isLoading || !ui.views.cars.hasMore) return;
+    
+    ui.views.cars.isLoading = true;
+    ui.views.cars.filter.start += ui.views.cars.filter.length;
+    ui.views.cars.getFilteredList(false);
+};
+
+ui.views.cars.manageVirtualDOM = () => {
+    const container = document.querySelector('.cars-content');
+    const gridView = container?.querySelector('.grid-view');
+    if (!gridView) return;
+    
+    const items = Array.from(gridView.querySelectorAll('.car:not(.hovered-clone):not(.grid-details)'));
+    if (items.length === 0) return;
+    
+    // Get grid properties
+    const gridStyle = window.getComputedStyle(gridView);
+    const columns = gridStyle.gridTemplateColumns.split(' ').length;
+    
+    // Calculate row height using offsetHeight (unscaled)
+    const firstItem = items[0];
+    const rowHeight = firstItem.offsetHeight + parseFloat(gridStyle.gap || 0);
+    
+    // Get scroll position and viewport height
+    const scrollTop = container.scrollTop;
+    const viewportHeight = container.clientHeight;
+    
+    // Account for scale factor
+    const scaleFactor = ui.utils.scaleFactor || 1;
+    const effectiveScrollTop = scrollTop / scaleFactor;
+    const effectiveViewportHeight = viewportHeight / scaleFactor;
+    
+    const rowsBuffer = 5;
+    
+    // Calculate which rows should be visible based on scroll
+    const targetFirstVisibleRow = Math.max(0, Math.floor(effectiveScrollTop / rowHeight) - rowsBuffer);
+    const targetLastVisibleRow = Math.min(Math.ceil(ui.views.cars.allCars.length / columns) - 1, Math.ceil((effectiveScrollTop + effectiveViewportHeight) / rowHeight) + rowsBuffer);
+    
+    // Current state
+    let currentTopHiddenRows = ui.views.cars.virtualDOM.topHiddenRows;
+    
+    // Handle scrolling down - remove from top (only if well past buffer)
+    if (targetFirstVisibleRow > currentTopHiddenRows + 1) {
+        currentTopHiddenRows++;
+        
+        // Remove first row of items from DOM by data-path
+        const rowToRemove = currentTopHiddenRows - 1;
+        const carsToRemove = [];
+        for (let i = rowToRemove * columns; i < Math.min((rowToRemove + 1) * columns, ui.views.cars.allCars.length); i++) {
+            carsToRemove.push(ui.views.cars.allCars[i]?.path);
+        }
+        
+        items.forEach(item => {
+            if (carsToRemove.includes(item.getAttribute('data-path'))) {
+                item.remove();
+            }
+        });
+        
+        gridView.style.paddingTop = `${currentTopHiddenRows * rowHeight}px`;
+        ui.views.cars.virtualDOM.topHiddenRows = currentTopHiddenRows;
+    }
+    // Handle scrolling up - add to top
+    else if (targetFirstVisibleRow < currentTopHiddenRows) {
+        currentTopHiddenRows--;
+        
+        const rowToAdd = currentTopHiddenRows;
+        const startIndex = rowToAdd * columns;
+        const endIndex = Math.min((rowToAdd + 1) * columns, ui.views.cars.allCars.length);
+        
+        ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
+            let rowHtml = '';
+            for (let i = startIndex; i < endIndex; i++) {
+                const car = ui.views.cars.allCars[i];
+                if (car) {
+                    rowHtml += ui.views.cars.views.renderCarItem(car, htmlItem);
+                }
+            }
+            
+            gridView.insertAdjacentHTML('afterbegin', rowHtml);
+            ui.views.cars.views.grid.setup();
+        });
+        
+        gridView.style.paddingTop = `${currentTopHiddenRows * rowHeight}px`;
+        ui.views.cars.virtualDOM.topHiddenRows = currentTopHiddenRows;
+    }
+    
+    // Handle bottom rows - add missing rows
+    const currentItems = Array.from(gridView.querySelectorAll('.car:not(.hovered-clone):not(.grid-details)'));
+    const currentPaths = new Set(currentItems.map(item => item.getAttribute('data-path')));
+    
+    const firstNeededIndex = currentTopHiddenRows * columns;
+    const lastNeededIndex = Math.min((targetLastVisibleRow + 1) * columns - 1, ui.views.cars.allCars.length - 1);
+    
+    const missingCars = [];
+    for (let i = firstNeededIndex; i <= lastNeededIndex; i++) {
+        const car = ui.views.cars.allCars[i];
+        if (car && !currentPaths.has(car.path)) {
+            missingCars.push(car);
+        }
+    }
+    
+    if (missingCars.length > 0) {
+        ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
+            let rowHtml = '';
+            missingCars.forEach(car => {
+                rowHtml += ui.views.cars.views.renderCarItem(car, htmlItem);
+            });
+            
+            gridView.insertAdjacentHTML('beforeend', rowHtml);
+            ui.views.cars.views.grid.setup();
+        });
+    }
+    
+    // Handle bottom rows - remove excess
+    const totalRows = Math.ceil(ui.views.cars.allCars.length / columns);
+    const bottomHiddenRows = Math.max(0, totalRows - targetLastVisibleRow - 1);
+    
+    if (bottomHiddenRows !== ui.views.cars.virtualDOM.bottomHiddenRows) {
+        const carsToRemove = [];
+        for (let row = targetLastVisibleRow + 1; row < totalRows; row++) {
+            for (let i = row * columns; i < Math.min((row + 1) * columns, ui.views.cars.allCars.length); i++) {
+                carsToRemove.push(ui.views.cars.allCars[i]?.path);
+            }
+        }
+        
+        const itemsToCheck = Array.from(gridView.querySelectorAll('.car:not(.hovered-clone):not(.grid-details)'));
+        itemsToCheck.forEach(item => {
+            if (carsToRemove.includes(item.getAttribute('data-path'))) {
+                item.remove();
+            }
+        });
+        
+        gridView.style.paddingBottom = `${bottomHiddenRows * rowHeight}px`;
+        ui.views.cars.virtualDOM.bottomHiddenRows = bottomHiddenRows;
+    }
 };
 
 ui.views.cars.getCarDetails = (car, skin) => {
@@ -329,9 +560,24 @@ ui.views.cars.getCarDetails = (car, skin) => {
 
 ui.views.cars.views = {};
 
+ui.views.cars.views.renderCarItem = (car, htmlItem) => {
+    var carName = (car.year ?? '') + ' ' + car.name.replace(car.year, '');
+    car = ui.views.cars.getCarDetails(car);
+    return htmlItem
+        .split('{{preview}}').join(car.preview || 'no-preview.jpg')
+        .split('{{name}}').join(carName)
+        .split('{{class}}').join(car.class)
+        .split('{{description}}').join(car.description ?? '')
+        .split('{{path}}').join(car.path ?? '')
+        .split('{{countryCode}}').join((car.country || 'unknown').toLowerCase())
+        .split('{{country}}').join(car.countryName || car.country || 'Unknown');
+};
+
 ui.views.cars.views.load = (list) => {
     if (list) {
         ui.views.cars.results = list;
+        ui.views.cars.allCars = list.cars || [];
+        ui.views.cars.hasMore = list.cars && list.cars.length >= ui.views.cars.filter.length;
     }else{
         list = ui.views.cars.results;
     }
@@ -341,6 +587,7 @@ ui.views.cars.views.load = (list) => {
         ui.view.loadComponent('Cars/empty-results', (htmlEmpty) => {
             ui.view.injectComponent(htmlEmpty, '.cars-content');
         });
+        ui.views.cars.isLoading = false;
         return;
     }
     
@@ -349,17 +596,7 @@ ui.views.cars.views.load = (list) => {
         ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
             var output = '';
             list.cars.forEach((car) => {
-                //prepare each car in list and render HTML output of all items
-            var carName = (car.year ?? '') + ' ' + car.name.replace(car.year, '');
-                car = ui.views.cars.getCarDetails(car);
-                output += htmlItem
-                    .split('{{preview}}').join(car.preview || 'no-preview.jpg')
-                    .split('{{name}}').join(carName)
-                    .split('{{class}}').join(car.class)
-                    .split('{{description}}').join(car.description ?? '')
-                    .split('{{path}}').join(car.path ?? '')
-                    .split('{{countryCode}}').join((car.country || 'unknown').toLowerCase())
-                    .split('{{country}}').join(car.countryName || car.country || 'Unknown');
+                output += ui.views.cars.views.renderCarItem(car, htmlItem);
             });
 
             //set up view
@@ -383,13 +620,44 @@ ui.views.cars.views.load = (list) => {
                     ui.view.injectComponent(htmlView.split('{{items}}').join(output), '.cars-content');
                     break;
             }
+            ui.views.cars.isLoading = false;
         });
     });
-}
+};
+
+ui.views.cars.views.appendCars = (list) => {
+    if (!list || !list.cars || list.cars.length === 0) {
+        ui.views.cars.hasMore = false;
+        ui.views.cars.isLoading = false;
+        return;
+    }
+    
+    ui.views.cars.allCars = ui.views.cars.allCars.concat(list.cars);
+    ui.views.cars.hasMore = list.cars.length >= ui.views.cars.filter.length;
+    
+    ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
+        const gridView = document.querySelector('.cars-content .grid-view');
+        if (!gridView) {
+            ui.views.cars.isLoading = false;
+            return;
+        }
+        
+        list.cars.forEach((car) => {
+            const output = ui.views.cars.views.renderCarItem(car, htmlItem);
+            gridView.insertAdjacentHTML('beforeend', output);
+        });
+        
+        ui.views.cars.views.grid.setup();
+        ui.views.cars.isLoading = false;
+    });
+};
 
 ui.views.cars.views.changeView = (view) => {
     ui.views.cars.filter.view = view;
-    ui.views.cars.views.load()
+    ui.views.cars.filter.start = 0;
+    ui.views.cars.allCars = [];
+    ui.views.cars.hasMore = true;
+    ui.views.cars.views.load();
     ui.views.cars.saveFilter();
 };
 
@@ -427,7 +695,7 @@ ui.views.cars.views.grid = {
                     //click on car grid item clone
                     e.preventDefault();
                     e.stopPropagation();
-                    ui.views.cars.views.grid.details(car, item);
+                        ui.views.cars.views.grid.details(car, item);
                 };
                 clone.onmouseleave = (e) => {
                     //leave car grid item clone
@@ -446,7 +714,7 @@ ui.views.cars.views.grid = {
     details: (car, item) => {
         //display car details within the grid
         // Check if the clicked car is already selected
-        if (ui.views.cars.selected && ui.views.cars.selected.car.path === car.path) {
+        if (ui.views.cars.selected && ui.views.cars.selected.car && ui.views.cars.selected.car.path === car.path) {
             // Hide details if the same car is clicked again
             const detailsDiv = document.querySelector('.grid-details');
             if (detailsDiv) {
@@ -454,6 +722,9 @@ ui.views.cars.views.grid = {
                 setTimeout(() => {
                     if (detailsDiv) {
                         detailsDiv.remove();
+                    }
+                    if (ui.views.cars.selected && ui.views.cars.selected.item) {
+                        ui.views.cars.selected.item.classList.remove('selected');
                     }
                     ui.views.cars.selected = null;
                 }, 350);
@@ -469,6 +740,10 @@ ui.views.cars.views.grid = {
                         detailsDiv.remove();
                     }
                 }, 350);
+            }
+            // Remove selected class from previously selected item
+            if (ui.views.cars.selected && ui.views.cars.selected.item) {
+                ui.views.cars.selected.item.classList.remove('selected');
             }
             const view = html
             .split('{{preview}}').join(car.preview)
@@ -489,6 +764,8 @@ ui.views.cars.views.grid = {
             item.insertAdjacentHTML('afterend', view);
             ui.views.cars.views.grid.detailsDiv = item.nextSibling;
             ui.views.cars.selected = {car, item};
+            // Add selected class to the item
+            item.classList.add('selected');
             setTimeout(() => {
                 //scroll to car details
                 ui.scrollTo(document.querySelector('.cars-content'), item, 500, 'easeInOutQuad', 0);
@@ -496,7 +773,7 @@ ui.views.cars.views.grid = {
         });
     },
     getCarFromItem: (item) => {
-        const car = ui.views.cars.results.cars.find((car) => {
+        const car = ui.views.cars.allCars.find((car) => {
             return car.path == item.getAttribute('data-path');
         });
         return car;

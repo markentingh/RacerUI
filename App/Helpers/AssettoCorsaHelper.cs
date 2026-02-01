@@ -540,7 +540,7 @@ namespace RacerUI.Helpers
             //check if car class needs to be updated
             const char LATEST_CLASS_VERSION_CHAR = '2';
             int.TryParse(LATEST_CLASS_VERSION_CHAR.ToString(), out int LATEST_CLASS_VERSION);
-            int.TryParse(CarsHelper.GetVersion(car.Version, 0).ToString(), out int carClassVersion);
+            int.TryParse(VersionHelper.GetVersion(car.Version, 0).ToString(), out int carClassVersion);
             if (carClassVersion < LATEST_CLASS_VERSION)
             {
                 var carClass = CarsHelper.GetCarClass(
@@ -579,11 +579,11 @@ namespace RacerUI.Helpers
                             {
                                 car.Class = matchedClass;
                                 SQL.CarsRepository.UpdateClass(car.Id, car.Class);
-                                car.Version = CarsHelper.SetVersion(car.Version, 0, LATEST_CLASS_VERSION_CHAR);
+                                car.Version = VersionHelper.SetVersion(car.Version, 0, LATEST_CLASS_VERSION_CHAR);
                                 SQL.CarsRepository.UpdateVersion(car.Id, car.Version);
                             }else if(car.Class == matchedClass)
                             {
-                                car.Version = CarsHelper.SetVersion(car.Version, 0, LATEST_CLASS_VERSION_CHAR);
+                                car.Version = VersionHelper.SetVersion(car.Version, 0, LATEST_CLASS_VERSION_CHAR);
                                 SQL.CarsRepository.UpdateVersion(car.Id, car.Version);
                             }
                         }
@@ -596,7 +596,7 @@ namespace RacerUI.Helpers
                     {
                         car.Class = carClass;
                         SQL.CarsRepository.UpdateClass(car.Id, carClass);
-                        car.Version = CarsHelper.SetVersion(car.Version, 0, LATEST_CLASS_VERSION_CHAR);
+                        car.Version = VersionHelper.SetVersion(car.Version, 0, LATEST_CLASS_VERSION_CHAR);
                         SQL.CarsRepository.UpdateVersion(car.Id, car.Version);
                     }
                 }
@@ -885,84 +885,6 @@ namespace RacerUI.Helpers
         }
 
         /// <summary>
-        /// Repairs common JSON syntax errors in malformed JSON strings
-        /// </summary>
-        private static string RepairMalformedJson(string json)
-        {
-            if (string.IsNullOrEmpty(json))
-            {
-                return json;
-            }
-
-            // Remove ": " from the beginning of property values
-            // Pattern: "property": ": value" becomes "property": "value"
-            var fixedJson = System.Text.RegularExpressions.Regex.Replace(
-                json,
-                @":\s*([""']):\s+",
-                ": $1",
-                System.Text.RegularExpressions.RegexOptions.Multiline
-            );
-
-            // Remove invalid characters after string values (before comma, }, or ])
-            // Pattern: "value" followed by invalid characters before comma/brace/bracket
-            // Example: "value"R "next" becomes "value","next"
-            fixedJson = System.Text.RegularExpressions.Regex.Replace(
-                fixedJson,
-                @"([""'])\s*([A-Za-z]+)\s*([,\}\]])",
-                "$1$3",
-                System.Text.RegularExpressions.RegexOptions.Multiline
-            );
-
-            // Remove invalid characters after numbers (before comma, }, or ])
-            // Pattern: number followed by invalid characters before comma/brace/bracket
-            fixedJson = System.Text.RegularExpressions.Regex.Replace(
-                fixedJson,
-                @"(\d+)\s*([A-Za-z]+)\s*([,\}\]])",
-                "$1$3",
-                System.Text.RegularExpressions.RegexOptions.Multiline
-            );
-
-            // Remove invalid characters after closing braces/brackets
-            // Pattern: } or ] followed by invalid characters before comma/brace/bracket
-            fixedJson = System.Text.RegularExpressions.Regex.Replace(
-                fixedJson,
-                @"([\}\]])\s*([A-Za-z]+)\s*([,\}\]])",
-                "$1$3",
-                System.Text.RegularExpressions.RegexOptions.Multiline
-            );
-
-            // Fix missing commas between properties
-            // Pattern: "value" followed by whitespace and then a quote (start of next property)
-            // This handles cases like: "property": "value" "nextProperty": "value"
-            fixedJson = System.Text.RegularExpressions.Regex.Replace(
-                fixedJson,
-                @"([""'])\s*\n?\s*([""'][^""':,\{\}\[\]]+[""']\s*:)",
-                "$1,$2",
-                System.Text.RegularExpressions.RegexOptions.Multiline
-            );
-
-            // Fix missing commas after closing braces/brackets before quotes
-            // Pattern: } or ] followed by whitespace and then a quote
-            fixedJson = System.Text.RegularExpressions.Regex.Replace(
-                fixedJson,
-                @"([\}\]])\s*\n?\s*([""'])",
-                "$1,$2",
-                System.Text.RegularExpressions.RegexOptions.Multiline
-            );
-
-            // Fix missing commas after numbers/booleans before quotes
-            // Pattern: number or boolean followed by whitespace and then a quote
-            fixedJson = System.Text.RegularExpressions.Regex.Replace(
-                fixedJson,
-                @"(\d+|true|false|null)\s*\n?\s*([""'][^""':,\{\}\[\]]+[""']\s*:)",
-                "$1,$2",
-                System.Text.RegularExpressions.RegexOptions.Multiline
-            );
-
-            return fixedJson;
-        }
-
-        /// <summary>
         /// Parses ui_track.json file and returns track data
         /// </summary>
         public static Track GetTrackFromJson(string trackFolder, int gameId, string subPath = null)
@@ -990,7 +912,7 @@ namespace RacerUI.Helpers
                 var jsonContent = File.ReadAllText(uiTrackPath);
                 
                 // Repair common JSON syntax errors
-                var repairedJson = RepairMalformedJson(jsonContent);
+                var repairedJson = JsonHelper.RepairMalformedJson(jsonContent);
                 
                 var jsonOptions = new JsonSerializerOptions
                 {
@@ -1000,8 +922,8 @@ namespace RacerUI.Helpers
                     ReadCommentHandling = JsonCommentHandling.Skip
                 };
                 
-                jsonOptions.Converters.Add(new FlexibleStringConverter());
-                jsonOptions.Converters.Add(new FlexibleIntConverter());
+                jsonOptions.Converters.Add(new JsonHelper.FlexibleStringConverter());
+                jsonOptions.Converters.Add(new JsonHelper.FlexibleIntConverter());
 
                 UITrack trackData = null;
                 
@@ -1023,29 +945,58 @@ namespace RacerUI.Helpers
                     return null;
                 }
 
+                // Get and validate country code
+                string countryCode = null;
+                if (!string.IsNullOrEmpty(trackData.Country))
+                {
+                    var code = CountriesHelper.GetCountryCode(trackData.Country);
+                    if (!string.IsNullOrEmpty(code) && CountriesHelper.IsValidCountryCode(code))
+                    {
+                        countryCode = code.ToUpper();
+                    }
+                }
+
                 var track = new Track
                 {
                     GameId = gameId,
                     Name = !string.IsNullOrEmpty(trackData.Name) ? trackData.Name : Path.GetFileName(trackFolder),
                     Path = Path.GetFileName(trackFolder),
                     SubPath = subPath,
-                    Country = !string.IsNullOrEmpty(trackData.Country) ? GetCountryCode(trackData.Country) : null,
+                    Country = countryCode,
                     City = !string.IsNullOrEmpty(trackData.City) ? trackData.City : null,
                     Author = !string.IsNullOrEmpty(trackData.Author) ? trackData.Author : null,
-                    Version = !string.IsNullOrEmpty(trackData.Version) ? trackData.Version : "1.0",
+                    Version = "0",
                     Details = !string.IsNullOrEmpty(trackData.Description) ? trackData.Description : null,
                     Year = trackData.Year.HasValue && trackData.Year.Value > 0 ? trackData.Year : null,
                     IsNew = true,
                     Status = 1
                 };
 
-                // Parse length from string (e.g., "6049 km" -> 6049)
+                // Parse length from string and convert to meters
+                // Examples: "6049 m" -> 6049, "2.5 mi" -> 4023.36, "3.8 km" -> 3800
                 if (!string.IsNullOrEmpty(trackData.Length))
                 {
-                    var lengthMatch = System.Text.RegularExpressions.Regex.Match(trackData.Length, @"([0-9]+)");
-                    if (lengthMatch.Success && int.TryParse(lengthMatch.Groups[1].Value, out var length))
+                    var lengthMatch = System.Text.RegularExpressions.Regex.Match(trackData.Length, @"([0-9]+\.?[0-9]*)");
+                    if (lengthMatch.Success && double.TryParse(lengthMatch.Groups[1].Value, out var length))
                     {
-                        track.Length = length;
+                        // Check if the unit is kilometers and convert to meters
+                        if (trackData.Length.Contains("km", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Convert kilometers to meters (1 km = 1000 m)
+                            track.Length = length * 1000;
+                        }
+                        // Check if the unit is miles and convert to meters
+                        else if (trackData.Length.Contains("mi", StringComparison.OrdinalIgnoreCase) || 
+                            (trackData.Length.Contains("m", StringComparison.OrdinalIgnoreCase) && length < 1000))
+                        {
+                            // Convert miles to meters (1 mile = 1609.34 m)
+                            track.Length = length * 1609.34;
+                        }
+                        else
+                        {
+                            // Assume meters if no unit or just "m"
+                            track.Length = length;
+                        }
                     }
                 }
 
@@ -1090,158 +1041,5 @@ namespace RacerUI.Helpers
             }
         }
 
-        /// <summary>
-        /// Converts country name to 2-letter country code
-        /// </summary>
-        private static string GetCountryCode(string countryName)
-        {
-            if (string.IsNullOrEmpty(countryName))
-            {
-                return null;
-            }
-
-            // Use CountriesHelper to get country code
-            var countryCode = CountriesHelper.GetCountryCode(countryName);
-            
-            // Validate the country code
-            if (!string.IsNullOrEmpty(countryCode) && CountriesHelper.IsValidCountryCode(countryCode))
-            {
-                return countryCode.ToUpper();
-            }
-            
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Model for ui_track.json
-    /// </summary>
-    public class UITrack
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
-
-        [JsonPropertyName("description")]
-        public string Description { get; set; }
-
-        [JsonPropertyName("tags")]
-        public List<string> Tags { get; set; }
-
-        [JsonPropertyName("country")]
-        public string Country { get; set; }
-
-        [JsonPropertyName("city")]
-        public string City { get; set; }
-
-        [JsonPropertyName("length")]
-        public string Length { get; set; }
-
-        [JsonPropertyName("width")]
-        public string Width { get; set; }
-
-        [JsonPropertyName("pitboxes")]
-        public string Pitboxes { get; set; }
-
-        [JsonPropertyName("run")]
-        public string Run { get; set; }
-
-        [JsonPropertyName("author")]
-        public string Author { get; set; }
-
-        [JsonPropertyName("version")]
-        public string Version { get; set; }
-
-        [JsonPropertyName("url")]
-        public string Url { get; set; }
-
-        [JsonPropertyName("geotags")]
-        public List<string> Geotags { get; set; }
-
-        [JsonPropertyName("year")]
-        public int? Year { get; set; }
-    }
-
-    /// <summary>
-    /// Custom JSON converter that accepts both string and number values for string properties
-    /// </summary>
-    public class FlexibleStringConverter : JsonConverter<string>
-    {
-        public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            if (reader.TokenType == JsonTokenType.String)
-            {
-                return reader.GetString();
-            }
-            else if (reader.TokenType == JsonTokenType.Number)
-            {
-                // Handle numeric values by converting to string
-                if (reader.TryGetInt32(out var intValue))
-                {
-                    return intValue.ToString();
-                }
-                else if (reader.TryGetDouble(out var doubleValue))
-                {
-                    return doubleValue.ToString();
-                }
-            }
-            else if (reader.TokenType == JsonTokenType.True || reader.TokenType == JsonTokenType.False)
-            {
-                return reader.GetBoolean().ToString();
-            }
-            else if (reader.TokenType == JsonTokenType.Null)
-            {
-                return null;
-            }
-            
-            return null;
-        }
-
-        public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
-        {
-            writer.WriteStringValue(value);
-        }
-    }
-
-    /// <summary>
-    /// Custom JSON converter that accepts both string and number values for int? properties
-    /// </summary>
-    public class FlexibleIntConverter : JsonConverter<int?>
-    {
-        public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            if (reader.TokenType == JsonTokenType.Number)
-            {
-                if (reader.TryGetInt32(out var intValue))
-                {
-                    return intValue;
-                }
-            }
-            else if (reader.TokenType == JsonTokenType.String)
-            {
-                var stringValue = reader.GetString();
-                if (int.TryParse(stringValue, out var intValue))
-                {
-                    return intValue;
-                }
-            }
-            else if (reader.TokenType == JsonTokenType.Null)
-            {
-                return null;
-            }
-            
-            return null;
-        }
-
-        public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options)
-        {
-            if (value.HasValue)
-            {
-                writer.WriteNumberValue(value.Value);
-            }
-            else
-            {
-                writer.WriteNullValue();
-            }
-        }
     }
 }

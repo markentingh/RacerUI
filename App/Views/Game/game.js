@@ -34,11 +34,13 @@ ui.views.game.checkAssets = () => {
     var getCarDetails = document.querySelector('#getCarDetails').checked;
     var verifyCarDetails = document.querySelector('#verifyCarDetails').checked;
     var checkNewTracks = document.querySelector('#checkNewTracks').checked;
+    var getTrackDetails = document.querySelector('#getTrackDetails').checked;
+    var verifyTrackDetails = document.querySelector('#verifyTrackDetails').checked;
     dashHub.on('progress', ui.views.game.updateProgress);
     dashHub.on('progress-title', ui.views.game.updateProgressTitle);
     dashHub.on('progress-text', ui.views.game.updateProgressText);
     dashHub.on('progress-complete', ui.views.game.updateProgressComplete);
-    dashHub.send('CheckGameAssets', ui.game.name, checkNewCars, findChildCars, getCarDetails, verifyCarDetails, checkNewTracks);
+    dashHub.send('CheckGameAssets', ui.game.name, checkNewCars, findChildCars, getCarDetails, verifyCarDetails, checkNewTracks, getTrackDetails, verifyTrackDetails);
 };
 
 ui.views.game.skipCheckAssets = () => {
@@ -46,11 +48,13 @@ ui.views.game.skipCheckAssets = () => {
 };
 
 ui.views.game.updateProgressTitle = (title) => {
-    document.querySelector('.checking-assets .progress-title').textContent = title;
+    var elem = document.querySelector('.checking-assets .progress-title');
+    if(elem) elem.textContent = title;
 }
 
 ui.views.game.updateProgressText = (text) => {
-    document.querySelector('.checking-assets .progress-text').textContent = text;
+    var elem = document.querySelector('.checking-assets .progress-text');
+    if(elem) elem.textContent = text;
 }
 
 ui.views.game.updateProgress = (progress) => {

@@ -3,6 +3,10 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.StaticFiles;
 using RacerUI.SQL;
 using RacerUI;
+using RacerUI.Helpers;
+
+// Initialize Dapper type handlers
+DapperConfig.Initialize();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -116,6 +120,9 @@ foreach (var game in games)
 App.CarTypes = CarTypesRepository.GetAll().ToList();
 App.CarStylings = CarStylingRepository.GetAll().ToList();
 App.CarSpecializations = CarSpecializationsRepository.GetAll().ToList();
+
+//load track info from database
+App.TrackTypes = TrackTypesRepository.GetAll().ToList();
 
 //map controllers
 app.MapControllerRoute(

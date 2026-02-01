@@ -314,11 +314,11 @@
     }
 
     .grid-view {
-        width: calc(100vw - 2.5em);
+        width: 100vw;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 1em;
-        margin: 1em;
+        padding: 1em;
         box-sizing: border-box;
         grid-auto-flow: dense;
 
@@ -329,10 +329,21 @@
             position: relative;
             border-width: 0;
             box-shadow: none;
+            transition: opacity 0.3s ease-in-out;
 
             img {
                 width: 100%;
                 border-radius: 0.5em;
+            }
+
+            &.selected {
+                opacity: 0.25;
+                pointer-events: none;
+            }
+
+            &.selected .hovered-clone {
+                opacity: 0;
+                pointer-events: none;
             }
 
             .info-top{
@@ -341,7 +352,7 @@
                 right: 0.5em;
                 font-size: 0.875em;
                 .car-class{
-                    background-color: rgba(0, 0, 0, 0.75);
+                    background-color: rgba(115, 49, 170, 0.5);
                     padding: 0.25em 0.5em;
                     border-radius: 0.5em;
                     margin-left:0.5em;

@@ -1,3 +1,3 @@
-[submodule "App/AssettoTools"]
+[submodule "AssettoTools"]
 	path = AssettoTools
 	url = https://github.com/markentingh/AssettoTools.git

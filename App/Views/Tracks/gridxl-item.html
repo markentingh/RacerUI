@@ -1,8 +1,13 @@
 <div class="track" data-id="{{id}}" data-path="{{path}}" style="background-image: url('{{preview}}');">
+    <div class="info-top">
+        <div class="track-length">{{length}}</div>
+        <div class="track-type">{{typeName}}</div>
+    </div>
+    <img class="track-outline" src="{{outline}}" onerror="this.style.display='none'" alt="" />
     <div class="info">
         <div class="flag">
-            <img src="/images/flags/80x60/{{country}}.png" alt="{{countryName}}" />
+            <img src="/images/flags/80x60/{{country}}.png" alt="{{countryName}}" title="{{countryName}}" />
         </div>
-        <h2>{{name}}</h2>
+        <span class="track-name">{{name}}</span><span class="city">{{city}}</span>
     </div>
 </div>

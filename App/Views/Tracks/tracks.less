@@ -173,11 +173,11 @@
     }
 
     .grid-view {
-        width: calc(100vw - 2.5em);
+        width: 100vw;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 1em;
-        margin: 1em;
+        padding: 1em;
         box-sizing: border-box;
         grid-auto-flow: dense;
 
@@ -192,6 +192,60 @@
             background-position: center;
             border-radius: 0.5em;
             background-color:#88afd1;
+            transition: opacity 0.3s ease-in-out;
+
+            &.selected {
+                opacity: 0.25;
+                pointer-events: none;
+            }
+
+            &.selected .hovered-clone {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            .track-outline {
+                position: absolute;
+                bottom: 0.5em;
+                right: 0.5em;
+                height: 40%;
+                width: auto;
+                pointer-events: none;
+                transition: all 0.4s ease-in-out 0.1s;
+                transform: translate(0, 0);
+                filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
+            }
+
+            &:hover .track-outline {
+                height: 90%;
+                bottom: 50%;
+                right: 50%;
+                transform: translate(50%, 50%);
+            }
+
+            .info-top {
+                position: absolute;
+                top: 0.5em;
+                right: 0.5em;
+                font-size: 0.875em;
+                text-align: right;
+                white-space: nowrap;
+
+                .track-length, .track-type {
+                    display: inline-block;
+                    padding: 0.25em 0.5em;
+                    border-radius: 0.5em;
+                    margin-left: 0.25em;
+                    line-height: 1.25;
+                }
+                .track-length{
+                    background-color: rgba(0, 0, 0, 0.75);
+                }
+
+                .track-type {
+                    background-color: rgba(89, 37, 131, 0.75);
+                }
+            }
 
             .info {
                 position: absolute;
@@ -199,8 +253,9 @@
                 left: 0.6em;
                 white-space: nowrap;
                 vertical-align: top;
+                display: inline-block;
 
-                h2 {
+                .track-name, .city  {
                     font-size: 1em;
                     font-weight: normal;
                     line-height: 1.25;
@@ -211,6 +266,7 @@
                     background-color: rgba(0, 0, 0, 0.75);
                     display: inline-block;
                     padding: 0.25em 0.5em;
+                    margin-right:0.5em;
                     border-radius: 0.5em;
                 }
             }
@@ -230,17 +286,36 @@
             }
 
             &.hovered-clone {
-                z-index: 10;
+                z-index: 15;
                 margin: 0 auto;
                 position: absolute;
                 border-style: solid;
                 border-radius: 0.5em;
-                animation: hover-grow 0.25s ease-in-out forwards;
+                animation: hover-grow 0.2s ease-in-out forwards;
+
+                .track-outline {
+                    position: absolute;
+                    bottom: 0.5em;
+                    right: 0.5em;
+                    height: 40%;
+                    width: auto;
+                    pointer-events: none;
+                    transform: translate(0, 0);
+                    transition: all 0.4s ease-in-out 0.1s;
+                    filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
+                }
+
+                &:hover .track-outline {
+                    height: 90%;
+                    bottom: 50%;
+                    right: 50%;
+                    transform: translate(50%, 50%);
+                }
             }
 
             &.hovered-clone.hiding {
                 z-index: 9;
-                animation: hover-shrink 0.25s ease-in-out forwards;
+                animation: hover-shrink 0.4s ease-in-out forwards;
             }
         }
 
@@ -250,6 +325,154 @@
 
         &.sm {
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        }
+    }
+
+    .grid-details {
+        grid-column-start: 1;
+        grid-column-end: -1;
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        animation: show-details 0.3334s ease-out forwards;
+        overflow: hidden;
+
+        .preview {
+            width: 40vw;
+            aspect-ratio: 16/9;
+            background-size: cover;
+            background-position: center;
+            border-radius: 0.5em;
+            position: relative;
+
+            .track-outline {
+                position: absolute;
+                bottom: 0.5em;
+                right: 0.5em;
+                max-width: 5vw;
+                height: auto;
+                opacity: 0.8;
+                pointer-events: none;
+            }
+        }
+
+        .info {
+            padding: 0 0 0 1em;
+            line-height: 1.5em;
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+            overflow: hidden;
+
+            h4 {
+                font-size: 1.8em;
+                font-weight: normal;
+                margin: 0 0 0.25em 0;
+                background: rgb(88 88 88 / 38%);
+                padding: 0.25em 0.5em 0.3em 0.5em;
+                border-radius: 0.15em;
+            }
+        }
+
+        .track-origin {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 0.4em;
+
+            &>div {
+                display: flex;
+                align-items: center;
+                padding: 0.3em 0.5em 0.4em 0.5em;
+                background: rgb(88 88 88 / 38%);
+                border-radius: 0.15em;
+                margin-right: 0.5em;
+            }
+
+            .flag {
+                vertical-align: top;
+                width: 1.5em;
+                margin: 0.25em 0.5em 0 0;
+                align-self: flex-start;
+            }
+        }
+
+        .track-stats {
+            white-space: nowrap;
+            padding: 0.25em 0.5em;
+            background: rgb(88 88 88 / 38%);
+            border-radius: 0.15em;
+            margin-bottom: 0.4em;
+
+            &>div {
+                display: inline-block;
+                padding: 0 0.5em 0 0;
+
+                span {
+                    display: inline-block;
+                    padding: 0 0.4em;
+                    background: rgba(60, 76, 136, 0.7);
+                    border-radius: 0.15em;
+                    margin-right: 0.5em;
+                }
+            }
+        }
+
+        .track-description {
+            padding: 0.5em;
+            background: rgb(88 88 88 / 38%);
+            border-radius: 0.15em;
+            margin-bottom: 0.4em;
+            overflow-y:auto;
+
+            &::-webkit-scrollbar {
+                width: 10px;
+            }
+
+            &::-webkit-scrollbar-track {
+                background: rgb(0, 0, 0);
+            }
+
+            &::-webkit-scrollbar-thumb {
+                background: #3f265a;
+                border-radius: 10px;
+            }
+
+            p {
+                margin: 0 0 2em 0;
+                line-height: 1.4em;
+            }
+        }
+
+        .track-author {
+            padding: 0.3em 0.5em;
+            background: rgb(88 88 88 / 38%);
+            border-radius: 0.15em;
+        }
+
+        &.hiding {
+            animation: hide-details 0.3334s ease-out forwards;
+        }
+    }
+
+    @keyframes show-details {
+        from {
+            max-height: 0vh;
+        }
+
+        to {
+            max-height: 40vh;
+        }
+    }
+
+    @keyframes hide-details {
+        from {
+            max-height: 40vh;
+        }
+
+        to {
+            max-height: 0vh;
         }
     }
 
@@ -286,6 +509,44 @@
             left: 0%;
             border-color: rgba(255, 255, 255, 0);
             box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
+        }
+    }
+
+    @keyframes outline-to-center {
+        from {
+            height: 40%;
+            bottom: 0.5em;
+            right: 0.5em;
+            transform: translate(0, 0);
+        }
+
+        to {
+            height: 90%;
+            bottom: 50%;
+            right: 50%;
+            transform: translate(50%, 50%);
+        }
+    }
+}
+
+@media (min-width: 1920px) {
+    .tracks-content {
+        .grid-view {
+            .track {
+                .track-outline {
+                    max-width: 5em;
+                }
+            }
+        }
+
+        .grid-details {
+            .preview{
+                width:50em;
+
+                .track-outline {
+                    max-width: 10em;
+                }
+            }
         }
     }
 }

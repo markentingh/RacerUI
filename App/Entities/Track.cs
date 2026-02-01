@@ -13,7 +13,7 @@ namespace RacerUI.Entities
         public string CountryName { get; set; }
         public string City { get; set; }
         public decimal? Distance { get; set; }
-        public int? Length { get; set; }
+        public double? Length { get; set; }
         public int? Width { get; set; }
         public int? PitBoxes { get; set; }
         public string Run { get; set; }

@@ -81,7 +81,9 @@ namespace RacerUI.SignalR
             bool findChildCars = true,
             bool getCarDetails = true,
             bool verifyCarDetails = true,
-            bool checkNewTracks = true)
+            bool checkNewTracks = true,
+            bool getTrackDetails = true,
+            bool verifyTrackDetails = true)
         {
             try
             {
@@ -577,6 +579,118 @@ namespace RacerUI.SignalR
                 #endregion
 
                 skipCheckTracks:
+
+                    if (!getTrackDetails) goto skipGetTrackDetails;
+
+                #region "Get Track Details from AI"
+                    await Clients.Caller.SendAsync("progress-title", $"Getting track details from AI...");
+                    await Clients.Caller.SendAsync("progress-text", $"");
+                    await Clients.Caller.SendAsync("progress", 0);
+
+                    // Get all tracks that need details
+                    var allTracks = SQL.TracksRepository.GetAll().Where(t => t.GameId == gameInfo.Id && t.ParentId == null).ToList();
+                    var tracksNeedingDetails = allTracks.Where(t => VersionHelper.GetVersion(t.Version, 0) == '0').ToList();
+
+                    var totalTracksForAI = tracksNeedingDetails.Count;
+                    var tracksAIProcessed = 0;
+                    lastProgress = 0;
+
+                    await Clients.Caller.SendAsync("update", $"Found {totalTracksForAI} tracks needing details");
+
+                    foreach (var track in tracksNeedingDetails)
+                    {
+                        tracksAIProcessed++;
+
+                        // Check if client is still connected
+                        if (Context.ConnectionAborted.IsCancellationRequested)
+                        {
+                            return;
+                        }
+
+                        // Update progress in UI
+                        await Clients.Caller.SendAsync("progress-title", $"Getting track details from AI: {tracksAIProcessed} of {totalTracksForAI}");
+                        await Clients.Caller.SendAsync("progress-text", $"Processing track: {track.Name}");
+
+                        try
+                        {
+                            await TracksHelper.GetTrackDetailsFromAI(track);
+                            
+                            // Update track in database
+                            SQL.TracksRepository.Update(track);
+                            
+                            await Clients.Caller.SendAsync("update", $"Updated track details: {track.Name}");
+                        }
+                        catch (Exception ex)
+                        {
+                            await Clients.Caller.SendAsync("update", $"Error getting details for track {track.Name}: {ex.Message}");
+                        }
+
+                        // Update progress after each track
+                        var progress = (int)Math.Ceiling((100.0 / totalTracksForAI) * tracksAIProcessed);
+                        if (lastProgress < progress)
+                        {
+                            lastProgress = progress;
+                            await Clients.Caller.SendAsync("progress", progress);
+                        }
+                    }
+
+                    await Clients.Caller.SendAsync("update", $"Track AI details complete. Processed {tracksAIProcessed} tracks.");
+                #endregion
+
+                skipGetTrackDetails:
+
+                    if (!verifyTrackDetails) goto skipVerifyTrackDetails;
+
+                #region Verify Track Details
+
+                    await Clients.Caller.SendAsync("progress-title", $"Verifying Track Details");
+                    await Clients.Caller.SendAsync("progress-text", $"Checking track lengths...");
+                    await Clients.Caller.SendAsync("progress", 0);
+
+                    // Get all tracks for this game
+                    var allTracksForVerification = SQL.TracksRepository.GetAll().Where(t => t.GameId == gameInfo.Id).ToList();
+                    var tracksWithInvalidLength = allTracksForVerification.Where(t => t.Length.HasValue && (t.Length.Value / 1000) > 1000).ToList();
+
+                    var totalTracksToVerify = tracksWithInvalidLength.Count;
+                    var tracksVerified = 0;
+                    lastProgress = 0;
+
+                    await Clients.Caller.SendAsync("update", $"Found {totalTracksToVerify} tracks with length over 1000 km to verify.");
+
+                    foreach (var track in tracksWithInvalidLength)
+                    {
+                        try
+                        {
+                            // Track length is stored in meters, so if Length / 1000 > 1000, it means the value is actually in kilometers
+                            // Divide by 1000 to convert from km to meters
+                            var correctedLength = track.Length.Value / 1000;
+                            
+                            await Clients.Caller.SendAsync("update", $"Correcting {track.Name}: {track.Length.Value:F1} m -> {correctedLength:F1} m ({correctedLength / 1000:F1} km)");
+                            
+                            SQL.TracksRepository.UpdateLength(track.Id, correctedLength);
+                            tracksVerified++;
+                        }
+                        catch (Exception ex)
+                        {
+                            await Clients.Caller.SendAsync("update", $"Error verifying track {track.Name}: {ex.Message}");
+                        }
+
+                        // Update progress after each track
+                        if (totalTracksToVerify > 0)
+                        {
+                            var progress = (int)Math.Ceiling((100.0 / totalTracksToVerify) * tracksVerified);
+                            if (lastProgress < progress)
+                            {
+                                lastProgress = progress;
+                                await Clients.Caller.SendAsync("progress", progress);
+                            }
+                        }
+                    }
+
+                    await Clients.Caller.SendAsync("update", $"Track verification complete. Corrected {tracksVerified} tracks.");
+                #endregion
+
+                skipVerifyTrackDetails:
 
                     // Clear available countries and years cache to force refresh on next API call
                     App.AvailableCountries.Clear();
