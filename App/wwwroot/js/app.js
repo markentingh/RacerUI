@@ -295,6 +295,7 @@ ui.view.loadComponent = (path, callback) => {
         complete: (response) => {
             ui.view.cache[path] = response.responseText;
             if (callback) callback(response.responseText);
+            ui.utils.scaleUI();
         }
     });
 }
@@ -356,7 +357,7 @@ ui.hub.load = () => {
 };
 
 ui.hub.error = (e) => {
-    console.log(e);
+    console.error(e);
 };
 
 ui.hub.log = (msg) => {
@@ -424,7 +425,7 @@ ui.views.cars = {
     },
     results: null,
     allCars: [],
-    footerHeight: 5.8,
+    footerHeight: 8,
     hovered: null,
     selected: null, //result object that has been selected by the user
     isLoading: false,
@@ -453,6 +454,8 @@ ui.views.cars.load = (e) => {
             ui.views.cars.setupSearchListener();
             ui.views.cars.updateClearFilterButton();
             ui.views.cars.getFilteredList();
+            ui.views.cars.resize();
+            ui.views.cars.setupInfiniteScroll();
         });
     } else {
         //view already loaded
@@ -463,10 +466,15 @@ ui.views.cars.load = (e) => {
             ui.views.cars.updateClearFilterButton();
             ui.views.cars.getFilteredList();
         }
+        ui.views.cars.resize();
+        ui.views.cars.setupInfiniteScroll();
     }
     window.addEventListener('resize', ui.views.cars.resize);
-    ui.views.cars.resize();
-    ui.views.cars.setupInfiniteScroll();
+    
+    // Load footer if not already loaded
+    if (!document.querySelector('.footer-container')) {
+        ui.views.footer.load();
+    }
 };
 
 ui.views.cars.setupSearchListener = () => {
@@ -582,6 +590,41 @@ ui.views.cars.setupSearchListener = () => {
             });
             document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
             
+            // Reload currently open filter view if any
+            const selectedNavItem = document.querySelector('.cars-toolbar li.selected');
+            if (selectedNavItem) {
+                const section = selectedNavItem.className.match(/item-(\w+)/)?.[1];
+                if (section) {
+                    // Reload the filter view
+                    switch (section) {
+                        case 'country':
+                            ui.views.cars.country.load();
+                            break;
+                        case 'manufacturer':
+                            ui.views.cars.manufacturer.load();
+                            break;
+                        case 'model':
+                            ui.views.cars.model.load();
+                            break;
+                        case 'year':
+                            ui.views.cars.year.load();
+                            break;
+                        case 'class':
+                            ui.views.cars.class.load();
+                            break;
+                        case 'type':
+                            ui.views.cars.type.load();
+                            break;
+                        case 'style':
+                            ui.views.cars.style.load();
+                            break;
+                        case 'specialization':
+                            ui.views.cars.specialization.load();
+                            break;
+                    }
+                }
+            }
+            
             // Update clear filter button visibility
             ui.views.cars.updateClearFilterButton();
             
@@ -601,8 +644,18 @@ ui.views.cars.unload = () => {
 
 ui.views.cars.resize = () => {
     const el = document.querySelector('.cars-content');
+    if(!el) return;
     const rect = el.getBoundingClientRect();
     el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.cars.footerHeight : ((ui.views.cars.footerHeight / 1920) * window.innerWidth)}em)`;
+    
+    // Set max-height for cars-filter div accounting for scale factor
+    const filterEl = document.querySelector('.cars-filter');
+    if (filterEl) {
+        const filterRect = filterEl.getBoundingClientRect();
+        const scaleFactor = ui.utils.scaleFactor || 1;
+        const maxHeight = (window.innerHeight - filterRect.top) / scaleFactor;
+        filterEl.style.maxHeight = `${maxHeight}px`;
+    }
 }
 
 ui.views.cars.nav = (e, section) => {
@@ -696,6 +749,21 @@ ui.views.cars.updateClearFilterButton = () => {
             clearFilterBtn.parentElement.style.display = 'none';
         }
     }
+};
+
+ui.views.cars.filterByClass = (carClass) => {
+    ui.views.cars.filter.classes = [carClass];
+    ui.views.cars.getFilteredList();
+};
+
+ui.views.cars.filterByCountry = (country) => {
+    ui.views.cars.filter.countries = [country];
+    ui.views.cars.getFilteredList();
+};
+
+ui.views.cars.filterByMake = (makeId) => {
+    ui.views.cars.filter.makes = [parseInt(makeId)];
+    ui.views.cars.getFilteredList();
 };
 
 ui.views.cars.getFilterData = (excludeFilter) => {
@@ -1028,6 +1096,8 @@ ui.views.cars.views.load = (list) => {
                     break;
             }
             ui.views.cars.isLoading = false;
+            ui.views.cars.resize();
+            ui.views.cars.setupInfiniteScroll();
         });
     });
 };
@@ -1152,31 +1222,223 @@ ui.views.cars.views.grid = {
             if (ui.views.cars.selected && ui.views.cars.selected.item) {
                 ui.views.cars.selected.item.classList.remove('selected');
             }
-            const view = html
-            .split('{{preview}}').join(car.preview)
-            .split('{{name}}').join(car.year + ' ' + car.name.replace(car.year, ''))
-            .split('{{year}}').join(car.year || 'N/A')
-            .split('{{country}}').join(car.countryName || car.country || 'Unknown')
-            .split('{{countryCode}}').join((car.country || 'unknown').toLowerCase())
-            .split('{{class}}').join(car.class ? ui.utils.strings.capitalize(car.class).replace('Gt', 'GT') : '')
-            .split('{{shifter}}').join(car.gears ?? '')
-            .split('{{author}}').join(car.author || '')
-            .split('{{maxSpeed}}').join(car.maxSpeed ? car.maxSpeed + ' km/h' : 'N/A')
-            .split('{{maxBHP}}').join(car.maxBHP || 'N/A')
-            .split('{{zeroTo60mph}}').join(car.zeroTo60mph ? car.zeroTo60mph + 's' : 'N/A')
-            .split('{{gears}}').join(car.gears || 'N/A')
-            .split('{{description}}').join(car.description || '')
-            .hasBlock('has-country', car.countryName || car.country)
-            .hasBlock('has-shifter', car.shifter);
-            item.insertAdjacentHTML('afterend', view);
-            ui.views.cars.views.grid.detailsDiv = item.nextSibling;
-            ui.views.cars.selected = {car, item};
-            // Add selected class to the item
-            item.classList.add('selected');
-            setTimeout(() => {
-                //scroll to car details
-                ui.scrollTo(document.querySelector('.cars-content'), item, 500, 'easeInOutQuad', 0);
-            }, 350);
+            console.log(car);
+            
+            // Load skin-item template and render skins
+            ui.view.loadComponent(`Cars/skin-item`, (skinItemHtml) => {
+                let skinsOutput = '';
+                if (car.skins && car.skins.length > 0) {
+                    car.skins.forEach((skin) => {
+                        const liveryPath = `/image/assetto corsa/livery/${car.path}/${skin.path}`;
+                        const previewPath = `/image/assetto corsa/skin/${car.path}/${skin.path}`;
+                        skinsOutput += skinItemHtml
+                            .split('{{livery}}').join(liveryPath)
+                            .split('{{preview}}').join(previewPath)
+                            .split('{{skinPath}}').join(skin.path)
+                            .split('{{skinId}}').join(skin.id)
+                            .split('{{skinName}}').join(skin.name || '');
+                    });
+                }
+                
+                const view = html
+                .split('{{preview}}').join(car.preview)
+                .split('{{skins}}').join(skinsOutput)
+                .split('{{name}}').join(car.year + ' ' + car.name.replace(car.year, ''))
+                .split('{{year}}').join(car.year || 'N/A')
+                .split('{{country}}').join(car.countryName || car.country || 'Unknown')
+                .split('{{countryCode}}').join((car.country || 'unknown').toLowerCase())
+                .split('{{class}}').join(car.class ? ui.utils.strings.capitalize(car.class).replace('Gt', 'GT') : '')
+                .split('{{make}}').join(car.makeName || '')
+                .split('{{makeId}}').join(car.makeId || '')
+                .split('{{shifter}}').join(car.gears ?? '')
+                .split('{{author}}').join(car.author || '')
+                .split('{{maxSpeed}}').join(car.maxSpeed ? car.maxSpeed + ' km/h' : 'N/A')
+                .split('{{maxBHP}}').join(car.maxBHP || 'N/A')
+                .split('{{zeroTo60mph}}').join(car.zeroTo60mph ? car.zeroTo60mph + 's' : 'N/A')
+                .split('{{gears}}').join(car.gears || 'N/A')
+                .split('{{description}}').join(car.description || '')
+                .split('{{details}}').join(car.details || '')
+                .hasBlock('has-country', car.countryName || car.country)
+                .hasBlock('has-max-speed', car.maxSpeed)
+                .hasBlock('has-max-bhp', car.maxBHP)
+                .hasBlock('has-mph', car.zeroTo60mph)
+                .hasBlock('has-shifter', car.shifter)
+                .hasBlock('has-details', car.details.replace(/\n/g, '<br/><br/>'));
+                item.insertAdjacentHTML('afterend', view);
+                ui.views.cars.views.grid.detailsDiv = item.nextSibling;
+                ui.views.cars.selected = {car, item};
+                
+                // Add selected class to the item
+                item.classList.add('selected');
+                
+                // Setup skin hover and click handlers
+                ui.views.cars.views.grid.setupSkinHandlers();
+                
+                // Setup tab handlers
+                ui.views.cars.views.grid.setupTabHandlers();
+                
+                // Setup select car button handler
+                ui.views.cars.views.grid.setupSelectCarHandler();
+                
+                // Setup button hover effects
+                ui.views.cars.views.grid.setupButtonHoverEffects();
+                
+                setTimeout(() => {
+                    //scroll to car details
+                    ui.scrollTo(document.querySelector('.cars-content'), item, 500, 'easeInOutQuad', 0);
+                }, 350);
+            });
+        });
+    },
+    setupSelectCarHandler: () => {
+        // Add event listeners to all select car buttons
+        const selectCarBtns = document.querySelectorAll('.select-car-btn');
+        selectCarBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                // Get the selected car and skin from ui.views.cars.selected
+                if (ui.views.cars.selected && ui.views.cars.selected.car) {
+                    let skinName = ui.views.cars.selected.selectedSkin || null;
+                    
+                    // If no skin is selected, use the first skin from the car
+                    if (!skinName && ui.views.cars.selected.car.skins && ui.views.cars.selected.car.skins.length > 0) {
+                        skinName = ui.views.cars.selected.car.skins[0].path;
+                    }
+                    
+                    // Update footer with car and skin info
+                    ui.views.footer.selectCar(ui.views.cars.selected.car, skinName);
+                }
+            });
+        });
+    },
+    setupButtonHoverEffects: () => {
+        const buttons = document.querySelectorAll('.select-car-btn');
+        
+        buttons.forEach((button) => {
+            // Skip if already wrapped
+            if (button.parentNode.classList && button.parentNode.classList.contains('button-wrapper')) return;
+            
+            // Wrap button in a positioned container
+            const wrapper = document.createElement('div');
+            wrapper.className = 'button-wrapper';
+            button.parentNode.insertBefore(wrapper, button);
+            wrapper.appendChild(button);
+            
+            // Create hover clone
+            const clone = button.cloneNode(true);
+            clone.classList.add('button-hovered-clone');
+            wrapper.appendChild(clone);
+            
+            // Hover handlers
+            button.addEventListener('mouseenter', () => {
+                if (!button.disabled) {
+                    clone.style.display = 'flex';
+                    clone.classList.add('growing');
+                }
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                clone.classList.remove('growing');
+                clone.classList.add('shrinking');
+                setTimeout(() => {
+                    clone.style.display = 'none';
+                    clone.classList.remove('shrinking');
+                }, 300);
+            });
+        });
+    },
+    setupTabHandlers: () => {
+        const tabButtons = document.querySelectorAll('.car-tab');
+        const tabContents = document.querySelectorAll('.car-tab-content');
+        
+        tabButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const targetTab = button.getAttribute('data-tab');
+                
+                // Remove active class from all tabs and contents
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                button.classList.add('active');
+                const targetContent = document.querySelector(`.car-tab-content[data-content="${targetTab}"]`);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+            });
+        });
+    },
+    setupSkinHandlers: () => {
+        const skinItems = document.querySelectorAll('.skin-item');
+        
+        skinItems.forEach((skinItem) => {
+            // Wrap skin-item in a positioned container
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'relative';
+            wrapper.style.display = 'inline-block';
+            skinItem.parentNode.insertBefore(wrapper, skinItem);
+            wrapper.appendChild(skinItem);
+            
+            // Create hover clone
+            const clone = skinItem.cloneNode(true);
+            clone.classList.add('skin-hovered-clone');
+            wrapper.appendChild(clone);
+            
+            // Hover handlers
+            skinItem.addEventListener('mouseenter', () => {
+                clone.style.display = 'block';
+                clone.classList.add('growing');
+            });
+            
+            skinItem.addEventListener('mouseleave', () => {
+                clone.classList.remove('growing');
+                clone.classList.add('shrinking');
+                setTimeout(() => {
+                    clone.style.display = 'none';
+                    clone.classList.remove('shrinking');
+                }, 300);
+            });
+            
+            // Click handler to change preview (only on original, clone has pointer-events: none)
+            skinItem.parentNode.addEventListener('click', () => {
+                const previewContainer = document.querySelector('.grid-details .preview-container');
+                const oldPreviewDiv = document.querySelector('.grid-details .preview');
+                const previewPath = skinItem.getAttribute('data-preview');
+                const skinName = skinItem.getAttribute('data-skin');
+                
+                // Remove selected class from all skins
+                document.querySelectorAll('.skin-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // Add selected class to clicked skin
+                skinItem.classList.add('selected');
+                
+                // Store selected skin in ui.views.cars.selected object
+                if (ui.views.cars.selected) {
+                    ui.views.cars.selected.selectedSkin = skinName;
+                }
+                
+                if (previewContainer && oldPreviewDiv && previewPath) {
+                    // Create new preview div
+                    const newPreviewDiv = document.createElement('div');
+                    newPreviewDiv.className = 'preview preview-fade-in';
+                    newPreviewDiv.style.backgroundImage = `url('${previewPath}')`;
+                    
+                    // Insert new preview before old one
+                    previewContainer.insertBefore(newPreviewDiv, oldPreviewDiv);
+                    
+                    // Trigger fade-in animation
+                    setTimeout(() => {
+                        newPreviewDiv.classList.add('visible');
+                    }, 10);
+                    
+                    // Remove old preview after fade-in completes
+                    setTimeout(() => {
+                        oldPreviewDiv.remove();
+                        newPreviewDiv.classList.remove('preview-fade-in', 'visible');
+                    }, 510); // 500ms fade + 10ms buffer
+                }
+            });
         });
     },
     getCarFromItem: (item) => {
@@ -1884,6 +2146,266 @@ ui.views.cars.specialization.select = (specializationId) => {
 
 //#endregion
 
+//#region "Footer"
+
+ui.views.footer = {
+    selectedCar: null,
+    selectedTrack: null,
+    selectedSkin: null,
+    footerHeight: 8 // Footer height in em
+};
+
+ui.views.footer.load = () => {
+    ui.view.loadComponent('Footer/footer', (html) => {
+        const footerContainer = document.querySelector('.footer-container');
+        if (footerContainer) {
+            footerContainer.remove();
+        }
+        document.body.insertAdjacentHTML('beforeend', html);
+        
+        // Restore selected car and track from localStorage
+        const savedCar = localStorage.getItem('RacerUI:footer-selected-car');
+        const savedTrack = localStorage.getItem('RacerUI:footer-selected-track');
+        
+        if (savedCar) {
+            try {
+                const carData = JSON.parse(savedCar);
+                ui.views.footer.selectedCar = carData.car;
+                ui.views.footer.selectedSkin = carData.skin;
+            } catch (e) {
+                console.error('Error parsing saved car data:', e);
+            }
+        }
+        
+        if (savedTrack) {
+            try {
+                ui.views.footer.selectedTrack = JSON.parse(savedTrack);
+            } catch (e) {
+                console.error('Error parsing saved track data:', e);
+            }
+        }
+        
+        ui.views.footer.updateDisplay();
+        ui.views.footer.resize();
+        ui.views.footer.setupButtonHoverEffects();
+        
+        // Add resize listener
+        window.addEventListener('resize', ui.views.footer.resize);
+    });
+};
+
+ui.views.footer.setupButtonHoverEffects = () => {
+    const buttons = document.querySelectorAll('.select-car-btn, .select-track-btn, .play-btn');
+    
+    buttons.forEach((button) => {
+        // Wrap button in a positioned container
+        const wrapper = document.createElement('div');
+        wrapper.className = 'button-wrapper';
+        button.parentNode.insertBefore(wrapper, button);
+        wrapper.appendChild(button);
+        
+        // Create hover clone
+        const clone = button.cloneNode(true);
+        clone.classList.add('button-hovered-clone');
+        wrapper.appendChild(clone);
+        
+        // Hover handlers
+        button.addEventListener('mouseenter', () => {
+            if (!button.disabled) {
+                clone.style.display = 'flex';
+                clone.classList.add('growing');
+            }
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            clone.classList.remove('growing');
+            clone.classList.add('shrinking');
+            setTimeout(() => {
+                clone.style.display = 'none';
+                clone.classList.remove('shrinking');
+            }, 300);
+        });
+    });
+};
+
+ui.views.footer.resize = () => {
+    const el = document.querySelector('.footer-container');
+    if (!el) return;
+    
+    const rect = el.getBoundingClientRect();
+    const scaledFooterHeight = window.innerWidth <= 1920 
+        ? ui.views.footer.footerHeight 
+        : ((ui.views.footer.footerHeight / 1920) * window.innerWidth);
+    
+    el.style.height = `${scaledFooterHeight}em`;
+};
+
+ui.views.footer.selectCar = (car, skin) => {
+    ui.views.footer.selectedCar = car;
+    ui.views.footer.selectedSkin = skin || null;
+    
+    // Save to localStorage
+    localStorage.setItem('RacerUI:footer-selected-car', JSON.stringify({
+        car: car,
+        skin: skin
+    }));
+    
+    ui.views.footer.updateDisplay();
+};
+
+ui.views.footer.selectTrack = (track) => {
+    ui.views.footer.selectedTrack = track;
+    
+    // Save to localStorage
+    localStorage.setItem('RacerUI:footer-selected-track', JSON.stringify(track));
+    
+    ui.views.footer.updateDisplay();
+};
+
+ui.views.footer.updateDisplay = () => {
+    const carPreview = document.querySelector('.footer-car-preview');
+    const trackPreview = document.querySelector('.footer-track-preview');
+    const sessionInfo = document.querySelector('.footer-session-info .session-text');
+    const playBtn = document.querySelector('.footer-play-button .play-btn');
+
+    if (!carPreview || !trackPreview || !sessionInfo || !playBtn) return;
+
+    // Update car preview
+    if (ui.views.footer.selectedCar) {
+        let carPreviewUrl = `/image/assetto corsa/skin/${ui.views.footer.selectedCar.path}`;
+        if (ui.views.footer.selectedSkin) {
+            carPreviewUrl += `/${ui.views.footer.selectedSkin}`;
+        }
+        carPreview.style.backgroundImage = `url('${carPreviewUrl}')`;
+        carPreview.classList.add('has-preview');
+    } else {
+        carPreview.style.backgroundImage = '';
+        carPreview.classList.remove('has-preview');
+    }
+
+    // Update track preview
+    if (ui.views.footer.selectedTrack) {
+        let trackPreviewUrl = `/image/assetto corsa/track/${ui.views.footer.selectedTrack.path}`;
+        if (ui.views.footer.selectedTrack.subPath) {
+            trackPreviewUrl += `/${ui.views.footer.selectedTrack.subPath}`;
+        }
+        trackPreview.style.backgroundImage = `url('${trackPreviewUrl}')`;
+        trackPreview.classList.add('has-preview');
+    } else {
+        trackPreview.style.backgroundImage = '';
+        trackPreview.classList.remove('has-preview');
+    }
+
+    // Update session info text
+    if (ui.views.footer.selectedCar && ui.views.footer.selectedTrack) {
+        sessionInfo.innerHTML = `<span class="car-name">${ui.views.footer.selectedCar.name}</span> at <span class="track-name">${ui.views.footer.selectedTrack.name}</span>`;
+        playBtn.disabled = false;
+    } else if (ui.views.footer.selectedCar) {
+        sessionInfo.innerHTML = `<span class="car-name">${ui.views.footer.selectedCar.name}</span> <span class="no-selection">- Select a track</span>`;
+        playBtn.disabled = true;
+    } else if (ui.views.footer.selectedTrack) {
+        sessionInfo.innerHTML = `<span class="no-selection">Select a car - </span><span class="track-name">${ui.views.footer.selectedTrack.name}</span>`;
+        playBtn.disabled = true;
+    } else {
+        sessionInfo.innerHTML = '<span class="no-selection">Select a car and track to play</span>';
+        playBtn.disabled = true;
+    }
+};
+
+ui.views.footer.play = () => {
+    if (!ui.views.footer.selectedCar || !ui.views.footer.selectedTrack) {
+        console.warn('Cannot play: Car or track not selected');
+        return;
+    }
+
+    // Prepare parameters for game launch
+    const carPath = ui.views.footer.selectedCar.path;
+    const skinPath = ui.views.footer.selectedSkin || '';
+    const trackPath = ui.views.footer.selectedTrack.path;
+    const trackSubPath = ui.views.footer.selectedTrack.subPath || '';
+    
+    // Combine track path with subPath if it exists
+    const fullTrackPath = trackSubPath ? `${trackPath}/${trackSubPath}` : trackPath;
+    
+    const gameName = 'assetto corsa';
+    
+    // Race configuration parameters (with default values for now)
+    const config = {
+        driverName: 'Player',
+        sessionType: 4,              // 1=Practice, 2=Qualification, 3=Race, 4=Hotlap
+        sessionName: 'Hotlap',
+        spawnSet: 'HOTLAP_START',    // PIT, START, HOTLAP_START
+        sunAngle: 16,                // -80 to 80, where 0 = 13:00, 16 = 14:00
+        ambientTemp: 26,             // Ambient temperature in °C
+        roadTemp: 32,                // Road temperature in °C
+        weatherName: '4_mid_clear',  // Weather preset ID
+        aiLevel: 95,                 // AI difficulty (0-100)
+        raceLaps: 5,                 // Number of laps for race
+        cars: 1,                     // Number of cars (1 = solo)
+        sessionDuration: 0,          // Session duration in minutes (0 = unlimited)
+        sessionLaps: 0,              // Number of laps for session (0 = unlimited)
+        timeMultiplier: 1.0,         // Time progression multiplier
+        trackGripStart: 95,          // Starting track grip percentage
+        trackGripRandomness: 1,      // Track grip randomness
+        trackGripLapGain: 1,         // Grip gain per lap
+        trackGripTransfer: 90,       // Grip transfer between sessions
+        launcherType: 2              // 0=Direct launch, 1=Official launcher, 2=Steam launch (default)
+    };
+
+    console.log('Launching game with:', { 
+        car: carPath, 
+        skin: skinPath, 
+        track: fullTrackPath, 
+        game: gameName,
+        config: config
+    });
+    
+    // Call SignalR method to launch the game with full configuration
+    dashHub.invoke('PlayGame', 
+        carPath, 
+        skinPath, 
+        fullTrackPath, 
+        gameName,
+        config.driverName,
+        config.sessionType,
+        config.sessionName,
+        config.spawnSet,
+        config.sunAngle,
+        config.ambientTemp,
+        config.roadTemp,
+        config.weatherName,
+        config.aiLevel,
+        config.raceLaps,
+        config.cars,
+        config.sessionDuration,
+        config.sessionLaps,
+        config.timeMultiplier,
+        config.trackGripStart,
+        config.trackGripRandomness,
+        config.trackGripLapGain,
+        config.trackGripTransfer,
+        config.launcherType)
+        .then((success) => {
+            if (success) {
+                console.log('Game launched successfully');
+            } else {
+                console.error('Failed to launch game');
+            }
+        })
+        .catch((error) => {
+            console.error('Error launching game:', error);
+        });
+};
+
+// Setup play button click handler when footer is loaded
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.footer-play-button .play-btn')) {
+        ui.views.footer.play();
+    }
+});
+
+//#endregion
+
 ui.views.game = {
     isCheckingAssets:false,
     checkingProgress:0
@@ -2022,7 +2544,7 @@ ui.views.tracks = {
     },
     results: null,
     allTracks: [],
-    footerHeight: 5.8,
+    footerHeight: 8,
     hovered: null,
     selected: null,
     isLoading: false,
@@ -2065,6 +2587,11 @@ ui.views.tracks.load = (e) => {
     window.addEventListener('resize', ui.views.tracks.resize);
     ui.views.tracks.resize();
     ui.views.tracks.setupInfiniteScroll();
+    
+    // Load footer if not already loaded
+    if (!document.querySelector('.footer-container')) {
+        ui.views.footer.load();
+    }
 };
 
 ui.views.tracks.setupSearchListener = () => {
@@ -2144,6 +2671,26 @@ ui.views.tracks.setupSearchListener = () => {
             });
             document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
             
+            // Reload currently open filter view if any
+            const selectedNavItem = document.querySelector('.tracks-toolbar li.selected');
+            if (selectedNavItem) {
+                const section = selectedNavItem.className.match(/item-(\w+)/)?.[1];
+                if (section) {
+                    // Reload the filter view
+                    switch (section) {
+                        case 'view':
+                            ui.views.tracks.view.load();
+                            break;
+                        case 'country':
+                            ui.views.tracks.country.load();
+                            break;
+                        case 'type':
+                            ui.views.tracks.type.load();
+                            break;
+                    }
+                }
+            }
+            
             // Update clear filter button visibility
             ui.views.tracks.updateClearFilterButton();
             
@@ -2163,8 +2710,18 @@ ui.views.tracks.unload = () => {
 
 ui.views.tracks.resize = () => {
     const el = document.querySelector('.tracks-content');
+    if(!el) return;
     const rect = el.getBoundingClientRect();
     el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.tracks.footerHeight : ((ui.views.tracks.footerHeight / 1920) * window.innerWidth)}em)`;
+    
+    // Set max-height for tracks-filter div accounting for scale factor
+    const filterEl = document.querySelector('.tracks-filter');
+    if (filterEl) {
+        const filterRect = filterEl.getBoundingClientRect();
+        const scaleFactor = ui.utils.scaleFactor || 1;
+        const maxHeight = (window.innerHeight - filterRect.top) / scaleFactor;
+        filterEl.style.maxHeight = `${maxHeight}px`;
+    }
 }
 
 ui.views.tracks.nav = (e, section) => {
@@ -2666,6 +3223,27 @@ ui.views.tracks.type.select = (typeId) => {
     ui.views.tracks.getFilteredList();
 };
 
+// Simple filter functions for grid-details clickable filters
+ui.views.tracks.filterByCountry = (country) => {
+    ui.views.tracks.filter.countries = [country];
+    ui.views.tracks.getFilteredList();
+};
+
+ui.views.tracks.filterByCity = (city) => {
+    ui.views.tracks.filter.search = city;
+    ui.views.tracks.getFilteredList();
+};
+
+ui.views.tracks.filterByYear = (year) => {
+    ui.views.tracks.filter.search = year;
+    ui.views.tracks.getFilteredList();
+};
+
+ui.views.tracks.filterByType = (typeId) => {
+    ui.views.tracks.filter.types = [parseInt(typeId)];
+    ui.views.tracks.getFilteredList();
+};
+
 //#endregion
 
 //#region "Views"
@@ -2813,6 +3391,7 @@ ui.views.tracks.views.grid = {
                 };
             };
         });
+        ui.utils.scaleUI();
     },
     details: (track, item) => {
         // Check if the clicked track is already selected
@@ -2860,8 +3439,10 @@ ui.views.tracks.views.grid = {
                 outlineUrl += `/${track.subPath}`;
             }
 
-            const author = track.author && track.author != 'null' ? track.author : null;
-            
+            var author = track.author && track.author != 'null' ? track.author : null;
+            if(author != null && author.length > 20){
+                author = author.substring(0, 20) + '...';
+            }
             const view = html
                 .split('{{preview}}').join(previewUrl)
                 .split('{{outline}}').join(outlineUrl)
@@ -2871,6 +3452,7 @@ ui.views.tracks.views.grid = {
                 .split('{{city}}').join(track.city || '')
                 .split('{{year}}').join(track.year || '')
                 .split('{{typeName}}').join(track.typeName || '')
+                .split('{{typeId}}').join(track.type || '')
                 .split('{{length}}').join(track.length ? (track.length / 1000).toFixed(1) + ' km' : 'N/A')
                 .split('{{width}}').join(track.width ? track.width + ' m' : 'N/A')
                 .split('{{pitBoxes}}').join(track.pitBoxes || 'N/A')
@@ -2890,9 +3472,64 @@ ui.views.tracks.views.grid = {
             ui.views.tracks.selected = {track, item};
             // Add selected class to the item
             item.classList.add('selected');
+            
+            // Setup select track button handler
+            ui.views.tracks.views.grid.setupSelectTrackHandler();
+            
+            // Setup button hover effects
+            ui.views.tracks.views.grid.setupButtonHoverEffects();
+            
             setTimeout(() => {
                 ui.scrollTo(document.querySelector('.tracks-content'), item, 500, 'easeInOutQuad', 0);
             }, 350);
+        });
+    },
+    setupSelectTrackHandler: () => {
+        // Add event listeners to all select track buttons
+        const selectTrackBtns = document.querySelectorAll('.select-track-btn');
+        selectTrackBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                // Get track from ui.views.tracks.selected
+                if (ui.views.tracks.selected && ui.views.tracks.selected.track) {
+                    ui.views.footer.selectTrack(ui.views.tracks.selected.track);
+                }
+            });
+        });
+    },
+    setupButtonHoverEffects: () => {
+        const buttons = document.querySelectorAll('.select-track-btn');
+        
+        buttons.forEach((button) => {
+            // Skip if already wrapped
+            if (button.parentNode.classList && button.parentNode.classList.contains('button-wrapper')) return;
+            
+            // Wrap button in a positioned container
+            const wrapper = document.createElement('div');
+            wrapper.className = 'button-wrapper';
+            button.parentNode.insertBefore(wrapper, button);
+            wrapper.appendChild(button);
+            
+            // Create hover clone
+            const clone = button.cloneNode(true);
+            clone.classList.add('button-hovered-clone');
+            wrapper.appendChild(clone);
+            
+            // Hover handlers
+            button.addEventListener('mouseenter', () => {
+                if (!button.disabled) {
+                    clone.style.display = 'flex';
+                    clone.classList.add('growing');
+                }
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                clone.classList.remove('growing');
+                clone.classList.add('shrinking');
+                setTimeout(() => {
+                    clone.style.display = 'none';
+                    clone.classList.remove('shrinking');
+                }, 300);
+            });
         });
     },
     getTrackFromItem: (item) => {
@@ -2941,7 +3578,8 @@ ui.routes = [
     { path: 'dashboard/game/:id', action: ui.views.game.load }, 
     { path: 'dashboard/cars', action: ui.views.cars.load, unload: ui.views.cars.unload },
     { path: 'dashboard/cars/:id', action: ui.views.cars.load, unload: ui.views.cars.unload },
-    { path: 'dashboard/tracks', action: ui.views.tracks.load },
+    { path: 'dashboard/tracks', action: ui.views.tracks.load, unload: ui.views.tracks.unload },
+    { path: 'dashboard/tracks/:id', action: ui.views.tracks.load, unload: ui.views.tracks.unload },
     { path: 'dashboard/history', action: ui.views.history.load },
     { path: 'dashboard/settings', action: ui.views.settings.load },
     { path: 'dashboard/profile', action: ui.views.profile.load },

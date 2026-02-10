@@ -18,9 +18,52 @@ namespace RacerUI.Controllers
 
             string imagePath = "";
             
-            // Handle Assetto Corsa skin previews
-            if (path.StartsWith("assetto corsa/skin/"))
+            // Handle Assetto Corsa skin liveries
+            if (path.StartsWith("assetto corsa/livery/"))
             {
+                var pathParts = path.Split('/');
+                if (pathParts.Length < 4)
+                {
+                    return NotFound();
+                }
+
+                var game = App.Game("assetto corsa");
+                if (game == null || string.IsNullOrEmpty(game.GamePath))
+                {
+                    return NotFound("Game not found or Steam folder not configured");
+                }
+
+                string carFolderName = pathParts[2];
+                string skinFolderName = pathParts[3];
+                
+                // Try livery.jpg first
+                imagePath = Path.Combine(
+                    game.GamePath,
+                    "content",
+                    "cars",
+                    carFolderName,
+                    "skins",
+                    skinFolderName,
+                    "livery.jpg"
+                );
+                
+                // If not found, try livery.png
+                if (!System.IO.File.Exists(imagePath))
+                {
+                    imagePath = Path.Combine(
+                        game.GamePath,
+                        "content",
+                        "cars",
+                        carFolderName,
+                        "skins",
+                        skinFolderName,
+                        "livery.png"
+                    );
+                }
+            }
+            else if (path.StartsWith("assetto corsa/skin/"))
+            {
+            // Handle Assetto Corsa skin previews
                 var pathParts = path.Split('/');
                 if (pathParts.Length < 4)
                 {

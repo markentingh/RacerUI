@@ -11,6 +11,7 @@ ui.view.loadComponent = (path, callback) => {
         complete: (response) => {
             ui.view.cache[path] = response.responseText;
             if (callback) callback(response.responseText);
+            ui.utils.scaleUI();
         }
     });
 }

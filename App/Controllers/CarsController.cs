@@ -286,6 +286,12 @@ namespace RacerUI.Controllers
 
             var carsList = cars.ToList();
 
+            //add country name to each car
+            foreach (var car in carsList)
+            {
+                car.CountryName = CountriesHelper.GetName(car.Country);
+            }
+
             var results = new
             {
                 Cars = carsList,

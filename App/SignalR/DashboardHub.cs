@@ -711,5 +711,107 @@ namespace RacerUI.SignalR
         {
             await Clients.Caller.SendAsync("update", "Adding " + game + " to the library");
         }
+
+        public async Task<bool> PlayGame(
+            string car,
+            string skin,
+            string track,
+            string game,
+            string driverName = "Player",
+            int sessionType = 4,
+            string sessionName = "Hotlap",
+            string spawnSet = "HOTLAP_START",
+            int sunAngle = 16,
+            int ambientTemp = 26,
+            int roadTemp = 32,
+            string weatherName = "4_mid_clear",
+            int aiLevel = 95,
+            int raceLaps = 5,
+            int cars = 1,
+            int sessionDuration = 0,
+            int sessionLaps = 0,
+            float timeMultiplier = 1.0f,
+            int trackGripStart = 95,
+            int trackGripRandomness = 1,
+            int trackGripLapGain = 1,
+            int trackGripTransfer = 90,
+            int launcherType = 2)
+        {
+            try
+            {
+                await Clients.Caller.SendAsync("update", $"Launching {game}...");
+                
+                // Get game info from database
+                var gameInfo = SQL.GamesRepository.GetByName(game);
+                if (gameInfo == null || string.IsNullOrEmpty(gameInfo.Path))
+                {
+                    await Clients.Caller.SendAsync("update", $"Game path not found for {game}");
+                    return false;
+                }
+
+                // Handle Assetto Corsa
+                if (game.ToLower() == "assetto corsa")
+                {
+                    // Extract track config if present (format: trackPath/config)
+                    string trackPath = track;
+                    string trackConfig = "";
+                    
+                    if (track.Contains("/"))
+                    {
+                        var parts = track.Split('/');
+                        trackPath = parts[0];
+                        trackConfig = parts[1];
+                    }
+
+                    // Launch the game with full configuration
+                    bool success = AssettoCorsaHelper.RunGame(
+                        gameInfo.Path,
+                        car,
+                        skin,
+                        trackPath,
+                        trackConfig,
+                        driverName,
+                        sessionType,
+                        sessionName,
+                        spawnSet,
+                        sunAngle,
+                        ambientTemp,
+                        roadTemp,
+                        weatherName,
+                        aiLevel,
+                        raceLaps,
+                        cars,
+                        sessionDuration,
+                        sessionLaps,
+                        timeMultiplier,
+                        trackGripStart,
+                        trackGripRandomness,
+                        trackGripLapGain,
+                        trackGripTransfer,
+                        launcherType);
+                    
+                    if (success)
+                    {
+                        await Clients.Caller.SendAsync("update", $"Assetto Corsa launched successfully!");
+                        return true;
+                    }
+                    else
+                    {
+                        await Clients.Caller.SendAsync("update", "Failed to launch Assetto Corsa");
+                        return false;
+                    }
+                }
+                else
+                {
+                    await Clients.Caller.SendAsync("update", $"Game '{game}' is not supported yet");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("update", $"Error launching game: {ex.Message}");
+                return false;
+            }
+        }
     }
 }

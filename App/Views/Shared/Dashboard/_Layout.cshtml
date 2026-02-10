@@ -69,6 +69,8 @@
                     <span>Settings</span>
                 </li>
             </ul>
+            
+            <darkmode-toggle></darkmode-toggle>
             <div class="dropdown-menu game-loaded" style="display:none;">
                 <div class="hamburger">
                     <span class="material-symbols-outlined">menu</span>
@@ -82,7 +84,6 @@
         </div>
     </div>
     <div class="footer">
-        <darkmode-toggle class="scale-ui"></darkmode-toggle>
     </div>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

@@ -11,7 +11,7 @@ ui.views.tracks = {
     },
     results: null,
     allTracks: [],
-    footerHeight: 5.8,
+    footerHeight: 8,
     hovered: null,
     selected: null,
     isLoading: false,
@@ -54,6 +54,11 @@ ui.views.tracks.load = (e) => {
     window.addEventListener('resize', ui.views.tracks.resize);
     ui.views.tracks.resize();
     ui.views.tracks.setupInfiniteScroll();
+    
+    // Load footer if not already loaded
+    if (!document.querySelector('.footer-container')) {
+        ui.views.footer.load();
+    }
 };
 
 ui.views.tracks.setupSearchListener = () => {
@@ -133,6 +138,26 @@ ui.views.tracks.setupSearchListener = () => {
             });
             document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
             
+            // Reload currently open filter view if any
+            const selectedNavItem = document.querySelector('.tracks-toolbar li.selected');
+            if (selectedNavItem) {
+                const section = selectedNavItem.className.match(/item-(\w+)/)?.[1];
+                if (section) {
+                    // Reload the filter view
+                    switch (section) {
+                        case 'view':
+                            ui.views.tracks.view.load();
+                            break;
+                        case 'country':
+                            ui.views.tracks.country.load();
+                            break;
+                        case 'type':
+                            ui.views.tracks.type.load();
+                            break;
+                    }
+                }
+            }
+            
             // Update clear filter button visibility
             ui.views.tracks.updateClearFilterButton();
             
@@ -152,8 +177,18 @@ ui.views.tracks.unload = () => {
 
 ui.views.tracks.resize = () => {
     const el = document.querySelector('.tracks-content');
+    if(!el) return;
     const rect = el.getBoundingClientRect();
     el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.tracks.footerHeight : ((ui.views.tracks.footerHeight / 1920) * window.innerWidth)}em)`;
+    
+    // Set max-height for tracks-filter div accounting for scale factor
+    const filterEl = document.querySelector('.tracks-filter');
+    if (filterEl) {
+        const filterRect = filterEl.getBoundingClientRect();
+        const scaleFactor = ui.utils.scaleFactor || 1;
+        const maxHeight = (window.innerHeight - filterRect.top) / scaleFactor;
+        filterEl.style.maxHeight = `${maxHeight}px`;
+    }
 }
 
 ui.views.tracks.nav = (e, section) => {
@@ -655,6 +690,27 @@ ui.views.tracks.type.select = (typeId) => {
     ui.views.tracks.getFilteredList();
 };
 
+// Simple filter functions for grid-details clickable filters
+ui.views.tracks.filterByCountry = (country) => {
+    ui.views.tracks.filter.countries = [country];
+    ui.views.tracks.getFilteredList();
+};
+
+ui.views.tracks.filterByCity = (city) => {
+    ui.views.tracks.filter.search = city;
+    ui.views.tracks.getFilteredList();
+};
+
+ui.views.tracks.filterByYear = (year) => {
+    ui.views.tracks.filter.search = year;
+    ui.views.tracks.getFilteredList();
+};
+
+ui.views.tracks.filterByType = (typeId) => {
+    ui.views.tracks.filter.types = [parseInt(typeId)];
+    ui.views.tracks.getFilteredList();
+};
+
 //#endregion
 
 //#region "Views"
@@ -802,6 +858,7 @@ ui.views.tracks.views.grid = {
                 };
             };
         });
+        ui.utils.scaleUI();
     },
     details: (track, item) => {
         // Check if the clicked track is already selected
@@ -849,8 +906,10 @@ ui.views.tracks.views.grid = {
                 outlineUrl += `/${track.subPath}`;
             }
 
-            const author = track.author && track.author != 'null' ? track.author : null;
-            
+            var author = track.author && track.author != 'null' ? track.author : null;
+            if(author != null && author.length > 20){
+                author = author.substring(0, 20) + '...';
+            }
             const view = html
                 .split('{{preview}}').join(previewUrl)
                 .split('{{outline}}').join(outlineUrl)
@@ -860,6 +919,7 @@ ui.views.tracks.views.grid = {
                 .split('{{city}}').join(track.city || '')
                 .split('{{year}}').join(track.year || '')
                 .split('{{typeName}}').join(track.typeName || '')
+                .split('{{typeId}}').join(track.type || '')
                 .split('{{length}}').join(track.length ? (track.length / 1000).toFixed(1) + ' km' : 'N/A')
                 .split('{{width}}').join(track.width ? track.width + ' m' : 'N/A')
                 .split('{{pitBoxes}}').join(track.pitBoxes || 'N/A')
@@ -879,9 +939,64 @@ ui.views.tracks.views.grid = {
             ui.views.tracks.selected = {track, item};
             // Add selected class to the item
             item.classList.add('selected');
+            
+            // Setup select track button handler
+            ui.views.tracks.views.grid.setupSelectTrackHandler();
+            
+            // Setup button hover effects
+            ui.views.tracks.views.grid.setupButtonHoverEffects();
+            
             setTimeout(() => {
                 ui.scrollTo(document.querySelector('.tracks-content'), item, 500, 'easeInOutQuad', 0);
             }, 350);
+        });
+    },
+    setupSelectTrackHandler: () => {
+        // Add event listeners to all select track buttons
+        const selectTrackBtns = document.querySelectorAll('.select-track-btn');
+        selectTrackBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                // Get track from ui.views.tracks.selected
+                if (ui.views.tracks.selected && ui.views.tracks.selected.track) {
+                    ui.views.footer.selectTrack(ui.views.tracks.selected.track);
+                }
+            });
+        });
+    },
+    setupButtonHoverEffects: () => {
+        const buttons = document.querySelectorAll('.select-track-btn');
+        
+        buttons.forEach((button) => {
+            // Skip if already wrapped
+            if (button.parentNode.classList && button.parentNode.classList.contains('button-wrapper')) return;
+            
+            // Wrap button in a positioned container
+            const wrapper = document.createElement('div');
+            wrapper.className = 'button-wrapper';
+            button.parentNode.insertBefore(wrapper, button);
+            wrapper.appendChild(button);
+            
+            // Create hover clone
+            const clone = button.cloneNode(true);
+            clone.classList.add('button-hovered-clone');
+            wrapper.appendChild(clone);
+            
+            // Hover handlers
+            button.addEventListener('mouseenter', () => {
+                if (!button.disabled) {
+                    clone.style.display = 'flex';
+                    clone.classList.add('growing');
+                }
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                clone.classList.remove('growing');
+                clone.classList.add('shrinking');
+                setTimeout(() => {
+                    clone.style.display = 'none';
+                    clone.classList.remove('shrinking');
+                }, 300);
+            });
         });
     },
     getTrackFromItem: (item) => {

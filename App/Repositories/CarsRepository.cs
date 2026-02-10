@@ -715,10 +715,13 @@ namespace RacerUI.SQL
             int? start = null,
             int? length = null)
         {
-            var sql = "SELECT c.* FROM Cars c";
+            var sql = "SELECT c.*, m.Name as MakeName FROM Cars c";
             var parameters = new DynamicParameters();
             var whereClauses = new List<string>();
             var joins = new List<string>();
+            
+            // Always LEFT JOIN CarMakes to get make name
+            joins.Add("LEFT JOIN CarMakes m ON c.MakeId = m.Id");
 
             // Type filter (requires join to Cars_Types)
             if (typeIds != null && typeIds.Any())
@@ -807,19 +810,15 @@ namespace RacerUI.SQL
             {
                 var cars = connection.Query<Car>(sql, parameters).ToList();
                 
-                // Load top 1 skin for each car
+                // Load all skins for each car
                 if (cars.Any())
                 {
                     var carIds = cars.Select(c => c.Id).ToList();
                     var skinsSql = @"
                         SELECT s.* 
                         FROM Cars_Skins s
-                        INNER JOIN (
-                            SELECT CarId, MIN(Id) as MinId
-                            FROM Cars_Skins
-                            WHERE CarId IN @CarIds
-                            GROUP BY CarId
-                        ) t ON s.CarId = t.CarId AND s.Id = t.MinId";
+                        WHERE s.CarId IN @CarIds
+                        ORDER BY s.CarId, s.Id";
                     
                     var skins = connection.Query<CarSkin>(skinsSql, new { CarIds = carIds }).ToList();
                     

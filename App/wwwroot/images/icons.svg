@@ -324,6 +324,17 @@ M 64 0
 L 0 0 0 64 64 64 64 0 Z"/>
 </g>
 
+<g id="icon_play_0_Layer0_0_FILL">
+<path stroke="none" d="
+M 12.1 8.5
+Q 12.55 8.25 12.75 7.75 12.95 7.2 12.75 6.7 12.55 6.2 12.1 5.9
+L 2.25 0.2
+Q 1.8 -0.05 1.25 0.05 0.7 0.1 0.35 0.55 0 0.95 0 1.5
+L 0 12.85
+Q 0 13.4 0.35 13.8 0.7 14.2 1.25 14.35 1.75 14.4 2.25 14.15
+L 12.1 8.5 Z"/>
+</g>
+
 <g id="icon_profile_0_Layer0_0_FILL">
 <path stroke="none" d="
 M 53.75 12.2
@@ -628,6 +639,14 @@ Q 177.25 340.05 196.05 387 202.8 403.9 213.65 418.55 218.9 425.7 225.25 431.7 23
 
 <g transform="matrix( 1, 0, 0, 1, 0,0) ">
 <use xlink:href="#pin_0_Layer0_0_FILL"/>
+</g>
+</g>
+</symbol><symbol id="icon-play" viewBox="0 0 15 15">
+
+
+<g transform="matrix( 1, 0, 0, 1, 1.45,0.3) ">
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#icon_play_0_Layer0_0_FILL"/>
 </g>
 </g>
 </symbol><symbol id="icon-profile" viewBox="0 0 64 64">

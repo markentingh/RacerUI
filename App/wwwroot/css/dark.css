@@ -1,3 +1,37 @@
+/* footer */
+.footer-container {
+  background: linear-gradient(to bottom, #121a47 0%, rgba(18, 26, 71, 0) 100%);
+  border-top-color: linear-gradient(to bottom, rgba(16, 16, 16, 0) 100%, rgba(16, 16, 16, 0) 100%);
+}
+.footer-container .footer-car-preview,
+.footer-container .footer-track-preview {
+  background-color: rgba(88, 88, 88, 0.38);
+}
+.footer-container .footer-car-preview .preview-placeholder,
+.footer-container .footer-track-preview .preview-placeholder {
+  color: #c5c5c5;
+}
+.footer-container .footer-car-preview .preview-placeholder svg use,
+.footer-container .footer-track-preview .preview-placeholder svg use {
+  color: #38a8ff;
+}
+.footer-container .footer-session-info {
+  color: #c5c5c5;
+}
+.footer-container .footer-play-button .play-btn {
+  background: #179c69;
+  color: #fff;
+}
+.footer-container .footer-play-button .play-btn svg use {
+  color: #fff;
+}
+.footer-container .footer-play-button .play-btn:hover:not(:disabled) {
+  background: #01ba57e8;
+  color: #fff;
+}
+.footer-container .footer-play-button .play-btn:hover:not(:disabled) svg use {
+  color: #fff;
+}
 /* inputs */
 /* links */
 /* buttons */
@@ -11,6 +45,7 @@
 /* selected nav submenu item */
 /* submenu input */
 /* select list */
+/* cars/tracks views */
 body.dark-mode {
   background-color: #101010;
   color: #fafafa;
@@ -19,6 +54,16 @@ body.dark-mode {
   /* buttons */
   /* progress bar */
   /* select list */
+  /* cars and tracks views */
+}
+body.dark-mode *::-webkit-scrollbar-track {
+  background: #000000;
+}
+body.dark-mode *::-webkit-scrollbar-thumb {
+  background: #3f265a;
+}
+body.dark-mode *::-webkit-scrollbar-thumb:hover {
+  background: #4a3690;
 }
 body.dark-mode input {
   background-color: #444;
@@ -137,4 +182,191 @@ body.dark-mode ul.select-list li:hover {
 body.dark-mode ul.select-list li.selected {
   background-color: #297eff;
   color: #fff;
+}
+body.dark-mode .cars-filter,
+body.dark-mode .tracks-filter {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+body.dark-mode .cars-toolbar li.clear-filter-btn:hover svg use,
+body.dark-mode .tracks-toolbar li.clear-filter-btn:hover svg use {
+  color: #9d7bb8 !important;
+}
+body.dark-mode .cars-toolbar li.clear-filter-btn button,
+body.dark-mode .tracks-toolbar li.clear-filter-btn button {
+  background: rgba(157, 123, 184, 0.2);
+  color: #9d7bb8;
+}
+body.dark-mode .cars-toolbar li.clear-filter-btn button svg use,
+body.dark-mode .tracks-toolbar li.clear-filter-btn button svg use {
+  color: #9d7bb8;
+}
+body.dark-mode .cars-toolbar li.clear-filter-btn button:hover,
+body.dark-mode .tracks-toolbar li.clear-filter-btn button:hover {
+  background: rgba(157, 123, 184, 0.3);
+  border-color: rgba(157, 123, 184, 0.6);
+  color: #b89dd4;
+}
+body.dark-mode .cars-toolbar li.clear-filter-btn button:hover use,
+body.dark-mode .tracks-toolbar li.clear-filter-btn button:hover use {
+  color: #b25ef7 !important;
+}
+body.dark-mode .filter-class .class-category h3 {
+  color: #9d7bb8;
+}
+body.dark-mode .cars-content .grid-view .car,
+body.dark-mode .tracks-content .grid-view .car,
+body.dark-mode .cars-content .grid-view .track,
+body.dark-mode .tracks-content .grid-view .track {
+  background-color: rgba(128, 128, 128, 0.25);
+}
+body.dark-mode .cars-content .grid-view .car .info-top .car-class,
+body.dark-mode .tracks-content .grid-view .car .info-top .car-class,
+body.dark-mode .cars-content .grid-view .track .info-top .car-class,
+body.dark-mode .tracks-content .grid-view .track .info-top .car-class,
+body.dark-mode .cars-content .grid-view .car .info-top .track-type,
+body.dark-mode .tracks-content .grid-view .car .info-top .track-type,
+body.dark-mode .cars-content .grid-view .track .info-top .track-type,
+body.dark-mode .tracks-content .grid-view .track .info-top .track-type {
+  background-color: rgba(115, 49, 170, 0.5);
+}
+body.dark-mode .cars-content .grid-view .car .info-top .track-length,
+body.dark-mode .tracks-content .grid-view .car .info-top .track-length,
+body.dark-mode .cars-content .grid-view .track .info-top .track-length,
+body.dark-mode .tracks-content .grid-view .track .info-top .track-length {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+body.dark-mode .cars-content .grid-view .car .info h2 .name,
+body.dark-mode .tracks-content .grid-view .car .info h2 .name,
+body.dark-mode .cars-content .grid-view .track .info h2 .name,
+body.dark-mode .tracks-content .grid-view .track .info h2 .name,
+body.dark-mode .cars-content .grid-view .car .info .track-name,
+body.dark-mode .tracks-content .grid-view .car .info .track-name,
+body.dark-mode .cars-content .grid-view .track .info .track-name,
+body.dark-mode .tracks-content .grid-view .track .info .track-name,
+body.dark-mode .cars-content .grid-view .car .info .city,
+body.dark-mode .tracks-content .grid-view .car .info .city,
+body.dark-mode .cars-content .grid-view .track .info .city,
+body.dark-mode .tracks-content .grid-view .track .info .city {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+body.dark-mode .cars-content .grid-view .car .flag img,
+body.dark-mode .tracks-content .grid-view .car .flag img,
+body.dark-mode .cars-content .grid-view .track .flag img,
+body.dark-mode .tracks-content .grid-view .track .flag img {
+  border: 1px solid rgba(128, 128, 128, 0.25);
+}
+body.dark-mode .cars-content .grid-view .car .track-outline,
+body.dark-mode .tracks-content .grid-view .car .track-outline,
+body.dark-mode .cars-content .grid-view .track .track-outline,
+body.dark-mode .tracks-content .grid-view .track .track-outline {
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.75));
+}
+body.dark-mode .cars-content .grid-details .info .title,
+body.dark-mode .tracks-content .grid-details .info .title {
+  background: linear-gradient(to bottom, #121a47 0%, rgba(18, 26, 71, 0) 100%);
+}
+body.dark-mode .cars-content .grid-details .info h4,
+body.dark-mode .tracks-content .grid-details .info h4 {
+  background-image: url("/images/submenu-bg.png");
+  background-repeat: no-repeat;
+  background-size: 100%;
+}
+body.dark-mode .cars-content .grid-details .info .select-car-btn,
+body.dark-mode .tracks-content .grid-details .info .select-car-btn,
+body.dark-mode .cars-content .grid-details .info .select-track-btn,
+body.dark-mode .tracks-content .grid-details .info .select-track-btn {
+  background: #179c69;
+  color: #fff;
+  border: none;
+}
+body.dark-mode .cars-content .grid-details .info .select-car-btn svg use,
+body.dark-mode .tracks-content .grid-details .info .select-car-btn svg use,
+body.dark-mode .cars-content .grid-details .info .select-track-btn svg use,
+body.dark-mode .tracks-content .grid-details .info .select-track-btn svg use {
+  color: #fff;
+}
+body.dark-mode .cars-content .grid-details .info .select-car-btn:hover,
+body.dark-mode .tracks-content .grid-details .info .select-car-btn:hover,
+body.dark-mode .cars-content .grid-details .info .select-track-btn:hover,
+body.dark-mode .tracks-content .grid-details .info .select-track-btn:hover {
+  background: #01ba57e8;
+  color: #fff;
+}
+body.dark-mode .cars-content .grid-details .info .select-car-btn:hover svg use,
+body.dark-mode .tracks-content .grid-details .info .select-car-btn:hover svg use,
+body.dark-mode .cars-content .grid-details .info .select-track-btn:hover svg use,
+body.dark-mode .tracks-content .grid-details .info .select-track-btn:hover svg use {
+  color: #fff;
+}
+body.dark-mode .cars-content .grid-details .skins,
+body.dark-mode .tracks-content .grid-details .skins {
+  background: rgba(88, 88, 88, 0.38);
+}
+body.dark-mode .cars-content .grid-details .skins .skin-hovered-clone,
+body.dark-mode .tracks-content .grid-details .skins .skin-hovered-clone {
+  border: 2px solid rgba(255, 255, 255, 0);
+  box-shadow: 0 0 0 rgba(0, 85, 255, 0);
+}
+body.dark-mode .cars-content .grid-details .car-tabs .car-tab,
+body.dark-mode .tracks-content .grid-details .car-tabs .car-tab {
+  background: rgba(123, 0, 255, 0.35);
+  color: #fff;
+}
+body.dark-mode .cars-content .grid-details .car-tabs .car-tab:hover,
+body.dark-mode .tracks-content .grid-details .car-tabs .car-tab:hover {
+  background: rgba(123, 0, 255, 0.7);
+}
+body.dark-mode .cars-content .grid-details .car-tabs .car-tab.active,
+body.dark-mode .tracks-content .grid-details .car-tabs .car-tab.active {
+  background: #7b00ff;
+}
+body.dark-mode .cars-content .grid-details .car-origin > div,
+body.dark-mode .tracks-content .grid-details .car-origin > div,
+body.dark-mode .cars-content .grid-details .track-origin > div,
+body.dark-mode .tracks-content .grid-details .track-origin > div {
+  background: rgba(88, 88, 88, 0.38);
+}
+body.dark-mode .cars-content .grid-details .car-origin .car-class:hover,
+body.dark-mode .tracks-content .grid-details .car-origin .car-class:hover,
+body.dark-mode .cars-content .grid-details .track-origin .car-class:hover,
+body.dark-mode .tracks-content .grid-details .track-origin .car-class:hover,
+body.dark-mode .cars-content .grid-details .car-origin .car-country:hover,
+body.dark-mode .tracks-content .grid-details .car-origin .car-country:hover,
+body.dark-mode .cars-content .grid-details .track-origin .car-country:hover,
+body.dark-mode .tracks-content .grid-details .track-origin .car-country:hover,
+body.dark-mode .cars-content .grid-details .car-origin .track-country:hover,
+body.dark-mode .tracks-content .grid-details .car-origin .track-country:hover,
+body.dark-mode .cars-content .grid-details .track-origin .track-country:hover,
+body.dark-mode .tracks-content .grid-details .track-origin .track-country:hover,
+body.dark-mode .cars-content .grid-details .car-origin .track-city:hover,
+body.dark-mode .tracks-content .grid-details .car-origin .track-city:hover,
+body.dark-mode .cars-content .grid-details .track-origin .track-city:hover,
+body.dark-mode .tracks-content .grid-details .track-origin .track-city:hover,
+body.dark-mode .cars-content .grid-details .car-origin .track-year:hover,
+body.dark-mode .tracks-content .grid-details .car-origin .track-year:hover,
+body.dark-mode .cars-content .grid-details .track-origin .track-year:hover,
+body.dark-mode .tracks-content .grid-details .track-origin .track-year:hover,
+body.dark-mode .cars-content .grid-details .car-origin .track-type:hover,
+body.dark-mode .tracks-content .grid-details .car-origin .track-type:hover,
+body.dark-mode .cars-content .grid-details .track-origin .track-type:hover,
+body.dark-mode .tracks-content .grid-details .track-origin .track-type:hover {
+  background: rgba(60, 76, 136, 0.7);
+}
+body.dark-mode .cars-content .grid-details .car-stats,
+body.dark-mode .tracks-content .grid-details .car-stats,
+body.dark-mode .cars-content .grid-details .track-stats,
+body.dark-mode .tracks-content .grid-details .track-stats {
+  background: rgba(88, 88, 88, 0.38);
+}
+body.dark-mode .cars-content .grid-details .car-stats span,
+body.dark-mode .tracks-content .grid-details .car-stats span,
+body.dark-mode .cars-content .grid-details .track-stats span,
+body.dark-mode .tracks-content .grid-details .track-stats span {
+  background: rgba(60, 76, 136, 0.7);
+}
+body.dark-mode .cars-content .grid-details .car-info,
+body.dark-mode .tracks-content .grid-details .car-info,
+body.dark-mode .cars-content .grid-details .track-description,
+body.dark-mode .tracks-content .grid-details .track-description {
+  background: rgba(88, 88, 88, 0.38);
 }

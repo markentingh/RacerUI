@@ -4,6 +4,18 @@
         color: @color;
     }
 
+    *::-webkit-scrollbar-track {
+        background: @view-details-scrollbar-track;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        background: @view-details-scrollbar-thumb;
+
+        &:hover {
+            background: @view-scrollbar-thumb-hover;
+        }
+    }
+
     input {
         background-color: @input-bg;
         color: @input-color;
@@ -163,6 +175,212 @@
         li.selected {
             background-color: @select-list-selected-bg;
             color: @select-list-selected-color;
+        }
+    }
+
+    /* cars and tracks views */
+    .cars-filter,
+    .tracks-filter {
+        background-color: @view-filter-bg;
+    }
+
+    .cars-toolbar,
+    .tracks-toolbar {
+        li.clear-filter-btn {
+            &:hover svg use {
+                color: @view-section-title-color !important;
+            }
+
+            button {
+                background: @view-button-bg;
+                color: @view-button-color;
+
+                svg use {
+                    color: @view-button-color;
+                }
+
+                &:hover {
+                    background: @view-button-hover-bg;
+                    border-color: @view-button-hover-border;
+                    color: @view-button-hover-color;
+
+                    use {
+                        color: @view-button-hover-icon !important;
+                    }
+                }
+            }
+        }
+    }
+
+    .filter-class .class-category h3 {
+        color: @view-section-title-color;
+    }
+
+    .cars-content,
+    .tracks-content {
+
+        .grid-view {
+
+            .car,
+            .track {
+                background-color: @view-item-border;
+
+                .info-top {
+
+                    .car-class,
+                    .track-type {
+                        background-color: @view-item-class-bg;
+                    }
+
+                    .track-length {
+                        background-color: @view-item-name-bg;
+                    }
+                }
+
+                .info {
+
+                    h2 .name,
+                    .track-name,
+                    .city {
+                        background-color: @view-item-name-bg;
+                    }
+                }
+
+                .flag img {
+                    border: 1px solid @view-item-border;
+                }
+
+                .track-outline {
+                    filter: drop-shadow(0 0 3px @view-item-name-bg);
+                }
+            }
+        }
+
+        .grid-details {
+            .info {
+                .title {
+                    background: @submenu-bg;
+                }
+
+                h4 {
+                    background-image: url("/images/submenu-bg.png");
+                    background-repeat: no-repeat;
+                    background-size: 100%;
+                }
+
+                .select-car-btn,
+                .select-track-btn {
+                    background: @view-select-car-bg;
+                    color: @view-select-car-color;
+                    border: none;
+
+                    svg use {
+                        color: @view-select-car-color;
+                    }
+
+                    &:hover {
+                        background: @view-select-car-hover-bg;
+                        color: @view-select-car-hover-color;
+
+                        svg use {
+                            color: @view-select-car-hover-color;
+                        }
+                    }
+                }
+            }
+
+            .skins {
+                background: @view-details-bg;
+
+                .skin-hovered-clone {
+                    border: 2px solid @view-hover-border-transparent;
+                    box-shadow: 0 0 0 @view-hover-shadow-transparent;
+                }
+            }
+
+            .car-tabs .car-tab {
+                background: @view-tab-bg;
+                color: @view-tab-color;
+
+                &:hover {
+                    background: @view-tab-hover-bg;
+                }
+
+                &.active {
+                    background: @view-tab-active-bg;
+                }
+            }
+
+            .car-origin,
+            .track-origin {
+                &>div {
+                    background: @view-details-bg;
+                }
+
+                .car-class:hover,
+                .car-country:hover,
+                .track-country:hover,
+                .track-city:hover,
+                .track-year:hover,
+                .track-type:hover {
+                    background: @view-badge-hover-bg;
+                }
+            }
+
+            .car-stats,
+            .track-stats {
+                background: @view-details-bg;
+
+                span {
+                    background: @view-badge-bg;
+                }
+            }
+
+            .car-info,
+            .track-description {
+                background: @view-details-bg;
+            }
+        }
+    }
+}
+
+/* footer */
+.footer-container {
+    background: @submenu-bg;
+    border-top-color: @nav-bg;
+
+    .footer-car-preview,
+    .footer-track-preview {
+        background-color: @view-details-bg;
+
+        .preview-placeholder {
+            color: @submenu-item-color;
+
+            svg use {
+                color: @submenu-item-icon-color;
+            }
+        }
+    }
+
+    .footer-session-info {
+        color: @submenu-item-color;
+    }
+
+    .footer-play-button .play-btn {
+        background: @view-select-car-bg;
+        color: @view-select-car-color;
+
+        svg use {
+            color: @view-select-car-color;
+        }
+
+        &:hover:not(:disabled) {
+            background: @view-select-car-hover-bg;
+            color: @view-select-car-hover-color;
+
+            svg use {
+                color: @view-select-car-hover-color;
+            }
         }
     }
 }

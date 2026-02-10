@@ -20,7 +20,7 @@
                     max-width: 15vw;
                     padding-right: 2.5em;
                 }
-                
+
                 svg.search-arrow {
                     position: absolute;
                     right: -1.5em;
@@ -30,8 +30,8 @@
                     height: 1.5em;
                     pointer-events: none;
                 }
-                
-                svg.search-clear { 
+
+                svg.search-clear {
                     position: absolute;
                     right: 1em;
                     top: 50%;
@@ -41,28 +41,24 @@
                     opacity: 0.5;
                     cursor: pointer;
                     transition: opacity 0.25s ease-in-out;
-                    
+
                     &:hover {
                         opacity: 1;
                     }
                 }
             }
-            
+
             li.clear-filter-btn {
                 padding-top: 0.35em;
                 vertical-align: top;
                 margin-left: 1em;
                 display: none;
-                &:hover{
-                    background:none !important;
-                    svg use{
-                        color:#9d7bb8 !important;
-                    }
+
+                &:hover {
+                    background: none !important;
                 }
-                
+
                 button {
-                    background: rgba(157, 123, 184, 0.2);
-                    color: #9d7bb8;
                     padding: 0.5em 1em;
                     border-radius: 0.3em;
                     cursor: pointer;
@@ -71,22 +67,10 @@
                     align-items: center;
                     gap: 0.5em;
                     transition: all 0.25s ease-in-out;
-                    
+
                     svg {
                         width: 1em;
                         height: 1em;
-                        use{
-                            color:#9d7bb8;
-                        }
-                    }
-                    
-                    &:hover {
-                        background: rgba(157, 123, 184, 0.3);
-                        border-color: rgba(157, 123, 184, 0.6);
-                        color: #b89dd4;
-                        use{
-                            color:#b25ef7 !important;
-                        }
                     }
                 }
             }
@@ -109,26 +93,16 @@
 .cars-filter {
     position: absolute;
     z-index: 100;
-    background-color: rgba(0, 0, 0, 0.8);
     width: 100%;
-    overflow-y:auto;
-    max-height: calc(100vh - 5em);
+    overflow-y: auto;
+    overflow-x: hidden;
 
     &::-webkit-scrollbar {
         width: 0.5em;
     }
 
-    &::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.3);
-    }
-
     &::-webkit-scrollbar-thumb {
-        background: #3b2c75;
         border-radius: 3px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
-        background: #4a3690;
     }
 }
 
@@ -234,13 +208,12 @@
     }
 }
 
-.filter-class{
+.filter-class {
     .class-category {
-        h4 {
-            margin:1em 0 1em 0.5em;
+        h3 {
+            margin: 1em 0 1em 0.5em;
             font-size: 1.25em;
-            font-weight:normal;
-            color: #9d7bb8;
+            font-weight: normal;
         }
 
         ul.class-list {
@@ -304,12 +277,7 @@
         width: 10px;
     }
 
-    &::-webkit-scrollbar-track {
-        background: rgb(0, 0, 0);
-    }
-
     &::-webkit-scrollbar-thumb {
-        background: #3f265a;
         border-radius: 10px;
     }
 
@@ -330,6 +298,7 @@
             border-width: 0;
             box-shadow: none;
             transition: opacity 0.3s ease-in-out;
+            border-radius: 0.5em;
 
             img {
                 width: 100%;
@@ -346,16 +315,16 @@
                 pointer-events: none;
             }
 
-            .info-top{
+            .info-top {
                 position: absolute;
                 top: 0.5em;
                 right: 0.5em;
                 font-size: 0.875em;
-                .car-class{
-                    background-color: rgba(115, 49, 170, 0.5);
+
+                .car-class {
                     padding: 0.25em 0.5em;
                     border-radius: 0.5em;
-                    margin-left:0.5em;
+                    margin-left: 0.5em;
                     line-height: 1.25;
                 }
             }
@@ -373,10 +342,19 @@
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                    background-color: rgba(0, 0, 0, 0.75);
                     display: inline-block;
                     padding: 0.25em 0.5em;
                     border-radius: 0.5em;
+
+                    .name {
+                        font-size: 1em;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        display: inline-block;
+                        padding: 0.25em 0.5em;
+                        border-radius: 0.5em;
+                    }
                 }
             }
 
@@ -389,7 +367,6 @@
 
                 img {
                     width: 100%;
-                    border: 1px solid rgba(128, 128, 128, 0.25);
                     border-radius: 0.2em;
                 }
             }
@@ -426,12 +403,111 @@
         animation: show-details 0.3334s ease-out forwards;
         overflow: hidden;
 
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5em;
+            position: relative;
+            overflow:hidden;
+            width: calc(40vw / var(--scale-factor));
+        }
+
         .preview {
-            max-height: 40vh;
-            max-width: 60vw;
+            width:100%;
+            aspect-ratio: 16/9;
+            background-size: cover;
+            background-position: center;
+            border-radius: 0.5em;
+            position: relative;
+            z-index: 9;
+
+            &.preview-fade-in {
+                position: absolute;
+                top: 0;
+                left: 0;
+                opacity: 0;
+                transition: opacity 0.5s ease-in-out;
+                z-index: 10;
+
+                &.visible {
+                    opacity: 1;
+                }
+            }
+        }
+
+        .skins-container {
+            overflow-y: auto;
+
+            &::-webkit-scrollbar {
+                width: 0.5em;
+            }
+
+            &::-webkit-scrollbar-thumb {
+                border-radius: 3px;
+            }
+        }
+
+        .skins {
+            display: flex;
+            gap: 0.5em;
+            flex-wrap: wrap;
+            padding: 0.5em;
+            border-radius: 0.5em;
+
+            &::-webkit-scrollbar {
+                width: 0.5em;
+            }
+
+            &::-webkit-scrollbar-thumb {
+                border-radius: 3px;
+            }
+
+            .skin-item {
+                width: 3em;
+                height: 3em;
+                object-fit: cover;
+                border-radius: 0.25em;
+                cursor: pointer;
+                transition: opacity 0.2s ease-in-out, outline 0.2s ease-in-out;
+                position: relative;
+
+                &:hover {
+                    opacity: 0.7;
+                }
+
+                &.selected {
+                    outline: 0.25em solid #4a9eff;
+                    outline-offset: 0;
+                }
+            }
+
+            .skin-hovered-clone {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 3em;
+                height: 3em;
+                object-fit: cover;
+                border-radius: 0.25em;
+                pointer-events: none;
+                display: none;
+                z-index: 100;
+                transform-origin: center center;
+
+                &.growing {
+                    animation: skin-hover-grow 0.3s ease-out forwards;
+                }
+
+                &.shrinking {
+                    animation: skin-hover-shrink 0.3s ease-out forwards;
+                }
+            }
         }
 
         .info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5em;
             padding: 0 0 0 1em;
             line-height: 1.5em;
             width: 100%;
@@ -440,24 +516,77 @@
             h4 {
                 font-size: 1.8em;
                 font-weight: normal;
-                margin: 0 0 0.25em 0;
-                background: rgb(88 88 88 / 38%);
                 padding: 0.25em 0.5em 0.3em 0.5em;
                 border-radius: 0.15em;
+            }
+
+            .car-header {
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+                flex-wrap: wrap;
+            }
+
+            .select-car-btn {
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+                padding: 0.65em 1.5em;
+                border-radius: 0.15em;
+                cursor: pointer;
+                font-size: 0.9em;
+                transition: background 0.2s ease;
+                white-space: nowrap;
+
+                svg {
+                    width: 1.2em;
+                    height: 1.2em;
+                }
+            }
+
+            .car-tabs {
+                display: flex;
+                gap: 0.5em;
+                margin-right:1em;
+
+                .car-tab {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5em;
+                    padding: 0.65em 1.5em;
+                    border: none;
+                    border-radius: 0.15em;
+                    cursor: pointer;
+                    font-size: 0.9em;
+                    transition: background 0.2s ease;
+                    white-space: nowrap;
+
+                    svg {
+                        width: 1.2em;
+                        height: 1.2em;
+                    }
+
+                }
+            }
+
+            .car-tab-content {
+                display: none;
+
+                &.active {
+                    display: block;
+                }
             }
         }
 
         .car-origin {
             display: flex;
             align-items: center;
-            width: 100%;
-            margin-bottom:0.4em;
+            flex: 1;
 
             &>div {
                 display: flex;
                 align-items: center;
                 padding: 0.3em 0.5em 0.4em 0.5em;
-                background: rgb(88 88 88 / 38%);
                 border-radius: 0.15em;
                 margin-right: 0.5em;
             }
@@ -469,23 +598,18 @@
                 align-self: flex-start;
             }
 
-            .car-shifter{
-                svg {
-                    width: 1em;
-                    margin: 0.25em 0.5em 0 0;
-                    align-self: flex-start;
-                }
-                span{
-                    display:inline-block;
-                    padding-right:0.25em;
-                }
+            .car-class, .car-country{
+                cursor: pointer;
+            }
+
+            .car-class:hover, .car-country:hover{
+                border-radius: 0.15em;
             }
         }
 
         .car-stats {
             white-space: nowrap;
             padding: 0.25em 0.5em;
-            background: rgb(88 88 88 / 38%);
             border-radius: 0.15em;
 
             &>div {
@@ -495,10 +619,42 @@
                 span {
                     display: inline-block;
                     padding: 0 0.4em;
-                    background: rgba(60, 76, 136, 0.7);
                     border-radius: 0.15em;
                     margin-right: 0.5em;
                 }
+            }
+        }
+
+        .car-info {
+            padding: 0.5em;
+            border-radius: 0.15em;
+            margin-bottom: 0.4em;
+            overflow-y: auto;
+
+            &::-webkit-scrollbar {
+                width: 10px;
+            }
+
+            &::-webkit-scrollbar-thumb {
+                border-radius: 10px;
+            }
+
+            p {
+                margin: 0 0 2em 0;
+                line-height: 1.4em;
+            }
+        }
+
+        .car-shifter {
+            svg {
+                width: 1em;
+                margin: 0.25em 0.5em 0 0;
+                align-self: flex-start;
+            }
+
+            span {
+                display: inline-block;
+                padding-right: 0.25em;
             }
         }
     }
@@ -509,21 +665,43 @@
 
     @keyframes show-details {
         from {
-            max-height: 0vh;
+            height: 0vh;
         }
 
         to {
-            max-height: 40vh;
+            height: calc((40vw * 9 / 16) + 8em);
         }
     }
 
     @keyframes hide-details {
         from {
-            max-height: 40vh;
+            height: calc((40vw * 9 / 16) + 8em);
         }
 
         to {
-            max-height: 0vh;
+            height: 0vh;
+        }
+    }
+
+    @media (min-width: 1921px) {
+        @keyframes show-details {
+            from {
+                height: 0vh;
+            }
+
+            to {
+                height: calc((40vw / var(--scale-factor)) * 9 / 16 + 8em);
+            }
+        }
+
+        @keyframes hide-details {
+            from {
+                height: calc((40vw / var(--scale-factor)) * 9 / 16 + 8em);
+            }
+
+            to {
+                height: 0vh;
+            }
         }
     }
 
@@ -532,16 +710,12 @@
             width: 100%;
             top: 0%;
             left: 0%;
-            border-color: rgba(255, 255, 255, 0);
-            box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
         }
 
         to {
             width: 120%;
             top: -10%;
             left: -10%;
-            border-color: rgba(255, 255, 255, 0.7);
-            box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
         }
     }
 
@@ -550,16 +724,77 @@
             width: 120%;
             top: -10%;
             left: -10%;
-            border-color: rgba(255, 255, 255, 0.7);
-            box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
         }
 
         to {
             width: 100%;
             top: 0%;
             left: 0%;
-            border-color: rgba(255, 255, 255, 0);
-            box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
+        }
+    }
+
+    @keyframes skin-hover-grow {
+        from {
+            transform: scale(1);
+        }
+
+        to {
+            transform: scale(1.25);
+        }
+    }
+
+    @keyframes skin-hover-shrink {
+        from {
+            transform: scale(1.25);
+        }
+
+        to {
+            transform: scale(1);
+        }
+    }
+
+    .button-wrapper {
+        position: relative;
+        display: inline-flex;
+        width: auto;
+    }
+
+    .button-hovered-clone {
+        position: absolute;
+        top: 0;
+        left: 0;
+        box-sizing: border-box;
+        pointer-events: none;
+        display: none;
+        z-index: 100;
+        transform-origin: center center;
+
+        &.growing {
+            animation: button-hover-grow 0.3s ease-out forwards;
+        }
+
+        &.shrinking {
+            animation: button-hover-shrink 0.3s ease-out forwards;
+        }
+    }
+
+    @keyframes button-hover-grow {
+        from {
+            transform: skewX(-10deg) scale(1);
+        }
+
+        to {
+            transform: skewX(-10deg) scale(1.1);
+        }
+    }
+
+    @keyframes button-hover-shrink {
+        from {
+            transform: skewX(-10deg) scale(1.1);
+        }
+
+        to {
+            transform: skewX(-10deg) scale(1);
         }
     }
 
@@ -641,10 +876,11 @@
 
 @media screen and (max-width: 1300px) {
     .cars-toolbar nav {
-        height:7.4em !important;
+        height: 7.4em !important;
     }
-    .dash .sub-menu{
-        height:calc(7.4em * var(--scale-factor)) !important;
+
+    .dash .sub-menu {
+        height: calc(7.4em * var(--scale-factor)) !important;
     }
 }
 

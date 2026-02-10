@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Globalization;
+using System.Diagnostics;
 using RacerUI.Entities;
 using RacerUI.Models;
 
@@ -9,6 +10,349 @@ namespace RacerUI.Helpers
 {
     public static class AssettoCorsaHelper
     {
+        public static bool RunGame(
+            string gamePath,
+            string carPath,
+            string skinPath,
+            string trackPath,
+            string trackConfig = "",
+            string driverName = "Player",
+            int sessionType = 4,
+            string sessionName = "Hotlap",
+            string spawnSet = "HOTLAP_START",
+            int sunAngle = 16,
+            int ambientTemp = 26,
+            int roadTemp = 32,
+            string weatherName = "4_mid_clear",
+            int aiLevel = 95,
+            int raceLaps = 5,
+            int cars = 1,
+            int sessionDuration = 0,
+            int sessionLaps = 0,
+            float timeMultiplier = 1.0f,
+            int trackGripStart = 95,
+            int trackGripRandomness = 1,
+            int trackGripLapGain = 1,
+            int trackGripTransfer = 90,
+            int launcherType = 2)
+        {
+            try
+            {
+                // Log incoming parameters
+                Console.WriteLine($"RunGame called with:");
+                Console.WriteLine($"  gamePath: {gamePath}");
+                Console.WriteLine($"  carPath: {carPath}");
+                Console.WriteLine($"  skinPath: {skinPath}");
+                Console.WriteLine($"  trackPath: {trackPath}");
+                Console.WriteLine($"  trackConfig: {trackConfig}");
+                
+                // Resolve case-sensitive paths for car, track, and skin
+                var resolvedCarPath = ResolveCaseSensitivePath(gamePath, "content\\cars", carPath);
+                var resolvedTrackPath = ResolveCaseSensitivePath(gamePath, "content\\tracks", trackPath);
+                var resolvedTrackConfig = string.IsNullOrEmpty(trackConfig) ? "" : ResolveCaseSensitivePath(Path.Combine(gamePath, "content\\tracks", resolvedTrackPath), "", trackConfig);
+                
+                string resolvedSkinPath = "";
+                if (!string.IsNullOrEmpty(skinPath))
+                {
+                    resolvedSkinPath = ResolveCaseSensitivePath(Path.Combine(gamePath, "content\\cars", resolvedCarPath), "skins", skinPath);
+                }
+                
+                // Log resolved paths
+                Console.WriteLine($"Resolved paths:");
+                Console.WriteLine($"  Car: {resolvedCarPath}");
+                Console.WriteLine($"  Skin: {resolvedSkinPath}");
+                Console.WriteLine($"  Track: {resolvedTrackPath}");
+                Console.WriteLine($"  Track Config: {resolvedTrackConfig}");
+
+                // Get AC documents folder path
+                var documentsPath = Path.Combine(
+                    System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments),
+                    "Assetto Corsa"
+                );
+                
+                var cfgPath = Path.Combine(documentsPath, "cfg");
+                var raceIniPath = Path.Combine(cfgPath, "race.ini");
+
+                // Ensure cfg directory exists
+                if (!Directory.Exists(cfgPath))
+                {
+                    Directory.CreateDirectory(cfgPath);
+                }
+
+                // Write race.ini configuration file with resolved case-sensitive paths
+                WriteRaceIni(raceIniPath, resolvedCarPath, resolvedSkinPath, resolvedTrackPath, resolvedTrackConfig,
+                    driverName, sessionType, sessionName, spawnSet, sunAngle,
+                    ambientTemp, roadTemp, weatherName, aiLevel, raceLaps, cars,
+                    sessionDuration, sessionLaps, timeMultiplier, trackGripStart,
+                    trackGripRandomness, trackGripLapGain, trackGripTransfer, launcherType);
+
+                string exePath;
+                string launcherName;
+
+                // Determine which executable to launch based on launcher type
+                switch (launcherType)
+                {
+                    case 0: // Direct launch (NaiveStarter)
+                        exePath = Path.Combine(gamePath, "acs.exe");
+                        launcherName = "Direct Launch";
+                        break;
+                    
+                    case 1: // Official launcher (OfficialStarter)
+                        exePath = Path.Combine(gamePath, "AssettoCorsa.exe");
+                        launcherName = "Official Launcher";
+                        break;
+                    
+                    case 2: // Steam launch (SteamStarter)
+                    default:
+                        exePath = Path.Combine(gamePath, "acs.exe");
+                        launcherName = "Steam Launch";
+                        break;
+                }
+                
+                if (!File.Exists(exePath))
+                {
+                    Console.WriteLine($"Assetto Corsa executable not found at: {exePath}");
+                    return false;
+                }
+
+                // Start the game process
+                var processStartInfo = new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    WorkingDirectory = gamePath,
+                    UseShellExecute = true
+                };
+
+                // For Steam launch, we could add Steam protocol support in the future
+                // For now, direct launch to acs.exe with Steam overlay should work if Steam is running
+
+                var process = Process.Start(processStartInfo);
+                
+                if (process != null)
+                {
+                    Console.WriteLine($"Assetto Corsa launched successfully via {launcherName}. Configuration written to: {raceIniPath}");
+                    return true;
+                }
+                else
+                {
+                    Console.WriteLine("Failed to start Assetto Corsa process");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error launching Assetto Corsa: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static string ResolveCaseSensitivePath(string basePath, string subFolder, string targetFolder)
+        {
+            try
+            {
+                // Construct the full search path
+                var searchPath = string.IsNullOrEmpty(subFolder) ? basePath : Path.Combine(basePath, subFolder);
+                
+                Console.WriteLine($"ResolveCaseSensitivePath: Looking for '{targetFolder}' in '{searchPath}'");
+                
+                if (!Directory.Exists(searchPath))
+                {
+                    Console.WriteLine($"  ERROR: Search path does not exist: {searchPath}");
+                    return targetFolder; // Return original if path doesn't exist
+                }
+
+                // Get all directories in the search path
+                var directories = Directory.GetDirectories(searchPath);
+                Console.WriteLine($"  Found {directories.Length} directories to search");
+                
+                // Find the directory that matches case-insensitively
+                foreach (var dir in directories)
+                {
+                    var dirName = Path.GetFileName(dir);
+                    if (string.Equals(dirName, targetFolder, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Console.WriteLine($"  MATCH FOUND: '{dirName}'");
+                        // Return the actual case-sensitive folder name
+                        return dirName;
+                    }
+                }
+                
+                Console.WriteLine($"  NO MATCH: Folder '{targetFolder}' not found in '{searchPath}'");
+                Console.WriteLine($"  Returning original value: '{targetFolder}'");
+                return targetFolder; // Return original if not found
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  ERROR: Exception resolving case-sensitive path: {ex.Message}");
+                return targetFolder; // Return original on error
+            }
+        }
+
+        private static void WriteRaceIni(
+            string iniPath,
+            string carPath,
+            string skinPath,
+            string trackPath,
+            string trackConfig,
+            string driverName,
+            int sessionType,
+            string sessionName,
+            string spawnSet,
+            int sunAngle,
+            int ambientTemp,
+            int roadTemp,
+            string weatherName,
+            int aiLevel,
+            int raceLaps,
+            int cars,
+            int sessionDuration,
+            int sessionLaps,
+            float timeMultiplier,
+            int trackGripStart,
+            int trackGripRandomness,
+            int trackGripLapGain,
+            int trackGripTransfer,
+            int launcherType)
+        {
+            var ini = new StringBuilder();
+
+            // [RACE] section - Car and track selection
+            ini.AppendLine("[RACE]");
+            ini.AppendLine($"MODEL={carPath}");
+            ini.AppendLine($"SKIN={skinPath}");
+            ini.AppendLine($"TRACK={trackPath}");
+            ini.AppendLine($"CONFIG_TRACK={trackConfig}");
+            ini.AppendLine($"CARS={cars}");
+            ini.AppendLine($"AI_LEVEL={aiLevel}");
+            ini.AppendLine($"RACE_LAPS={raceLaps}");
+            ini.AppendLine("MODEL_CONFIG=");
+            ini.AppendLine("DRIFT_MODE=0");
+            ini.AppendLine("FIXED_SETUP=0");
+            ini.AppendLine("PENALTIES=0");
+            ini.AppendLine("JUMP_START_PENALTY=0");
+            ini.AppendLine();
+
+            // [CAR_0] section - Player car details
+            ini.AppendLine("[CAR_0]");
+            ini.AppendLine("SETUP=");
+            ini.AppendLine($"SKIN={skinPath}");
+            ini.AppendLine("MODEL=-");
+            ini.AppendLine("MODEL_CONFIG=");
+            ini.AppendLine("BALLAST=0");
+            ini.AppendLine("RESTRICTOR=0");
+            ini.AppendLine($"DRIVER_NAME={driverName}");
+            ini.AppendLine("NATIONALITY=");
+            ini.AppendLine("NATION_CODE=");
+            ini.AppendLine();
+
+            // [LIGHTING] section - Time of day
+            ini.AppendLine("[LIGHTING]");
+            ini.AppendLine($"SUN_ANGLE={sunAngle}");
+            ini.AppendLine($"TIME_MULT={timeMultiplier.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)}");
+            ini.AppendLine("CLOUD_SPEED=0.200");
+            ini.AppendLine();
+
+            // [TEMPERATURE] section - Weather conditions
+            ini.AppendLine("[TEMPERATURE]");
+            ini.AppendLine($"AMBIENT={ambientTemp}");
+            ini.AppendLine($"ROAD={roadTemp}");
+            ini.AppendLine();
+
+            // [WEATHER] section
+            ini.AppendLine("[WEATHER]");
+            ini.AppendLine($"NAME={weatherName}");
+            ini.AppendLine();
+
+            // [HEADER] section
+            ini.AppendLine("[HEADER]");
+            ini.AppendLine("VERSION=2");
+            ini.AppendLine();
+
+            // [DYNAMIC_TRACK] section - Track grip
+            ini.AppendLine("[DYNAMIC_TRACK]");
+            ini.AppendLine($"SESSION_START={trackGripStart}");
+            ini.AppendLine($"RANDOMNESS={trackGripRandomness}");
+            ini.AppendLine($"LAP_GAIN={trackGripLapGain}");
+            ini.AppendLine($"SESSION_TRANSFER={trackGripTransfer}");
+            ini.AppendLine();
+
+            // [REMOTE] section - Online mode (disabled by default)
+            ini.AppendLine("[REMOTE]");
+            ini.AppendLine("ACTIVE=0");
+            ini.AppendLine("SERVER_IP=");
+            ini.AppendLine("SERVER_PORT=9600");
+            ini.AppendLine("GUID=");
+            ini.AppendLine("PASSWORD=");
+            ini.AppendLine();
+
+            // [BENCHMARK] section
+            ini.AppendLine("[BENCHMARK]");
+            ini.AppendLine("ACTIVE=0");
+            ini.AppendLine();
+
+            // [REPLAY] section
+            ini.AppendLine("[REPLAY]");
+            ini.AppendLine("ACTIVE=0");
+            ini.AppendLine();
+
+            // [RESTART] section
+            ini.AppendLine("[RESTART]");
+            ini.AppendLine("ACTIVE=0");
+            ini.AppendLine();
+
+            // [OPTIONS] section
+            ini.AppendLine("[OPTIONS]");
+            ini.AppendLine("USE_MPH=0");
+            ini.AppendLine();
+
+            // [LAP_INVALIDATOR] section
+            ini.AppendLine("[LAP_INVALIDATOR]");
+            ini.AppendLine("ALLOWED_TYRES_OUT=-1");
+            ini.AppendLine();
+
+            // [GHOST_CAR] section
+            ini.AppendLine("[GHOST_CAR]");
+            ini.AppendLine("RECORDING=0");
+            ini.AppendLine("PLAYING=0");
+            ini.AppendLine("LOAD=0");
+            ini.AppendLine("FILE=");
+            ini.AppendLine("ENABLED=0");
+            ini.AppendLine();
+
+            // [GROOVE] section
+            ini.AppendLine("[GROOVE]");
+            ini.AppendLine("VIRTUAL_LAPS=10");
+            ini.AppendLine("MAX_LAPS=30");
+            ini.AppendLine("STARTING_LAPS=0");
+            ini.AppendLine();
+
+            // [SESSION_0] section - Session configuration
+            ini.AppendLine("[SESSION_0]");
+            ini.AppendLine($"NAME={sessionName}");
+            ini.AppendLine($"TYPE={sessionType}");
+            ini.AppendLine($"DURATION_MINUTES={sessionDuration}");
+            ini.AppendLine($"SPAWN_SET={spawnSet}");
+            ini.AppendLine();
+
+            // [WIND] section
+            ini.AppendLine("[WIND]");
+            ini.AppendLine("SPEED_KMH_MIN=10");
+            ini.AppendLine("SPEED_KMH_MAX=10");
+            ini.AppendLine("DIRECTION_DEG=0");
+            ini.AppendLine();
+
+            // [AUTOSPAWN] section - For official launcher auto-start
+            if (launcherType == 1)
+            {
+                ini.AppendLine("[AUTOSPAWN]");
+                ini.AppendLine("ACTIVE=true");
+                ini.AppendLine();
+            }
+
+            // Write to file
+            File.WriteAllText(iniPath, ini.ToString());
+        }
+
         public static string[] GetDriverNames(string names)
         {
             TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;

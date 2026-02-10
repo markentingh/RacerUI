@@ -151,10 +151,6 @@ body.dark-mode .logo .dark {
     background: rgba(0, 0, 0, 0);
   }
 }
-darkmode-toggle.scale-us {
-  width: calc(160px * var(--scale-factor));
-  max-height: calc(24px * var(--scale-factor));
-}
 .toggle {
   display: inline-block;
   width: 3.5em;
@@ -205,8 +201,7 @@ darkmode-toggle.scale-us {
   animation: toggle-switch-on 0.3s ease-in;
 }
 .toggle-dark-mode {
-  width: calc(10em * var(--scale-factor));
-  height: calc(1.5em * var(--scale-factor));
+  white-space: nowrap;
 }
 .toggle-dark-mode > span {
   display: inline-block;
@@ -288,7 +283,7 @@ body .game-loaded {
 }
 .dash nav darkmode-toggle {
   float: right;
-  margin-top: 1.25em;
+  margin: 1.25em 2em 0 0;
 }
 .dash nav .game-default-name {
   display: none;
@@ -365,12 +360,7 @@ input::focus {
 }
 .footer {
   grid-row: 2;
-  padding: 1em 1em 2em 1em;
   max-width: 100vw;
-}
-.footer darkmode-toggle {
-  float: right;
-  margin: 0 0 0 1em;
 }
 ul.select-list {
   list-style-type: none;
@@ -405,7 +395,7 @@ ul.select-list li a {
     padding: 0.5em 0.25em;
   }
 }
-@media screen and (max-width: 760px) {
+@media screen and (max-width: 870px) {
   .dash > nav {
     height: 30px;
     font-size: 0.4em;
@@ -531,12 +521,7 @@ button,
 .tracks-toolbar nav ul.menu li.clear-filter-btn:hover {
   background: none !important;
 }
-.tracks-toolbar nav ul.menu li.clear-filter-btn:hover svg use {
-  color: #9d7bb8 !important;
-}
 .tracks-toolbar nav ul.menu li.clear-filter-btn button {
-  background: rgba(157, 123, 184, 0.2);
-  color: #9d7bb8;
   padding: 0.5em 1em;
   border-radius: 0.3em;
   cursor: pointer;
@@ -549,17 +534,6 @@ button,
 .tracks-toolbar nav ul.menu li.clear-filter-btn button svg {
   width: 1em;
   height: 1em;
-}
-.tracks-toolbar nav ul.menu li.clear-filter-btn button svg use {
-  color: #9d7bb8;
-}
-.tracks-toolbar nav ul.menu li.clear-filter-btn button:hover {
-  background: rgba(157, 123, 184, 0.3);
-  border-color: rgba(157, 123, 184, 0.6);
-  color: #b89dd4;
-}
-.tracks-toolbar nav ul.menu li.clear-filter-btn button:hover use {
-  color: #b25ef7 !important;
 }
 .tracks-toolbar .close-btn {
   width: 2em;
@@ -574,7 +548,6 @@ button,
 .tracks-filter {
   position: absolute;
   z-index: 100;
-  background-color: rgba(0, 0, 0, 0.8);
   width: 100%;
   overflow-y: auto;
   max-height: calc(100vh - 5em);
@@ -582,15 +555,8 @@ button,
 .tracks-filter::-webkit-scrollbar {
   width: 0.5em;
 }
-.tracks-filter::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-}
 .tracks-filter::-webkit-scrollbar-thumb {
-  background: #3b2c75;
   border-radius: 3px;
-}
-.tracks-filter::-webkit-scrollbar-thumb:hover {
-  background: #4a3690;
 }
 .filter-country ul.select-list,
 .filter-type ul.select-list {
@@ -620,11 +586,7 @@ button,
 .tracks-content::-webkit-scrollbar {
   width: 10px;
 }
-.tracks-content::-webkit-scrollbar-track {
-  background: #000000;
-}
 .tracks-content::-webkit-scrollbar-thumb {
-  background: #3f265a;
   border-radius: 10px;
 }
 .tracks-content .grid-view {
@@ -646,7 +608,6 @@ button,
   background-size: cover;
   background-position: center;
   border-radius: 0.5em;
-  background-color: #88afd1;
   transition: opacity 0.3s ease-in-out;
 }
 .tracks-content .grid-view .track.selected {
@@ -666,7 +627,6 @@ button,
   pointer-events: none;
   transition: all 0.4s ease-in-out 0.1s;
   transform: translate(0, 0);
-  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
 }
 .tracks-content .grid-view .track:hover .track-outline {
   height: 90%;
@@ -690,12 +650,6 @@ button,
   margin-left: 0.25em;
   line-height: 1.25;
 }
-.tracks-content .grid-view .track .info-top .track-length {
-  background-color: rgba(0, 0, 0, 0.75);
-}
-.tracks-content .grid-view .track .info-top .track-type {
-  background-color: rgba(89, 37, 131, 0.75);
-}
 .tracks-content .grid-view .track .info {
   position: absolute;
   bottom: 0.6em;
@@ -713,7 +667,6 @@ button,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background-color: rgba(0, 0, 0, 0.75);
   display: inline-block;
   padding: 0.25em 0.5em;
   margin-right: 0.5em;
@@ -728,7 +681,6 @@ button,
 }
 .tracks-content .grid-view .track .flag img {
   width: 100%;
-  border: 1px solid rgba(128, 128, 128, 0.25);
   border-radius: 0.2em;
 }
 .tracks-content .grid-view .track.hovered-clone {
@@ -748,7 +700,6 @@ button,
   pointer-events: none;
   transform: translate(0, 0);
   transition: all 0.4s ease-in-out 0.1s;
-  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
 }
 .tracks-content .grid-view .track.hovered-clone:hover .track-outline {
   height: 90%;
@@ -801,77 +752,101 @@ button,
   max-height: 100%;
   overflow: hidden;
 }
+.tracks-content .grid-details .info .title {
+  border-radius: 0.15em;
+}
 .tracks-content .grid-details .info h4 {
   font-size: 1.8em;
   font-weight: normal;
   margin: 0 0 0.25em 0;
-  background: rgba(88, 88, 88, 0.38);
   padding: 0.25em 0.5em 0.3em 0.5em;
   border-radius: 0.15em;
 }
-.tracks-content .grid-details .track-origin {
+.tracks-content .grid-details .info .track-header {
   display: flex;
   align-items: center;
-  width: 100%;
+  gap: 0.5em;
+  flex-wrap: wrap;
   margin-bottom: 0.4em;
 }
-.tracks-content .grid-details .track-origin > div {
+.tracks-content .grid-details .info .select-track-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.65em 1.5em;
+  border-radius: 0.15em;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+}
+.tracks-content .grid-details .info .select-track-btn svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+.tracks-content .grid-details .info .track-outline-float {
+  float: right;
+  max-width: 30%;
+  height: auto;
+  margin: 0 0 1em 1em;
+  border-radius: 0.15em;
+}
+.tracks-content .grid-details .info .track-origin {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+.tracks-content .grid-details .info .track-origin > div {
   display: flex;
   align-items: center;
   padding: 0.3em 0.5em 0.4em 0.5em;
-  background: rgba(88, 88, 88, 0.38);
   border-radius: 0.15em;
   margin-right: 0.5em;
 }
-.tracks-content .grid-details .track-origin .flag {
+.tracks-content .grid-details .info .track-origin .flag {
   vertical-align: top;
   width: 1.5em;
   margin: 0.25em 0.5em 0 0;
   align-self: flex-start;
 }
-.tracks-content .grid-details .track-stats {
+.tracks-content .grid-details .info .track-stats {
   white-space: nowrap;
   padding: 0.25em 0.5em;
-  background: rgba(88, 88, 88, 0.38);
   border-radius: 0.15em;
   margin-bottom: 0.4em;
 }
-.tracks-content .grid-details .track-stats > div {
+.tracks-content .grid-details .info .track-stats > div {
   display: inline-block;
   padding: 0 0.5em 0 0;
 }
-.tracks-content .grid-details .track-stats > div span {
+.tracks-content .grid-details .info .track-stats > div span {
   display: inline-block;
   padding: 0 0.4em;
-  background: rgba(60, 76, 136, 0.7);
   border-radius: 0.15em;
   margin-right: 0.5em;
 }
-.tracks-content .grid-details .track-description {
+.tracks-content .grid-details .info .track-description {
   padding: 0.5em;
-  background: rgba(88, 88, 88, 0.38);
   border-radius: 0.15em;
   margin-bottom: 0.4em;
   overflow-y: auto;
 }
-.tracks-content .grid-details .track-description::-webkit-scrollbar {
+.tracks-content .grid-details .info .track-description::-webkit-scrollbar {
   width: 10px;
 }
-.tracks-content .grid-details .track-description::-webkit-scrollbar-track {
-  background: #000000;
-}
-.tracks-content .grid-details .track-description::-webkit-scrollbar-thumb {
-  background: #3f265a;
+.tracks-content .grid-details .info .track-description::-webkit-scrollbar-thumb {
   border-radius: 10px;
 }
-.tracks-content .grid-details .track-description p {
+.tracks-content .grid-details .info .track-description p {
   margin: 0 0 2em 0;
   line-height: 1.4em;
 }
-.tracks-content .grid-details .track-author {
+.tracks-content .grid-details .info .track-author {
   padding: 0.3em 0.5em;
-  background: rgba(88, 88, 88, 0.38);
   border-radius: 0.15em;
+}
+.tracks-content .grid-details .info .track-info-container {
+  width: 100%;
 }
 .tracks-content .grid-details.hiding {
   animation: hide-details 0.3334s ease-out forwards;
@@ -897,15 +872,11 @@ button,
     width: 100%;
     top: 0%;
     left: 0%;
-    border-color: rgba(255, 255, 255, 0);
-    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
   }
   to {
     width: 120%;
     top: -10%;
     left: -10%;
-    border-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
   }
 }
 @keyframes hover-shrink {
@@ -913,15 +884,11 @@ button,
     width: 120%;
     top: -10%;
     left: -10%;
-    border-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
   }
   to {
     width: 100%;
     top: 0%;
     left: 0%;
-    border-color: rgba(255, 255, 255, 0);
-    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
   }
 }
 @keyframes outline-to-center {
@@ -936,6 +903,43 @@ button,
     bottom: 50%;
     right: 50%;
     transform: translate(50%, 50%);
+  }
+}
+.tracks-content .button-wrapper {
+  position: relative;
+  display: inline-flex;
+  width: auto;
+}
+.tracks-content .button-hovered-clone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  pointer-events: none;
+  display: none;
+  z-index: 100;
+  transform-origin: center center;
+}
+.tracks-content .button-hovered-clone.growing {
+  animation: button-hover-grow 0.3s ease-out forwards;
+}
+.tracks-content .button-hovered-clone.shrinking {
+  animation: button-hover-shrink 0.3s ease-out forwards;
+}
+@keyframes button-hover-grow {
+  from {
+    transform: skewX(-10deg) scale(1);
+  }
+  to {
+    transform: skewX(-10deg) scale(1.1);
+  }
+}
+@keyframes button-hover-shrink {
+  from {
+    transform: skewX(-10deg) scale(1.1);
+  }
+  to {
+    transform: skewX(-10deg) scale(1);
   }
 }
 .content.settings .coming-soon {
@@ -1023,6 +1027,146 @@ button,
 .content.game .checking-assets .skip-btn {
   margin-top: 1em;
 }
+.footer-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 8em;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+.footer-container .footer-content {
+  display: grid;
+  grid-template-columns: 15em 15em 1fr 15em;
+  gap: 1em;
+  padding: 1em;
+  align-items: center;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+.footer-container .footer-car-preview,
+.footer-container .footer-track-preview {
+  height: 6em;
+  border-radius: 0.5em;
+  overflow: hidden;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+.footer-container .footer-car-preview .preview-placeholder,
+.footer-container .footer-track-preview .preview-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  opacity: 0.5;
+}
+.footer-container .footer-car-preview .preview-placeholder svg,
+.footer-container .footer-track-preview .preview-placeholder svg {
+  width: 2em;
+  height: 2em;
+}
+.footer-container .footer-car-preview .preview-placeholder span,
+.footer-container .footer-track-preview .preview-placeholder span {
+  font-size: 0.8em;
+  text-align: center;
+}
+.footer-container .footer-car-preview.has-preview .preview-placeholder,
+.footer-container .footer-track-preview.has-preview .preview-placeholder {
+  display: none;
+}
+.footer-container .footer-session-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1em;
+  line-height: 1.5;
+}
+.footer-container .footer-session-info .session-text {
+  text-align: center;
+  font-size: 1.2em;
+  font-weight: 500;
+}
+.footer-container .footer-session-info .session-text .no-selection {
+  opacity: 0.5;
+}
+.footer-container .footer-session-info .session-text .car-name,
+.footer-container .footer-session-info .session-text .track-name {
+  font-weight: 600;
+}
+.footer-container .footer-play-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.footer-container .footer-play-button .play-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: 1em 2em;
+  border: none;
+  border-radius: 0.5em;
+  cursor: pointer;
+  font-size: 1.3em;
+  font-weight: 200;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: center;
+}
+.footer-container .footer-play-button .play-btn svg {
+  width: 1.5em;
+  height: 1.5em;
+}
+.footer-container .footer-play-button .play-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.footer-content .button-wrapper {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+}
+.button-hovered-clone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  display: none;
+  z-index: 100;
+  transform-origin: center center;
+}
+.button-hovered-clone.growing {
+  animation: button-hover-grow 0.3s ease-out forwards;
+}
+.button-hovered-clone.shrinking {
+  animation: button-hover-shrink 0.3s ease-out forwards;
+}
+@keyframes button-hover-grow {
+  from {
+    transform: skewX(-10deg) scale(1);
+  }
+  to {
+    transform: skewX(-10deg) scale(1.1);
+  }
+}
+@keyframes button-hover-shrink {
+  from {
+    transform: skewX(-10deg) scale(1.1);
+  }
+  to {
+    transform: skewX(-10deg) scale(1);
+  }
+}
+@media screen and (max-width: 1080px) {
+  .footer-session-info .session-text {
+    display: none !important;
+  }
+}
 .content.cars .coming-soon {
   padding: 2em;
   text-align: center;
@@ -1072,12 +1216,7 @@ button,
 .cars-toolbar nav ul.menu li.clear-filter-btn:hover {
   background: none !important;
 }
-.cars-toolbar nav ul.menu li.clear-filter-btn:hover svg use {
-  color: #9d7bb8 !important;
-}
 .cars-toolbar nav ul.menu li.clear-filter-btn button {
-  background: rgba(157, 123, 184, 0.2);
-  color: #9d7bb8;
   padding: 0.5em 1em;
   border-radius: 0.3em;
   cursor: pointer;
@@ -1090,17 +1229,6 @@ button,
 .cars-toolbar nav ul.menu li.clear-filter-btn button svg {
   width: 1em;
   height: 1em;
-}
-.cars-toolbar nav ul.menu li.clear-filter-btn button svg use {
-  color: #9d7bb8;
-}
-.cars-toolbar nav ul.menu li.clear-filter-btn button:hover {
-  background: rgba(157, 123, 184, 0.3);
-  border-color: rgba(157, 123, 184, 0.6);
-  color: #b89dd4;
-}
-.cars-toolbar nav ul.menu li.clear-filter-btn button:hover use {
-  color: #b25ef7 !important;
 }
 .cars-toolbar .close-btn {
   width: 2em;
@@ -1115,23 +1243,15 @@ button,
 .cars-filter {
   position: absolute;
   z-index: 100;
-  background-color: rgba(0, 0, 0, 0.8);
   width: 100%;
   overflow-y: auto;
-  max-height: calc(100vh - 5em);
+  overflow-x: hidden;
 }
 .cars-filter::-webkit-scrollbar {
   width: 0.5em;
 }
-.cars-filter::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-}
 .cars-filter::-webkit-scrollbar-thumb {
-  background: #3b2c75;
   border-radius: 3px;
-}
-.cars-filter::-webkit-scrollbar-thumb:hover {
-  background: #4a3690;
 }
 .filter-view ul.select-list {
   padding: 0 2em 0 2em;
@@ -1205,11 +1325,10 @@ button,
   padding: 0 0.5em 0 0;
   vertical-align: middle;
 }
-.filter-class .class-category h4 {
+.filter-class .class-category h3 {
   margin: 1em 0 1em 0.5em;
   font-size: 1.25em;
   font-weight: normal;
-  color: #9d7bb8;
 }
 .filter-class .class-category ul.class-list {
   list-style: none;
@@ -1257,11 +1376,7 @@ button,
 .cars-content::-webkit-scrollbar {
   width: 10px;
 }
-.cars-content::-webkit-scrollbar-track {
-  background: #000000;
-}
 .cars-content::-webkit-scrollbar-thumb {
-  background: #3f265a;
   border-radius: 10px;
 }
 .cars-content .grid-view {
@@ -1281,6 +1396,7 @@ button,
   border-width: 0;
   box-shadow: none;
   transition: opacity 0.3s ease-in-out;
+  border-radius: 0.5em;
 }
 .cars-content .grid-view .car img {
   width: 100%;
@@ -1301,7 +1417,6 @@ button,
   font-size: 0.875em;
 }
 .cars-content .grid-view .car .info-top .car-class {
-  background-color: rgba(115, 49, 170, 0.5);
   padding: 0.25em 0.5em;
   border-radius: 0.5em;
   margin-left: 0.5em;
@@ -1320,7 +1435,15 @@ button,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background-color: rgba(0, 0, 0, 0.75);
+  display: inline-block;
+  padding: 0.25em 0.5em;
+  border-radius: 0.5em;
+}
+.cars-content .grid-view .car .info h2 .name {
+  font-size: 1em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: inline-block;
   padding: 0.25em 0.5em;
   border-radius: 0.5em;
@@ -1334,7 +1457,6 @@ button,
 }
 .cars-content .grid-view .car .flag img {
   width: 100%;
-  border: 1px solid rgba(128, 128, 128, 0.25);
   border-radius: 0.2em;
 }
 .cars-content .grid-view .car.hovered-clone {
@@ -1363,11 +1485,95 @@ button,
   animation: show-details 0.3334s ease-out forwards;
   overflow: hidden;
 }
+.cars-content .grid-details .preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  position: relative;
+  overflow: hidden;
+  width: calc(40vw / var(--scale-factor));
+}
 .cars-content .grid-details .preview {
-  max-height: 40vh;
-  max-width: 60vw;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background-size: cover;
+  background-position: center;
+  border-radius: 0.5em;
+  position: relative;
+  z-index: 9;
+}
+.cars-content .grid-details .preview.preview-fade-in {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+  z-index: 10;
+}
+.cars-content .grid-details .preview.preview-fade-in.visible {
+  opacity: 1;
+}
+.cars-content .grid-details .skins-container {
+  overflow-y: auto;
+}
+.cars-content .grid-details .skins-container::-webkit-scrollbar {
+  width: 0.5em;
+}
+.cars-content .grid-details .skins-container::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+}
+.cars-content .grid-details .skins {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  padding: 0.5em;
+  border-radius: 0.5em;
+}
+.cars-content .grid-details .skins::-webkit-scrollbar {
+  width: 0.5em;
+}
+.cars-content .grid-details .skins::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+}
+.cars-content .grid-details .skins .skin-item {
+  width: 3em;
+  height: 3em;
+  object-fit: cover;
+  border-radius: 0.25em;
+  cursor: pointer;
+  transition: opacity 0.2s ease-in-out, outline 0.2s ease-in-out;
+  position: relative;
+}
+.cars-content .grid-details .skins .skin-item:hover {
+  opacity: 0.7;
+}
+.cars-content .grid-details .skins .skin-item.selected {
+  outline: 0.25em solid #4a9eff;
+  outline-offset: 0;
+}
+.cars-content .grid-details .skins .skin-hovered-clone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3em;
+  height: 3em;
+  object-fit: cover;
+  border-radius: 0.25em;
+  pointer-events: none;
+  display: none;
+  z-index: 100;
+  transform-origin: center center;
+}
+.cars-content .grid-details .skins .skin-hovered-clone.growing {
+  animation: skin-hover-grow 0.3s ease-out forwards;
+}
+.cars-content .grid-details .skins .skin-hovered-clone.shrinking {
+  animation: skin-hover-shrink 0.3s ease-out forwards;
 }
 .cars-content .grid-details .info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
   padding: 0 0 0 1em;
   line-height: 1.5em;
   width: 100%;
@@ -1376,22 +1582,66 @@ button,
 .cars-content .grid-details .info h4 {
   font-size: 1.8em;
   font-weight: normal;
-  margin: 0 0 0.25em 0;
-  background: rgba(88, 88, 88, 0.38);
   padding: 0.25em 0.5em 0.3em 0.5em;
   border-radius: 0.15em;
+}
+.cars-content .grid-details .info .car-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+}
+.cars-content .grid-details .info .select-car-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.65em 1.5em;
+  border-radius: 0.15em;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+}
+.cars-content .grid-details .info .select-car-btn svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+.cars-content .grid-details .info .car-tabs {
+  display: flex;
+  gap: 0.5em;
+  margin-right: 1em;
+}
+.cars-content .grid-details .info .car-tabs .car-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.65em 1.5em;
+  border: none;
+  border-radius: 0.15em;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+}
+.cars-content .grid-details .info .car-tabs .car-tab svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+.cars-content .grid-details .info .car-tab-content {
+  display: none;
+}
+.cars-content .grid-details .info .car-tab-content.active {
+  display: block;
 }
 .cars-content .grid-details .car-origin {
   display: flex;
   align-items: center;
-  width: 100%;
-  margin-bottom: 0.4em;
+  flex: 1;
 }
 .cars-content .grid-details .car-origin > div {
   display: flex;
   align-items: center;
   padding: 0.3em 0.5em 0.4em 0.5em;
-  background: rgba(88, 88, 88, 0.38);
   border-radius: 0.15em;
   margin-right: 0.5em;
 }
@@ -1401,19 +1651,17 @@ button,
   margin: 0.25em 0.5em 0 0;
   align-self: flex-start;
 }
-.cars-content .grid-details .car-origin .car-shifter svg {
-  width: 1em;
-  margin: 0.25em 0.5em 0 0;
-  align-self: flex-start;
+.cars-content .grid-details .car-origin .car-class,
+.cars-content .grid-details .car-origin .car-country {
+  cursor: pointer;
 }
-.cars-content .grid-details .car-origin .car-shifter span {
-  display: inline-block;
-  padding-right: 0.25em;
+.cars-content .grid-details .car-origin .car-class:hover,
+.cars-content .grid-details .car-origin .car-country:hover {
+  border-radius: 0.15em;
 }
 .cars-content .grid-details .car-stats {
   white-space: nowrap;
   padding: 0.25em 0.5em;
-  background: rgba(88, 88, 88, 0.38);
   border-radius: 0.15em;
 }
 .cars-content .grid-details .car-stats > div {
@@ -1423,27 +1671,69 @@ button,
 .cars-content .grid-details .car-stats > div span {
   display: inline-block;
   padding: 0 0.4em;
-  background: rgba(60, 76, 136, 0.7);
   border-radius: 0.15em;
   margin-right: 0.5em;
+}
+.cars-content .grid-details .car-info {
+  padding: 0.5em;
+  border-radius: 0.15em;
+  margin-bottom: 0.4em;
+  overflow-y: auto;
+}
+.cars-content .grid-details .car-info::-webkit-scrollbar {
+  width: 10px;
+}
+.cars-content .grid-details .car-info::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+}
+.cars-content .grid-details .car-info p {
+  margin: 0 0 2em 0;
+  line-height: 1.4em;
+}
+.cars-content .grid-details .car-shifter svg {
+  width: 1em;
+  margin: 0.25em 0.5em 0 0;
+  align-self: flex-start;
+}
+.cars-content .grid-details .car-shifter span {
+  display: inline-block;
+  padding-right: 0.25em;
 }
 .cars-content .grid-details.hiding {
   animation: hide-details 0.3334s ease-out forwards;
 }
 @keyframes show-details {
   from {
-    max-height: 0vh;
+    height: 0vh;
   }
   to {
-    max-height: 40vh;
+    height: calc((40vw * 9 / 16) + 8em);
   }
 }
 @keyframes hide-details {
   from {
-    max-height: 40vh;
+    height: calc((40vw * 9 / 16) + 8em);
   }
   to {
-    max-height: 0vh;
+    height: 0vh;
+  }
+}
+@media (min-width: 1921px) {
+  @keyframes show-details {
+    from {
+      height: 0vh;
+    }
+    to {
+      height: calc((40vw / var(--scale-factor)) * 9 / 16 + 8em);
+    }
+  }
+  @keyframes hide-details {
+    from {
+      height: calc((40vw / var(--scale-factor)) * 9 / 16 + 8em);
+    }
+    to {
+      height: 0vh;
+    }
   }
 }
 @keyframes hover-grow {
@@ -1451,15 +1741,11 @@ button,
     width: 100%;
     top: 0%;
     left: 0%;
-    border-color: rgba(255, 255, 255, 0);
-    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
   }
   to {
     width: 120%;
     top: -10%;
     left: -10%;
-    border-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
   }
 }
 @keyframes hover-shrink {
@@ -1467,15 +1753,64 @@ button,
     width: 120%;
     top: -10%;
     left: -10%;
-    border-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
   }
   to {
     width: 100%;
     top: 0%;
     left: 0%;
-    border-color: rgba(255, 255, 255, 0);
-    box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
+  }
+}
+@keyframes skin-hover-grow {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.25);
+  }
+}
+@keyframes skin-hover-shrink {
+  from {
+    transform: scale(1.25);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.cars-content .button-wrapper {
+  position: relative;
+  display: inline-flex;
+  width: auto;
+}
+.cars-content .button-hovered-clone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  pointer-events: none;
+  display: none;
+  z-index: 100;
+  transform-origin: center center;
+}
+.cars-content .button-hovered-clone.growing {
+  animation: button-hover-grow 0.3s ease-out forwards;
+}
+.cars-content .button-hovered-clone.shrinking {
+  animation: button-hover-shrink 0.3s ease-out forwards;
+}
+@keyframes button-hover-grow {
+  from {
+    transform: skewX(-10deg) scale(1);
+  }
+  to {
+    transform: skewX(-10deg) scale(1.1);
+  }
+}
+@keyframes button-hover-shrink {
+  from {
+    transform: skewX(-10deg) scale(1.1);
+  }
+  to {
+    transform: skewX(-10deg) scale(1);
   }
 }
 .cars-content .gallery-view .gallery-selected {

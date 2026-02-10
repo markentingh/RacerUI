@@ -1,0 +1,161 @@
+.footer-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 8em;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+
+    .footer-content {
+        display: grid;
+        grid-template-columns: 15em 15em 1fr 15em;
+        gap: 1em;
+        padding: 1em;
+        align-items: center;
+        max-width: 100vw;
+        box-sizing: border-box;
+    }
+
+    .footer-car-preview,
+    .footer-track-preview {
+        height: 6em;
+        border-radius: 0.5em;
+        overflow: hidden;
+        position: relative;
+        background-size: cover;
+        background-position: center;
+
+        .preview-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5em;
+            opacity: 0.5;
+
+            svg {
+                width: 2em;
+                height: 2em;
+            }
+
+            span {
+                font-size: 0.8em;
+                text-align: center;
+            }
+        }
+
+        &.has-preview {
+            .preview-placeholder {
+                display: none;
+            }
+        }
+    }
+
+    .footer-session-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 1em;
+        line-height: 1.5;
+
+        .session-text {
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 500;
+
+            .no-selection {
+                opacity: 0.5;
+            }
+
+            .car-name,
+            .track-name {
+                font-weight: 600;
+            }
+        }
+    }
+
+    .footer-play-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .play-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75em;
+            padding: 1em 2em;
+            border: none;
+            border-radius: 0.5em;
+            cursor: pointer;
+            font-size: 1.3em;
+            font-weight: 200;
+            transition: all 0.2s ease;
+            width: 100%;
+            justify-content: center;
+
+            svg {
+                width: 1.5em;
+                height: 1.5em;
+            }
+
+            &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        }
+    }
+}
+
+.footer-content .button-wrapper {
+    position: relative;
+    display: inline-flex;
+    width: 100%;
+}
+
+.button-hovered-clone {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+    transform-origin: center center;
+
+    &.growing {
+        animation: button-hover-grow 0.3s ease-out forwards;
+    }
+
+    &.shrinking {
+        animation: button-hover-shrink 0.3s ease-out forwards;
+    }
+}
+
+@keyframes button-hover-grow {
+    from {
+        transform: skewX(-10deg) scale(1);
+    }
+
+    to {
+        transform: skewX(-10deg) scale(1.1);
+    }
+}
+
+@keyframes button-hover-shrink {
+    from {
+        transform: skewX(-10deg) scale(1.1);
+    }
+
+    to {
+        transform: skewX(-10deg) scale(1);
+    }
+}
+
+@media screen and (max-width: 1080px) {
+    .footer-session-info .session-text {
+        display:none !important;
+    }
+}

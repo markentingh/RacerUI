@@ -1,30 +1,71 @@
 <div class="grid-details">
-    <img class="preview" src="{{preview}}" />
+    <div class="preview-container">
+        <div class="preview" style="background-image: url('{{preview}}');"></div>
+        <div class="skins-container">
+            <div class="skins">{{skins}}</div>
+        </div>
+    </div>
     <div class="info">
         <h4>{{name}}</h4>
-        <div class="car-origin">
-            {{has-country}}
-                <div class="car-country">
-                    <img class="flag" src="/images/flags/80x60/{{countryCode}}.png" alt="{{country}} flag" />
-                    <span>{{country}}</span>
-                </div>
-            {{/has-country}}
-            <div class="car-class">
-                <span>{{class}}</span>
-            </div>
-            {{has-shifter}}
-            <div class="car-shifter">
+        <div class="car-header">
+            <button class="select-car-btn">
                 <svg viewBox="0 0 64 64" class="dark">
-                    <use xlink:href="#icon-shifter" x="0" y="0" width="64" height="64"></use>
+                    <use xlink:href="#icon-play" x="0" y="0" width="64" height="64"></use>
                 </svg>
-                <span>{{shifter}}</span>
+                <span>Select Car</span>
+            </button>
+            <div class="car-tabs">
+                <button class="car-tab active" data-tab="stats">
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-settings" x="0" y="0" width="64" height="64"></use>
+                    </svg>
+                    <span>Stats</span>
+                </button>
+                <button class="car-tab" data-tab="info">
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-file" x="0" y="0" width="64" height="64"></use>
+                    </svg>
+                    <span>Info</span>
+                </button>
             </div>
+            <div class="car-origin">
+                {{has-country}}
+                    <div class="car-country" onclick="RacerUI.views.cars.filterByCountry('{{countryCode}}')">
+                        <img class="flag" src="/images/flags/80x60/{{countryCode}}.png" alt="{{country}} flag" />
+                        <span>{{country}}</span>
+                    </div>
+                {{/has-country}}
+                <div class="car-class" onclick="RacerUI.views.cars.filterByClass('{{class}}')">
+                    <span>{{class}}</span>
+                </div>
+                <div class="car-class" onclick="RacerUI.views.cars.filterByMake('{{makeId}}')">
+                    <span>{{make}}</span>
+                </div>
+            </div>
+        </div>
+        <div class="car-stats car-tab-content active" data-content="stats">
+            {{has-max-speed}}
+                <div><strong>Max Speed:</strong> <span>{{maxSpeed}}</span></div>
+            {{/has-max-speed}}
+            {{has-max-bhp}}
+                <div><strong>BHP:</strong> <span>{{maxBHP}}</span></div>
+            {{/has-max-bhp}}
+            {{has-mph}}
+                <div><strong>0-60 mph:</strong> <span>{{zeroTo60mph}}</span></div>
+            {{/has-mph}}
+            {{has-shifter}}
+                <div class="car-shifter" title="Gears">
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-shifter" x="0" y="0" width="64" height="64"></use>
+                    </svg>
+                    <span>{{shifter}}</span>
+                </div>
             {{/has-shifter}}
         </div>
-        <div class="car-stats">
-            <div><strong>Max Speed:</strong> <span>{{maxSpeed}}</span></div>
-            <div><strong>BHP:</strong> <span>{{maxBHP}}</span></div>
-            <div><strong>0-60 mph:</strong> <span>{{zeroTo60mph}}</span></div>
-        </div>
+        {{has-details}}
+            <div class="car-info car-tab-content" data-content="info">
+                <p>{{details}}</p>
+            </div>
+        {{/has-details}}
     </div>
 </div>

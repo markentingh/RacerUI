@@ -88,9 +88,9 @@ gulp.task('less:app', function () {
 });
 
 gulp.task('less:colors', function () {
-    var p = gulp.src(paths.working.less.colors)
-        .pipe(less());
-    return p.pipe(gulp.dest(paths.compiled.css, { overwrite: true }));
+    return gulp.src(paths.working.less.colors)
+        .pipe(less())
+        .pipe(gulp.dest(paths.compiled.css, { overwrite: true }));
 });
 
 gulp.task('less:login', function () {

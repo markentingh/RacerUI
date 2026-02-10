@@ -55,14 +55,9 @@
                 display: none;
                 &:hover{
                     background:none !important;
-                    svg use{
-                        color:#9d7bb8 !important;
-                    }
                 }
                 
                 button {
-                    background: rgba(157, 123, 184, 0.2);
-                    color: #9d7bb8;
                     padding: 0.5em 1em;
                     border-radius: 0.3em;
                     cursor: pointer;
@@ -75,18 +70,6 @@
                     svg {
                         width: 1em;
                         height: 1em;
-                        use{
-                            color:#9d7bb8;
-                        }
-                    }
-                    
-                    &:hover {
-                        background: rgba(157, 123, 184, 0.3);
-                        border-color: rgba(157, 123, 184, 0.6);
-                        color: #b89dd4;
-                        use{
-                            color:#b25ef7 !important;
-                        }
                     }
                 }
             }
@@ -109,7 +92,6 @@
 .tracks-filter {
     position: absolute;
     z-index: 100;
-    background-color: rgba(0, 0, 0, 0.8);
     width: 100%;
     overflow-y:auto;
     max-height: calc(100vh - 5em);
@@ -118,17 +100,8 @@
         width: 0.5em;
     }
 
-    &::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.3);
-    }
-
     &::-webkit-scrollbar-thumb {
-        background: #3b2c75;
         border-radius: 3px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
-        background: #4a3690;
     }
 }
 
@@ -163,12 +136,7 @@
         width: 10px;
     }
 
-    &::-webkit-scrollbar-track {
-        background: rgb(0, 0, 0);
-    }
-
     &::-webkit-scrollbar-thumb {
-        background: #3f265a;
         border-radius: 10px;
     }
 
@@ -191,7 +159,6 @@
             background-size: cover;
             background-position: center;
             border-radius: 0.5em;
-            background-color:#88afd1;
             transition: opacity 0.3s ease-in-out;
 
             &.selected {
@@ -213,7 +180,6 @@
                 pointer-events: none;
                 transition: all 0.4s ease-in-out 0.1s;
                 transform: translate(0, 0);
-                filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
             }
 
             &:hover .track-outline {
@@ -238,13 +204,6 @@
                     margin-left: 0.25em;
                     line-height: 1.25;
                 }
-                .track-length{
-                    background-color: rgba(0, 0, 0, 0.75);
-                }
-
-                .track-type {
-                    background-color: rgba(89, 37, 131, 0.75);
-                }
             }
 
             .info {
@@ -263,7 +222,6 @@
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                    background-color: rgba(0, 0, 0, 0.75);
                     display: inline-block;
                     padding: 0.25em 0.5em;
                     margin-right:0.5em;
@@ -280,7 +238,6 @@
 
                 img {
                     width: 100%;
-                    border: 1px solid rgba(128, 128, 128, 0.25);
                     border-radius: 0.2em;
                 }
             }
@@ -302,8 +259,7 @@
                     pointer-events: none;
                     transform: translate(0, 0);
                     transition: all 0.4s ease-in-out 0.1s;
-                    filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
-                }
+                    }
 
                 &:hover .track-outline {
                     height: 90%;
@@ -365,90 +321,119 @@
             max-height: 100%;
             overflow: hidden;
 
+            .title{
+                border-radius: 0.15em;
+            }
+
             h4 {
                 font-size: 1.8em;
                 font-weight: normal;
                 margin: 0 0 0.25em 0;
-                background: rgb(88 88 88 / 38%);
                 padding: 0.25em 0.5em 0.3em 0.5em;
                 border-radius: 0.15em;
             }
-        }
 
-        .track-origin {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            margin-bottom: 0.4em;
-
-            &>div {
+            .track-header {
                 display: flex;
                 align-items: center;
-                padding: 0.3em 0.5em 0.4em 0.5em;
-                background: rgb(88 88 88 / 38%);
+                gap: 0.5em;
+                flex-wrap: wrap;
+                margin-bottom:0.4em;
+            }
+
+            .select-track-btn {
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+                padding: 0.65em 1.5em;
                 border-radius: 0.15em;
-                margin-right: 0.5em;
+                cursor: pointer;
+                font-size: 0.9em;
+                transition: background 0.2s ease;
+                white-space: nowrap;
+
+                svg {
+                    width: 1.2em;
+                    height: 1.2em;
+                }
             }
 
-            .flag {
-                vertical-align: top;
-                width: 1.5em;
-                margin: 0.25em 0.5em 0 0;
-                align-self: flex-start;
+            .track-outline-float {
+                float: right;
+                max-width: 30%;
+                height: auto;
+                margin: 0 0 1em 1em;
+                border-radius: 0.15em;
             }
-        }
 
-        .track-stats {
-            white-space: nowrap;
-            padding: 0.25em 0.5em;
-            background: rgb(88 88 88 / 38%);
-            border-radius: 0.15em;
-            margin-bottom: 0.4em;
+            .track-origin {
+                display: flex;
+                align-items: center;
+                flex: 1;
 
-            &>div {
-                display: inline-block;
-                padding: 0 0.5em 0 0;
-
-                span {
-                    display: inline-block;
-                    padding: 0 0.4em;
-                    background: rgba(60, 76, 136, 0.7);
+                &>div {
+                    display: flex;
+                    align-items: center;
+                    padding: 0.3em 0.5em 0.4em 0.5em;
                     border-radius: 0.15em;
                     margin-right: 0.5em;
                 }
-            }
-        }
 
-        .track-description {
-            padding: 0.5em;
-            background: rgb(88 88 88 / 38%);
-            border-radius: 0.15em;
-            margin-bottom: 0.4em;
-            overflow-y:auto;
-
-            &::-webkit-scrollbar {
-                width: 10px;
+                .flag {
+                    vertical-align: top;
+                    width: 1.5em;
+                    margin: 0.25em 0.5em 0 0;
+                    align-self: flex-start;
+                }
             }
 
-            &::-webkit-scrollbar-track {
-                background: rgb(0, 0, 0);
+            .track-stats {
+                white-space: nowrap;
+                padding: 0.25em 0.5em;
+                border-radius: 0.15em;
+                margin-bottom: 0.4em;
+
+                &>div {
+                    display: inline-block;
+                    padding: 0 0.5em 0 0;
+
+                    span {
+                        display: inline-block;
+                        padding: 0 0.4em;
+                        border-radius: 0.15em;
+                        margin-right: 0.5em;
+                    }
+                }
             }
 
-            &::-webkit-scrollbar-thumb {
-                background: #3f265a;
-                border-radius: 10px;
+            .track-description {
+                padding: 0.5em;
+                border-radius: 0.15em;
+                margin-bottom: 0.4em;
+                overflow-y:auto;
+
+                &::-webkit-scrollbar {
+                    width: 10px;
+                }
+
+                &::-webkit-scrollbar-thumb {
+                    border-radius: 10px;
+                }
+
+                p {
+                    margin: 0 0 2em 0;
+                    line-height: 1.4em;
+                }
             }
 
-            p {
-                margin: 0 0 2em 0;
-                line-height: 1.4em;
+            .track-author {
+                padding: 0.3em 0.5em;
+                border-radius: 0.15em;
             }
-        }
 
-        .track-author {
-            padding: 0.3em 0.5em;
-            background: rgb(88 88 88 / 38%);
-            border-radius: 0.15em;
+            .track-info-container {
+                width: 100%;
+            }
         }
 
         &.hiding {
@@ -481,16 +466,12 @@
             width: 100%;
             top: 0%;
             left: 0%;
-            border-color: rgba(255, 255, 255, 0);
-            box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
         }
 
         to {
             width: 120%;
             top: -10%;
             left: -10%;
-            border-color: rgba(255, 255, 255, 0.7);
-            box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
         }
     }
 
@@ -499,16 +480,12 @@
             width: 120%;
             top: -10%;
             left: -10%;
-            border-color: rgba(255, 255, 255, 0.7);
-            box-shadow: 2px 0px 50px rgba(0, 85, 255, 0.5);
         }
 
         to {
             width: 100%;
             top: 0%;
             left: 0%;
-            border-color: rgba(255, 255, 255, 0);
-            box-shadow: 2px 0px 50px rgba(0, 85, 255, 0);
         }
     }
 
@@ -525,6 +502,51 @@
             bottom: 50%;
             right: 50%;
             transform: translate(50%, 50%);
+        }
+    }
+
+    .button-wrapper {
+        position: relative;
+        display: inline-flex;
+        width: auto;
+    }
+
+    .button-hovered-clone {
+        position: absolute;
+        top: 0;
+        left: 0;
+        box-sizing: border-box;
+        pointer-events: none;
+        display: none;
+        z-index: 100;
+        transform-origin: center center;
+
+        &.growing {
+            animation: button-hover-grow 0.3s ease-out forwards;
+        }
+
+        &.shrinking {
+            animation: button-hover-shrink 0.3s ease-out forwards;
+        }
+    }
+
+    @keyframes button-hover-grow {
+        from {
+            transform: skewX(-10deg) scale(1);
+        }
+
+        to {
+            transform: skewX(-10deg) scale(1.1);
+        }
+    }
+
+    @keyframes button-hover-shrink {
+        from {
+            transform: skewX(-10deg) scale(1.1);
+        }
+
+        to {
+            transform: skewX(-10deg) scale(1);
         }
     }
 }

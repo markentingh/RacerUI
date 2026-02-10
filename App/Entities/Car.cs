@@ -9,6 +9,7 @@ namespace RacerUI.Entities
         public int? MakeId { get; set; }
         public int? ModelId { get; set; }
         public string Name { get; set; }
+        public string MakeName { get; set; }
         public string Path { get; set; }
         public int? TeamId { get; set; }
         public bool IsNew { get; set; } = true;

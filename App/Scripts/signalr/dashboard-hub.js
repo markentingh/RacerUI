@@ -20,7 +20,7 @@ ui.hub.load = () => {
 };
 
 ui.hub.error = (e) => {
-    console.log(e);
+    console.error(e);
 };
 
 ui.hub.log = (msg) => {
