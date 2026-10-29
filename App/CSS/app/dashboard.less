@@ -15,10 +15,15 @@ body .game-loaded{
     nav {
         /*max-width: calc(1920px * var(--scale-factor));*/
         /*width:100%;*/
-        height: calc(76px * var(--scale-factor));
+        height: 76px;
+        // rendered height = (76px + 1em padding-top) * scale - reserve the
+        // portion the transform overflows below the layout box
+        margin-bottom: calc((76px + 1em) * (var(--scale-factor, 1) - 1));
         display: block;
         line-height:1.35;
         padding: 1em 1em 0 1em;
+        position: relative;
+        z-index: 50;
 
         & > * {
             display:inline-block;
@@ -115,7 +120,8 @@ body .game-loaded{
     }
     .sub-menu{
         font-size:0.8em;
-        height: calc(48px * var(--scale-factor));
+        height: 48px;
+        margin-bottom: calc(48px * (var(--scale-factor, 1) - 1));
         nav{
             background-image:url("/images/submenu-bg.png");
             background-repeat:no-repeat;

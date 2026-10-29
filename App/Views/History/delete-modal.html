@@ -1,0 +1,15 @@
+<div class="fav-modal-backdrop scale-ui" id="fav-delete-modal" style="display: none;"
+    onclick="if (event.target === this) RacerUI.views.history.closeDeleteModal()">
+    <div class="fav-modal fav-delete-modal">
+        <div class="fav-modal-message fav-delete-message">Do you really want to remove the favorite racing configuration "{{title}}"? This cannot be undone.</div>
+        <div class="fav-modal-actions">
+            <button class="fav-cancel-btn" onclick="RacerUI.views.history.closeDeleteModal()">Cancel</button>
+            <button class="fav-delete-confirm-btn" onclick="RacerUI.views.history.deleteFavorite()">
+                <svg viewBox="0 0 24 24" class="dark">
+                    <use xlink:href="#icon-trash" x="0" y="0" width="24" height="24"></use>
+                </svg>
+                <span>Delete</span>
+            </button>
+        </div>
+    </div>
+</div>

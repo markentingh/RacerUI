@@ -12,6 +12,7 @@ namespace RacerUI.SQL
         /// </summary>
         public static IEnumerable<string> GetAvailableCountries(
             IEnumerable<int> makeIds = null,
+            IEnumerable<int> modelIds = null,
             IEnumerable<int> years = null,
             IEnumerable<string> classes = null,
             IEnumerable<int> typeIds = null,
@@ -24,8 +25,8 @@ namespace RacerUI.SQL
             var whereClauses = new List<string>();
             var joins = new List<string>();
 
-            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters, 
-                null, makeIds, years, classes, typeIds, styleIds, specializationIds, searchText);
+            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters,
+                null, makeIds, modelIds, years, classes, typeIds, styleIds, specializationIds, searchText);
 
             if (joins.Any())
                 sql += " " + string.Join(" ", joins);
@@ -46,6 +47,7 @@ namespace RacerUI.SQL
         /// </summary>
         public static IEnumerable<dynamic> GetAvailableMakes(
             IEnumerable<string> countryCodes = null,
+            IEnumerable<int> modelIds = null,
             IEnumerable<int> years = null,
             IEnumerable<string> classes = null,
             IEnumerable<int> typeIds = null,
@@ -58,8 +60,8 @@ namespace RacerUI.SQL
             var whereClauses = new List<string>();
             var joins = new List<string>();
 
-            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters, 
-                countryCodes, null, years, classes, typeIds, styleIds, specializationIds, searchText);
+            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters,
+                countryCodes, null, modelIds, years, classes, typeIds, styleIds, specializationIds, searchText);
 
             if (joins.Any())
                 sql += " " + string.Join(" ", joins);
@@ -81,6 +83,7 @@ namespace RacerUI.SQL
         public static IEnumerable<int> GetAvailableYears(
             IEnumerable<string> countryCodes = null,
             IEnumerable<int> makeIds = null,
+            IEnumerable<int> modelIds = null,
             IEnumerable<string> classes = null,
             IEnumerable<int> typeIds = null,
             IEnumerable<int> styleIds = null,
@@ -92,8 +95,8 @@ namespace RacerUI.SQL
             var whereClauses = new List<string>();
             var joins = new List<string>();
 
-            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters, 
-                countryCodes, makeIds, null, classes, typeIds, styleIds, specializationIds, searchText);
+            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters,
+                countryCodes, makeIds, modelIds, null, classes, typeIds, styleIds, specializationIds, searchText);
 
             if (joins.Any())
                 sql += " " + string.Join(" ", joins);
@@ -115,6 +118,7 @@ namespace RacerUI.SQL
         public static IEnumerable<string> GetAvailableClasses(
             IEnumerable<string> countryCodes = null,
             IEnumerable<int> makeIds = null,
+            IEnumerable<int> modelIds = null,
             IEnumerable<int> years = null,
             IEnumerable<int> typeIds = null,
             IEnumerable<int> styleIds = null,
@@ -126,8 +130,8 @@ namespace RacerUI.SQL
             var whereClauses = new List<string>();
             var joins = new List<string>();
 
-            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters, 
-                countryCodes, makeIds, years, null, typeIds, styleIds, specializationIds, searchText);
+            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters,
+                countryCodes, makeIds, modelIds, years, null, typeIds, styleIds, specializationIds, searchText);
 
             if (joins.Any())
                 sql += " " + string.Join(" ", joins);
@@ -149,6 +153,7 @@ namespace RacerUI.SQL
         public static IEnumerable<dynamic> GetAvailableTypes(
             IEnumerable<string> countryCodes = null,
             IEnumerable<int> makeIds = null,
+            IEnumerable<int> modelIds = null,
             IEnumerable<int> years = null,
             IEnumerable<string> classes = null,
             IEnumerable<int> styleIds = null,
@@ -160,8 +165,8 @@ namespace RacerUI.SQL
             var whereClauses = new List<string>();
             var joins = new List<string>();
 
-            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters, 
-                countryCodes, makeIds, years, classes, null, styleIds, specializationIds, searchText);
+            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters,
+                countryCodes, makeIds, modelIds, years, classes, null, styleIds, specializationIds, searchText);
 
             if (joins.Any())
                 sql += " " + string.Join(" ", joins);
@@ -183,6 +188,7 @@ namespace RacerUI.SQL
         public static IEnumerable<dynamic> GetAvailableStyles(
             IEnumerable<string> countryCodes = null,
             IEnumerable<int> makeIds = null,
+            IEnumerable<int> modelIds = null,
             IEnumerable<int> years = null,
             IEnumerable<string> classes = null,
             IEnumerable<int> typeIds = null,
@@ -194,8 +200,8 @@ namespace RacerUI.SQL
             var whereClauses = new List<string>();
             var joins = new List<string>();
 
-            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters, 
-                countryCodes, makeIds, years, classes, typeIds, null, specializationIds, searchText);
+            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters,
+                countryCodes, makeIds, modelIds, years, classes, typeIds, null, specializationIds, searchText);
 
             if (joins.Any())
                 sql += " " + string.Join(" ", joins);
@@ -217,6 +223,7 @@ namespace RacerUI.SQL
         public static IEnumerable<dynamic> GetAvailableSpecializations(
             IEnumerable<string> countryCodes = null,
             IEnumerable<int> makeIds = null,
+            IEnumerable<int> modelIds = null,
             IEnumerable<int> years = null,
             IEnumerable<string> classes = null,
             IEnumerable<int> typeIds = null,
@@ -228,8 +235,8 @@ namespace RacerUI.SQL
             var whereClauses = new List<string>();
             var joins = new List<string>();
 
-            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters, 
-                countryCodes, makeIds, years, classes, typeIds, styleIds, null, searchText);
+            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters,
+                countryCodes, makeIds, modelIds, years, classes, typeIds, styleIds, null, searchText);
 
             if (joins.Any())
                 sql += " " + string.Join(" ", joins);
@@ -246,6 +253,41 @@ namespace RacerUI.SQL
         }
 
         /// <summary>
+        /// Gets distinct models that have cars matching the current filter criteria.
+        /// </summary>
+        public static IEnumerable<dynamic> GetAvailableModels(
+            IEnumerable<string> countryCodes = null,
+            IEnumerable<int> makeIds = null,
+            IEnumerable<int> years = null,
+            IEnumerable<string> classes = null,
+            IEnumerable<int> typeIds = null,
+            IEnumerable<int> styleIds = null,
+            IEnumerable<int> specializationIds = null,
+            string searchText = null)
+        {
+            var sql = "SELECT DISTINCT m.Id, m.Name FROM CarModels m INNER JOIN Cars c ON m.Id = c.ModelId";
+            var parameters = new DynamicParameters();
+            var whereClauses = new List<string>();
+            var joins = new List<string>();
+
+            BuildFilterJoinsAndWhere(ref joins, ref whereClauses, ref parameters,
+                countryCodes, makeIds, null, years, classes, typeIds, styleIds, specializationIds, searchText);
+
+            if (joins.Any())
+                sql += " " + string.Join(" ", joins);
+
+            if (whereClauses.Any())
+                sql += " WHERE " + string.Join(" AND ", whereClauses);
+
+            sql += " ORDER BY m.Name";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query(sql, parameters);
+            }
+        }
+
+        /// <summary>
         /// Helper method to build JOIN and WHERE clauses for filter queries.
         /// </summary>
         private static void BuildFilterJoinsAndWhere(
@@ -254,6 +296,7 @@ namespace RacerUI.SQL
             ref DynamicParameters parameters,
             IEnumerable<string> countryCodes = null,
             IEnumerable<int> makeIds = null,
+            IEnumerable<int> modelIds = null,
             IEnumerable<int> years = null,
             IEnumerable<string> classes = null,
             IEnumerable<int> typeIds = null,
@@ -297,6 +340,13 @@ namespace RacerUI.SQL
             {
                 whereClauses.Add("c.MakeId IN @MakeIds");
                 parameters.Add("MakeIds", makeIds.ToList());
+            }
+
+            // Model filter
+            if (modelIds != null && modelIds.Any())
+            {
+                whereClauses.Add("c.ModelId IN @ModelIds");
+                parameters.Add("ModelIds", modelIds.ToList());
             }
 
             // Year filter

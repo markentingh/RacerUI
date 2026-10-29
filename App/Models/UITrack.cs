@@ -49,5 +49,8 @@ namespace RacerUI.Models
 
         [JsonPropertyName("year")]
         public int? Year { get; set; }
+
+        [JsonPropertyName("priority")]
+        public double? Priority { get; set; }
     }
 }

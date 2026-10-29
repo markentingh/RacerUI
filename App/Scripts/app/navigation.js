@@ -8,6 +8,11 @@ ui.nav.select = (id) => {
 }
 
 ui.nav.navigate = (path) => {
+    // Collapse the expanded footer before switching views
+    if (ui.views.footer && ui.views.footer.expanded) {
+        ui.views.footer.collapseDetails();
+    }
+
     // Update the URL first, which will trigger the route execution via our location change listener
     history.pushState({path: path}, '', `/dashboard/${path}`);
     

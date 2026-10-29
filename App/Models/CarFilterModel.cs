@@ -51,6 +51,11 @@ namespace RacerUI.Models
         public string Search { get; set; }
 
         /// <summary>
+        /// Sort key: name | country | manufacturer | model | year | rating | maxspeed
+        /// </summary>
+        public string Sort { get; set; }
+
+        /// <summary>
         /// Starting index for pagination (0-based)
         /// </summary>
         public int? Start { get; set; }

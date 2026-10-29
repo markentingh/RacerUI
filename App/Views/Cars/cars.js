@@ -10,6 +10,7 @@ ui.views.cars = {
         styles: [],//styleId int
         specializations: [],//specializationId int
         search: '',
+        sort: 'year',
         start: 0,
         length: 20,
         view: 'grid',
@@ -44,6 +45,7 @@ ui.views.cars.load = (e) => {
                 ui.views.cars.updateNav(e.id);
             }
             ui.views.cars.setupSearchListener();
+            ui.views.cars.setupSortDropdown();
             ui.views.cars.updateClearFilterButton();
             ui.views.cars.getFilteredList();
             ui.views.cars.resize();
@@ -226,6 +228,19 @@ ui.views.cars.setupSearchListener = () => {
     }
 };
 
+ui.views.cars.setupSortDropdown = () => {
+    const sortDdl = document.getElementById('cars_sort');
+    if (!sortDdl) return;
+    // stale localStorage values (e.g. removed options) snap back to the default
+    const valid = ['year', 'yearasc', 'country', 'manufacturer', 'model', 'rating', 'maxspeed'];
+    if (!valid.includes(ui.views.cars.filter.sort)) ui.views.cars.filter.sort = 'year';
+    sortDdl.value = ui.views.cars.filter.sort;
+    sortDdl.addEventListener('change', () => {
+        ui.views.cars.filter.sort = sortDdl.value;
+        ui.views.cars.getFilteredList();
+    });
+};
+
 ui.views.cars.unload = () => {
     window.removeEventListener('resize', ui.views.cars.resize);
     const container = document.querySelector('.cars-content');
@@ -317,8 +332,8 @@ ui.views.cars.saveFilter = () => {
     localStorage.setItem('RacerUI:cars-filter', JSON.stringify(ui.views.cars.filter));
 };
 
-ui.views.cars.hasActiveFilters = () => {
-    // Check if any filters are active (not default state)
+ui.views.cars.hasNonModelFilters = () => {
+    // Check if any filters other than models are active
     const hasCountryFilter = ui.views.cars.filter.countries.length > 0 && !ui.views.cars.filter.countries.includes('all');
     const hasMakesFilter = ui.views.cars.filter.makes.length > 0;
     const hasYearsFilter = ui.views.cars.filter.years.length > 0;
@@ -327,9 +342,13 @@ ui.views.cars.hasActiveFilters = () => {
     const hasStylesFilter = ui.views.cars.filter.styles.length > 0;
     const hasSpecializationsFilter = ui.views.cars.filter.specializations.length > 0;
     const hasSearchFilter = ui.views.cars.filter.search && ui.views.cars.filter.search.length > 0;
-    
-    return hasCountryFilter || hasMakesFilter || hasYearsFilter || hasClassesFilter || 
+
+    return hasCountryFilter || hasMakesFilter || hasYearsFilter || hasClassesFilter ||
            hasTypesFilter || hasStylesFilter || hasSpecializationsFilter || hasSearchFilter;
+};
+
+ui.views.cars.hasActiveFilters = () => {
+    return ui.views.cars.hasNonModelFilters() || ui.views.cars.filter.models.length > 0;
 };
 
 ui.views.cars.updateClearFilterButton = () => {
@@ -365,6 +384,7 @@ ui.views.cars.getFilterData = (excludeFilter) => {
         Makes: excludeFilter === 'makes' ? [] : ui.views.cars.filter.makes,
         Years: excludeFilter === 'years' ? [] : ui.views.cars.filter.years,
         Classes: excludeFilter === 'classes' ? [] : (ui.views.cars.filter.classes || []),
+        Models: excludeFilter === 'models' ? [] : ui.views.cars.filter.models,
         Types: excludeFilter === 'types' ? [] : ui.views.cars.filter.types,
         Styles: excludeFilter === 'styles' ? [] : ui.views.cars.filter.styles,
         Specializations: excludeFilter === 'specializations' ? [] : ui.views.cars.filter.specializations,
@@ -396,6 +416,7 @@ ui.views.cars.getFilteredList = (reset = true) => {
         Styles: ui.views.cars.filter.styles,
         Specializations: ui.views.cars.filter.specializations,
         Search: ui.views.cars.filter.search || '',
+        Sort: ui.views.cars.filter.sort,
         Start: ui.views.cars.filter.start,
         Length: ui.views.cars.filter.length
     };
@@ -636,8 +657,10 @@ ui.views.cars.views.renderCarItem = (car, htmlItem) => {
         .split('{{class}}').join(car.class)
         .split('{{description}}').join(car.description ?? '')
         .split('{{path}}').join(car.path ?? '')
+        .split('{{rating}}').join(car.rating || 0)
         .split('{{countryCode}}').join((car.country || 'unknown').toLowerCase())
-        .split('{{country}}').join(car.countryName || car.country || 'Unknown');
+        .split('{{country}}').join(car.countryName || car.country || 'Unknown')
+        .hasBlock('has-rating', (car.rating || 0) > 0);
 };
 
 ui.views.cars.views.load = (list) => {
@@ -850,6 +873,8 @@ ui.views.cars.views.grid = {
                 .split('{{gears}}').join(car.gears || 'N/A')
                 .split('{{description}}').join(car.description || '')
                 .split('{{details}}').join(car.details || '')
+                .split('{{id}}').join(car.id)
+                .split('{{rating}}').join(car.rating || 0)
                 .hasBlock('has-country', car.countryName || car.country)
                 .hasBlock('has-max-speed', car.maxSpeed)
                 .hasBlock('has-max-bhp', car.maxBHP)
@@ -859,10 +884,16 @@ ui.views.cars.views.grid = {
                 item.insertAdjacentHTML('afterend', view);
                 ui.views.cars.views.grid.detailsDiv = item.nextSibling;
                 ui.views.cars.selected = {car, item};
-                
+
+                // Keep the model + grid-item badge in sync when a rating saves
+                ui.views.cars.views.grid.detailsDiv.addEventListener('rated', (e) => {
+                    car.rating = e.detail.rating;
+                    ui.views.cars.views.grid.applyRating(item, car);
+                });
+
                 // Add selected class to the item
                 item.classList.add('selected');
-                
+
                 // Setup skin hover and click handlers
                 ui.views.cars.views.grid.setupSkinHandlers();
                 
@@ -871,9 +902,12 @@ ui.views.cars.views.grid = {
                 
                 // Setup select car button handler
                 ui.views.cars.views.grid.setupSelectCarHandler();
-                
+
                 // Setup button hover effects
                 ui.views.cars.views.grid.setupButtonHoverEffects();
+
+                // Load the power/torque graph
+                ui.views.cars.views.grid.setupPowerGraph(car);
                 
                 setTimeout(() => {
                     //scroll to car details
@@ -1038,6 +1072,123 @@ ui.views.cars.views.grid = {
             return car.path == item.getAttribute('data-path');
         });
         return car;
+    },
+    setupPowerGraph: (car) => {
+        const container = ui.views.cars.views.grid.detailsDiv && ui.views.cars.views.grid.detailsDiv.querySelector
+            ? ui.views.cars.views.grid.detailsDiv.querySelector('.car-graph')
+            : document.querySelector('.grid-details .car-graph');
+        if (!container || !car.id) return;
+        ui.ajax({
+            url: `/api/cars/${car.id}/powercurve`,
+            method: 'GET',
+            complete: (response) => {
+                try {
+                    const data = JSON.parse(response.responseText);
+                    ui.views.cars.views.grid.renderPowerGraph(container, data);
+                } catch (error) {
+                    console.error('Error loading power curve:', error);
+                }
+            }
+        });
+    },
+    renderPowerGraph: (container, data) => {
+        const rpm = data.rpm || data.Rpm || [];
+        const torque = data.torque || data.Torque || [];
+        const power = data.power || data.Power || [];
+        if (rpm.length < 2) return;
+
+        const W = 640, H = 248;
+        const m = { left: 56, right: 56, top: 14, bottom: 40 };
+        const pw = W - m.left - m.right;
+        const ph = H - m.top - m.bottom;
+
+        // domain floor is 0 - negative rpm entries (engine braking data in
+        // some luts) stay in the series but are clipped at the left axis edge
+        const rpmMin = Math.max(0, Math.min.apply(null, rpm));
+        const rpmMax = Math.max.apply(null, rpm);
+
+        // round a max value up to 5 "nice" tick steps (1/2/2.5/5 x 10^n)
+        const niceScale = (v) => {
+            const raw = (v || 1) / 5;
+            const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+            const norm = raw / mag;
+            const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+            return { step, max: step * 5 };
+        };
+        const t = niceScale(Math.max.apply(null, torque));
+        const p = niceScale(Math.max.apply(null, power));
+
+        const x = (r) => m.left + (r - rpmMin) / (rpmMax - rpmMin || 1) * pw;
+        const yT = (v) => m.top + ph - v / t.max * ph;
+        const yP = (v) => m.top + ph - v / p.max * ph;
+        const f = (n) => Math.round(n * 100) / 100;
+
+        let svg = `<svg class="pt-graph" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">`;
+
+        // horizontal gridlines + left (Nm) / right (bhp) labels
+        for (let i = 0; i <= 5; i++) {
+            const y = f(m.top + ph - i / 5 * ph);
+            svg += `<line class="pt-grid" x1="${m.left}" y1="${y}" x2="${m.left + pw}" y2="${y}"/>`;
+            svg += `<text class="pt-label pt-tick-torque" x="${m.left - 6}" y="${f(y + 4)}" text-anchor="end">${Math.round(t.step * i)}</text>`;
+            svg += `<text class="pt-label pt-tick-power" x="${m.left + pw + 6}" y="${f(y + 4)}" text-anchor="start">${Math.round(p.step * i)}</text>`;
+        }
+
+        // axis frame: bottom + left + right
+        svg += `<line class="pt-axis" x1="${m.left}" y1="${m.top + ph}" x2="${m.left + pw}" y2="${m.top + ph}"/>`;
+        svg += `<line class="pt-axis" x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${m.top + ph}"/>`;
+        svg += `<line class="pt-axis" x1="${m.left + pw}" y1="${m.top}" x2="${m.left + pw}" y2="${m.top + ph}"/>`;
+
+        // rpm ticks along the bottom (5-7 nice round values inside the range)
+        const rpmStep = niceScale(rpmMax - rpmMin).step;
+        for (let r = Math.ceil(rpmMin / rpmStep) * rpmStep; r <= rpmMax; r += rpmStep) {
+            svg += `<line class="pt-grid" x1="${f(x(r))}" y1="${m.top}" x2="${f(x(r))}" y2="${m.top + ph}"/>`;
+            svg += `<text class="pt-label" x="${f(x(r))}" y="${m.top + ph + 16}" text-anchor="middle">${r}</text>`;
+        }
+
+        // rpm label centered below the plot + series legend aligned far right
+        const legendY = H - 10;
+        const e = m.left + pw;
+        svg += `<text class="pt-label" x="${f(m.left + pw / 2)}" y="${legendY}" text-anchor="middle">rpm</text>`;
+        svg += `<text class="pt-label pt-legend-torque" x="${f(e)}" y="${legendY}" text-anchor="end">torque</text>`;
+        svg += `<line class="pt-line pt-line-torque" x1="${f(e - 68)}" y1="${legendY - 4}" x2="${f(e - 44)}" y2="${legendY - 4}"/>`;
+        svg += `<text class="pt-label pt-legend-power" x="${f(e - 84)}" y="${legendY}" text-anchor="end">power</text>`;
+        svg += `<line class="pt-line pt-line-power" x1="${f(e - 150)}" y1="${legendY - 4}" x2="${f(e - 124)}" y2="${legendY - 4}"/>`;
+
+        // unit labels rotated 90deg, centered on their axes
+        const cy = m.top + ph / 2;
+        svg += `<text class="pt-label pt-legend-torque" x="14" y="${f(cy)}" text-anchor="middle" transform="rotate(-90 14 ${f(cy)})">Nm</text>`;
+        svg += `<text class="pt-label pt-legend-power" x="${W - 14}" y="${f(cy)}" text-anchor="middle" transform="rotate(-90 ${W - 14} ${f(cy)})">bhp</text>`;
+
+        // series polylines - clipped to the plot area so out-of-range
+        // points (negative rpm/torque) never draw outside the axes
+        const torquePts = rpm.map((r, i) => `${f(x(r))},${f(yT(torque[i]))}`).join(' ');
+        const powerPts = rpm.map((r, i) => `${f(x(r))},${f(yP(power[i]))}`).join(' ');
+        svg += `<defs><clipPath id="pt-clip"><rect x="${m.left}" y="${m.top}" width="${pw}" height="${ph}"/></clipPath></defs>`;
+        svg += `<g clip-path="url(#pt-clip)">`;
+        svg += `<polyline class="pt-line pt-line-torque" points="${torquePts}"/>`;
+        svg += `<polyline class="pt-line pt-line-power" points="${powerPts}"/>`;
+        svg += `</g>`;
+
+        svg += `</svg>`;
+        container.innerHTML = svg;
+    },
+    applyRating: (item, car) => {
+        // Create or update the filled-stars badge on a car grid item
+        let badge = item.querySelector('rating-stars.rating-badge');
+        if ((car.rating || 0) <= 0) {
+            if (badge) badge.remove();
+            return;
+        }
+        if (!badge) {
+            badge = document.createElement('rating-stars');
+            badge.className = 'rating-badge';
+            badge.setAttribute('filled-only', '');
+            badge.setAttribute('readonly', '');
+            badge.setAttribute('rating', String(car.rating));
+            item.prepend(badge);
+        } else {
+            badge.setAttribute('rating', String(car.rating));
+        }
     }
 }
 
@@ -1261,22 +1412,57 @@ ui.views.cars.manufacturer.select = (makeId) => {
 ui.views.cars.model = {};
 
 ui.views.cars.model.load = () => {
-    //load selected models
-    if (ui.views.cars.filter.models.length > 0) {
-        document.querySelectorAll('.filter-model li').forEach((li) => {
-            if (ui.views.cars.filter.models.includes(parseInt(li.getAttribute('data-model')))) {
-                li.classList.add('selected');
-            } else {
-                li.classList.remove('selected');
+    const container = document.querySelector('.filter-model .select-list');
+    if (!container) return;
+
+    // Models are a narrowing filter - they are only listed once another
+    // filter is active, never fetched for the whole catalog
+    if (!ui.views.cars.hasNonModelFilters()) {
+        container.innerHTML = '<li class="filter-hint">Select a manufacturer, class or year to list models</li>';
+        return;
+    }
+
+    ui.view.loadComponent('Cars/filter-model-item', (itemTemplate) => {
+        ui.ajax({
+            url: '/api/cars/models',
+            method: 'POST',
+            data: ui.views.cars.getFilterData('models'),
+            complete: (response) => {
+                try {
+                    const models = JSON.parse(response.responseText);
+                    container.innerHTML = '<li data-model="0">All Models</li>';
+
+                    models.forEach(model => {
+                        let itemHtml = itemTemplate
+                            .split('{{id}}').join(model.id)
+                            .split('{{name}}').join(model.name);
+                        container.innerHTML += itemHtml;
+                    });
+
+                    document.querySelectorAll('.filter-model li').forEach((li) => {
+                        li.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ui.views.cars.model.select(parseInt(li.getAttribute('data-model')));
+                        }
+                    });
+
+                    if (ui.views.cars.filter.models.length > 0) {
+                        document.querySelectorAll('.filter-model li').forEach((li) => {
+                            if (ui.views.cars.filter.models.includes(parseInt(li.getAttribute('data-model')))) {
+                                li.classList.add('selected');
+                            } else {
+                                li.classList.remove('selected');
+                            }
+                        });
+                    } else {
+                        document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
+                    }
+                } catch (error) {
+                    console.error('Error loading models:', error);
+                }
             }
         });
-    }
-    document.querySelectorAll('.filter-model li').forEach((li) => {
-        li.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ui.views.cars.model.select(parseInt(li.getAttribute('data-model')));
-        }
     });
 };
 
@@ -1286,6 +1472,7 @@ ui.views.cars.model.select = (modelId) => {
         document.querySelectorAll('.filter-model li').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.models.includes(modelId)) {
             ui.views.cars.filter.models.splice(ui.views.cars.filter.models.indexOf(modelId), 1);
@@ -1295,6 +1482,10 @@ ui.views.cars.model.select = (modelId) => {
         document.querySelectorAll('.filter-model li[data-model="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
+        // If no models selected, select 'All'
+        if (ui.views.cars.filter.models.length === 0) {
+            document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
+        }
     }
     document.querySelectorAll('.filter-model li[data-model="' + modelId + '"]').forEach((li) => {
         li.classList.toggle('selected');

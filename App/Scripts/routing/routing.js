@@ -91,6 +91,12 @@ ui.routing.execute = (path) => {
         }
         ui.routing.prevPath = path;
         ui.routing.prevRoute = result.route;
+
+        // The footer only lives on the Cars and Tracks views
+        if (ui.views.footer && !/^dashboard\/(cars|tracks)/.test(result.route.path)) {
+            ui.views.footer.unload();
+        }
+
         result.route.action(result.params);
         return true;
     }

@@ -5,6 +5,7 @@ ui.views.tracks = {
         countries: ['all'],
         types: [],
         search: '',
+        sort: 'name',
         start: 0,
         length: 20,
         view: 'grid'
@@ -38,6 +39,7 @@ ui.views.tracks.load = (e) => {
                 ui.views.tracks.updateNav(e.id);
             }
             ui.views.tracks.setupSearchListener();
+            ui.views.tracks.setupSortDropdown();
             ui.views.tracks.updateClearFilterButton();
             ui.views.tracks.getFilteredList();
         });
@@ -167,6 +169,18 @@ ui.views.tracks.setupSearchListener = () => {
     }
 };
 
+ui.views.tracks.setupSortDropdown = () => {
+    const sortDdl = document.getElementById('tracks_sort');
+    if (!sortDdl) return;
+    const valid = ['name', 'country', 'distance', 'year', 'rating'];
+    if (!valid.includes(ui.views.tracks.filter.sort)) ui.views.tracks.filter.sort = 'name';
+    sortDdl.value = ui.views.tracks.filter.sort;
+    sortDdl.addEventListener('change', () => {
+        ui.views.tracks.filter.sort = sortDdl.value;
+        ui.views.tracks.getFilteredList();
+    });
+};
+
 ui.views.tracks.unload = () => {
     window.removeEventListener('resize', ui.views.tracks.resize);
     const container = document.querySelector('.tracks-content');
@@ -281,6 +295,7 @@ ui.views.tracks.getFilteredList = (reset = true) => {
         Countries: ui.views.tracks.filter.countries.includes('all') ? [] : ui.views.tracks.filter.countries,
         Types: ui.views.tracks.filter.types,
         Search: ui.views.tracks.filter.search || '',
+        Sort: ui.views.tracks.filter.sort,
         Start: ui.views.tracks.filter.start,
         Length: ui.views.tracks.filter.length
     };
@@ -742,6 +757,8 @@ ui.views.tracks.views.renderTrackItem = (track, itemTemplate) => {
         .split('{{typeName}}').join(track.typeName || '')
         .split('{{length}}').join(track.length ? (track.length / 1000).toFixed(1) + ' km' : '')
         .split('{{distance}}').join(track.distance ? track.distance.toFixed(2) + ' km' : '')
+        .split('{{rating}}').join(track.rating || 0)
+        .hasBlock('has-rating', (track.rating || 0) > 0)
         .hasBlock('has-city', city != '');
 };
 
@@ -925,6 +942,8 @@ ui.views.tracks.views.grid = {
                 .split('{{pitBoxes}}').join(track.pitBoxes || 'N/A')
                 .split('{{details}}').join(track.details ? track.details.replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>') : '')
                 .split('{{author}}').join(author || '')
+                .split('{{id}}').join(track.id)
+                .split('{{rating}}').join(track.rating || 0)
                 .hasBlock('has-country', track.countryName || track.country)
                 .hasBlock('has-city', track.city)
                 .hasBlock('has-year', track.year)
@@ -937,9 +956,19 @@ ui.views.tracks.views.grid = {
             item.insertAdjacentHTML('afterend', view);
             ui.views.tracks.views.grid.detailsDiv = item.nextSibling;
             ui.views.tracks.selected = {track, item};
+
+            // Keep the model + grid-item badge in sync when a rating saves
+            ui.views.tracks.views.grid.detailsDiv.addEventListener('rated', (e) => {
+                track.rating = e.detail.rating;
+                ui.views.tracks.views.grid.applyRating(item, track);
+            });
+
             // Add selected class to the item
             item.classList.add('selected');
             
+            // Setup track layouts dropdown
+            ui.views.tracks.views.grid.setupLayoutsSelect(track);
+
             // Setup select track button handler
             ui.views.tracks.views.grid.setupSelectTrackHandler();
             
@@ -951,6 +980,78 @@ ui.views.tracks.views.grid = {
             }, 350);
         });
     },
+    getCommonTrackName: (names) => {
+        // Ported from ACTools' FindNameForMultiLayoutMode: the longest prefix
+        // shared by every layout name, trimmed and without a trailing separator
+        const baseName = names[0];
+        if (!baseName) return null;
+
+        const minLength = Math.min(...names.filter(n => n).map(n => n.length));
+        for (let i = minLength; i > 2; i--) {
+            let result = baseName.substring(0, i);
+            if (names.slice(1).some(n => !n || n.substring(0, i) !== result)) continue;
+
+            result = result.trim();
+            if (result.length > 2 && /[-—/(]$/.test(result)) {
+                result = result.substring(0, result.length - 1).trim();
+            }
+            return result;
+        }
+        return null;
+    },
+    setupLayoutsSelect: (track) => {
+        const select = document.getElementById('track_layouts_select');
+        if (!select || !ui.views.tracks.selected) return;
+
+        // The parent row is the main layout; track.layouts are the additional layouts
+        const layouts = [track].concat(track.layouts || []);
+        ui.views.tracks.selected.layout = layouts[0];
+
+        // Single-layout track - keep the dropdown hidden
+        if (layouts.length <= 1) return;
+
+        // Show only the layout part of each name (strip the shared track-name prefix)
+        const commonName = ui.views.tracks.views.grid.getCommonTrackName(layouts.map(t => t.name));
+        layouts.forEach((t) => {
+            t.layoutName = t.name;
+            if (commonName && t.name && t.name.startsWith(commonName)) {
+                const stripped = t.name.substring(commonName.length)
+                    .replace(/^[\s\-—/()]+|[\s)]+$/g, '')
+                    .trim();
+                if (stripped) {
+                    t.layoutName = stripped;
+                    return;
+                }
+            }
+            // Fall back to the layout folder name (e.g. "main_layout" -> "Main Layout")
+            if (t.subPath) {
+                t.layoutName = t.subPath.replace(/_/g, ' ')
+                    .replace(/\b\w/g, c => c.toUpperCase());
+            }
+        });
+
+        select.parentElement.style.display = '';
+        select.innerHTML = '';
+        layouts.forEach((t, i) => {
+            select.appendChild(new Option(t.layoutName, i));
+        });
+
+        select.addEventListener('change', () => {
+            const layout = layouts[parseInt(select.value)];
+            ui.views.tracks.selected.layout = layout;
+
+            // Update the outline image to the selected layout
+            const outlineImg = document.querySelector('.grid-details .track-outline-float');
+            if (outlineImg) {
+                let outlineUrl = `/image/assetto corsa/track-outline/${layout.path}`;
+                if (layout.subPath) {
+                    outlineUrl += `/${layout.subPath}`;
+                }
+                outlineImg.style.display = '';
+                outlineImg.src = outlineUrl;
+            }
+        });
+    },
     setupSelectTrackHandler: () => {
         // Add event listeners to all select track buttons
         const selectTrackBtns = document.querySelectorAll('.select-track-btn');
@@ -958,7 +1059,7 @@ ui.views.tracks.views.grid = {
             btn.addEventListener('click', () => {
                 // Get track from ui.views.tracks.selected
                 if (ui.views.tracks.selected && ui.views.tracks.selected.track) {
-                    ui.views.footer.selectTrack(ui.views.tracks.selected.track);
+                    ui.views.footer.selectTrack(ui.views.tracks.selected.track, ui.views.tracks.selected.layout);
                 }
             });
         });
@@ -1004,6 +1105,24 @@ ui.views.tracks.views.grid = {
             return track.path == item.getAttribute('data-path');
         });
         return track;
+    },
+    applyRating: (item, track) => {
+        // Create or update the filled-stars badge on a track grid item
+        let badge = item.querySelector('rating-stars.rating-badge');
+        if ((track.rating || 0) <= 0) {
+            if (badge) badge.remove();
+            return;
+        }
+        if (!badge) {
+            badge = document.createElement('rating-stars');
+            badge.className = 'rating-badge';
+            badge.setAttribute('filled-only', '');
+            badge.setAttribute('readonly', '');
+            badge.setAttribute('rating', String(track.rating));
+            item.prepend(badge);
+        } else {
+            badge.setAttribute('rating', String(track.rating));
+        }
     }
 };
 

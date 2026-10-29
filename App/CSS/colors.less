@@ -16,16 +16,56 @@
         }
     }
 
-    input {
+    input,
+    select {
         background-color: @input-bg;
         color: @input-color;
         border-color: @input-border;
     }
 
-    input:focus {
+    input:focus,
+    select:focus {
         background-color: @input-focus-bg;
         color: @input-focus-color;
         border-color: @input-focus-border;
+    }
+
+    // The day/night gradient slider keeps a transparent background everywhere
+    // (footer settings + favorites list) - must out-specify the input rules above
+    input.time-slider,
+    input.time-slider:focus {
+        background-color: transparent;
+        border-color: transparent;
+    }
+
+    // <dropdown-list> custom element - toggle matches the translucent input style,
+    // the portaled list gets a solid themed surface
+    dropdown-list .ddl-toggle {
+        background-color: @race-input-bg;
+        color: @race-input-color;
+        border-color: @race-input-border;
+
+        &:hover {
+            background-color: @race-input-border;
+        }
+    }
+
+    .ddl-portal {
+        background-color: @race-dropdown-bg;
+        border-color: @race-input-border;
+
+        .ddl-item {
+            color: @race-input-color;
+
+            &:hover {
+                background-color: @race-input-border;
+            }
+
+            &.selected {
+                background: @race-dropdown-selected-bg;
+                color: @race-dropdown-selected-color;
+            }
+        }
     }
 
     .row.hover:hover {
@@ -221,9 +261,16 @@
 
         .grid-view {
 
-            .car,
+            .car {
+                background-color: @view-item-bg;
+            }
+
             .track {
                 background-color: @view-item-border;
+            }
+
+            .car,
+            .track {
 
                 .info-top {
 
@@ -238,7 +285,6 @@
                 }
 
                 .info {
-
                     h2 .name,
                     .track-name,
                     .city {
@@ -253,7 +299,12 @@
                 .track-outline {
                     filter: drop-shadow(0 0 3px @view-item-name-bg);
                 }
+
+                rating-stars.rating-badge {
+                    background-color: transparent;
+                }
             }
+            .car .info h2{color:#6a6470;}
         }
 
         .grid-details {
@@ -334,6 +385,42 @@
                 span {
                     background: @view-badge-bg;
                 }
+
+                rating-stars .rs-star {
+                    background: transparent;
+                }
+            }
+
+            .car-graph {
+                .pt-axis {
+                    stroke: @view-graph-axis;
+                }
+
+                .pt-grid {
+                    stroke: @view-graph-grid;
+                }
+
+                .pt-label {
+                    fill: @view-graph-label;
+                }
+
+                .pt-tick-torque,
+                .pt-legend-torque {
+                    fill: @view-graph-torque;
+                }
+
+                .pt-tick-power,
+                .pt-legend-power {
+                    fill: @view-graph-power;
+                }
+
+                .pt-line-torque {
+                    stroke: @view-graph-torque;
+                }
+
+                .pt-line-power {
+                    stroke: @view-graph-power;
+                }
             }
 
             .car-info,
@@ -342,44 +429,206 @@
             }
         }
     }
-}
 
-/* footer */
-.footer-container {
-    background: @submenu-bg;
-    border-top-color: @nav-bg;
+    /* footer */
+    .footer-container {
+        background: @submenu-bg;
+        border-top-color: @nav-bg;
 
-    .footer-car-preview,
-    .footer-track-preview {
-        background-color: @view-details-bg;
+        .footer-car-preview,
+        .footer-track-preview {
+            background-color: @view-details-bg;
 
-        .preview-placeholder {
+            .preview-placeholder {
+                color: @submenu-item-color;
+
+                svg use {
+                    color: @submenu-item-icon-color;
+                }
+            }
+        }
+
+        .footer-track-outline {
+            filter: drop-shadow(0 0 3px @view-item-name-bg);
+        }
+
+        .footer-session-info {
             color: @submenu-item-color;
+        }
+
+        .footer-settings {
+            color: @submenu-item-color;
+            scrollbar-width: thin;
+            scrollbar-color: @race-input-border transparent;
+
+            select,
+            .setting-input,
+            .dynamic-weather-settings input[type="text"],
+            .dynamic-weather-settings input[type="number"] {
+                background-color: @race-input-bg;
+                color: @race-input-color;
+                border-color: @race-input-border;
+
+                &:focus {
+                    background-color: @race-input-bg;
+                    color: @race-input-color;
+                    border-color: @race-input-border;
+                }
+            }
+
+            // The open dropdown popup needs solid colors - the translucent
+            // select background doesn't carry into it
+            select option {
+                background-color: @race-dropdown-bg;
+                color: @race-input-color;
+            }
+
+            .dynamic-weather-settings {
+                background: @race-form-bg;
+            }
+
+            .wind-compass {
+                .compass-ring {
+                    fill: @race-input-bg;
+                    stroke: @race-input-border;
+                }
+
+                .compass-label {
+                    fill: @submenu-item-color;
+                }
+
+                .compass-needle {
+                    stroke: @view-select-car-bg;
+                }
+
+                .compass-arrow {
+                    fill: @view-select-car-bg;
+                }
+
+                .compass-center {
+                    fill: @view-select-car-bg;
+                }
+            }
+        }
+
+        .details-btn,
+        .hide-details-btn {
+            background: @footer-details-btn-bg;
+            color: @footer-details-btn-color;
 
             svg use {
-                color: @submenu-item-icon-color;
+                color: @footer-details-btn-color;
+            }
+
+            &:hover {
+                filter: brightness(1.15);
+            }
+        }
+
+        .footer-play-button .play-btn {
+            background: @view-select-car-bg;
+            color: @view-select-car-color;
+
+            svg use {
+                color: @view-select-car-color;
+            }
+
+            &:hover:not(:disabled) {
+                background: @view-select-car-hover-bg;
+                color: @view-select-car-hover-color;
+
+                svg use {
+                    color: @view-select-car-hover-color;
+                }
+            }
+
+            &.running {
+                background: @play-btn-running-bg;
+            }
+        }
+
+        .setting-actions .add-fav-btn {
+            background: @fav-btn-bg;
+            color: #fff;
+
+            &:hover:not(:disabled) {
+                filter: brightness(1.15);
             }
         }
     }
 
-    .footer-session-info {
-        color: @submenu-item-color;
+    // Add To Favorites modal
+    .fav-modal-backdrop {
+        background: rgba(0, 0, 0, 0.6);
+
+        .fav-modal {
+            background: @fav-modal-bg;
+            color: @race-input-color;
+            border: 2px solid @race-input-border;
+
+            .fav-modal-body input {
+                background-color: @race-input-bg;
+                color: @race-input-color;
+                border-color: @race-input-border;
+            }
+
+            .fav-save-btn,
+            .fav-ok-btn {
+                background: @view-select-car-bg;
+                color: @view-select-car-color;
+
+                &:hover {
+                    background: @view-select-car-hover-bg;
+                    color: @view-select-car-hover-color;
+                }
+            }
+
+            .fav-cancel-btn {
+                background: rgba(128, 128, 128, 0.35);
+                color: @race-input-color;
+
+                &:hover {
+                    background: rgba(128, 128, 128, 0.55);
+                }
+            }
+        }
     }
 
-    .footer-play-button .play-btn {
-        background: @view-select-car-bg;
-        color: @view-select-car-color;
+    // History page - favorites list
+    .content.history {
+        .favorite-item {
+            background-color: @view-details-bg;
 
-        svg use {
-            color: @view-select-car-color;
+            .fav-play-btn {
+                background: @view-select-car-bg;
+                color: @view-select-car-color;
+
+                &:hover {
+                    background: @view-select-car-hover-bg;
+                    color: @view-select-car-hover-color;
+                }
+            }
+
+            .fav-delete-btn {
+                background: rgba(128, 128, 128, 0.25);
+                color: @race-input-color;
+
+                &:hover {
+                    background: @fav-delete-btn-bg;
+                    color: #fff;
+                }
+            }
         }
+    }
 
-        &:hover:not(:disabled) {
-            background: @view-select-car-hover-bg;
-            color: @view-select-car-hover-color;
+    // History page - delete favorite confirmation
+    .fav-delete-modal {
+        .fav-delete-confirm-btn {
+            background: @fav-delete-btn-bg;
+            color: #fff;
 
-            svg use {
-                color: @view-select-car-hover-color;
+            &:hover {
+                filter: brightness(1.15);
             }
         }
     }

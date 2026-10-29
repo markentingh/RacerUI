@@ -3,6 +3,7 @@
 
 # large files
 Blender/renders
+**/dashboard.psd
 
 # User-specific files
 *.suo
@@ -12,6 +13,12 @@ config.json
 config.*.json
 !config.template.json
 .config/
+**/wwwroot/css/
+**/wwwroot/js/
+App/SQL/*.sql
+git-add.bat
+AGENTS.md
+.windsurf/
 
 
 # Build results

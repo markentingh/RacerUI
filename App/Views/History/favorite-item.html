@@ -1,0 +1,25 @@
+<div class="favorite-item" data-fav-index="{{favIndex}}">
+    <div class="fav-preview fav-car-preview" style="background-image: url('{{carPreview}}')"></div>
+    <div class="fav-preview fav-track-preview" style="background-image: url('{{trackPreview}}')">
+        <img class="fav-track-outline" src="{{trackOutline}}" onerror="this.style.display='none'" alt="" />
+    </div>
+    <div class="fav-info">
+        <h4>{{title}}</h4>
+        <div class="fav-names">{{carName}}<span class="fav-at"> at </span>{{trackName}}{{has-layout}} ({{layoutName}}){{/has-layout}}</div>
+        <div class="fav-settings">{{settingsSummary}}</div>
+        <input type="range" class="time-slider fav-time-slider" min="0" max="1439" step="1" value="{{timeMinutes}}" disabled />
+    </div>
+    <div class="fav-actions">
+        <button class="fav-play-btn" onclick="RacerUI.views.history.playFavorite(this)">
+            <svg viewBox="0 0 64 64" class="dark">
+                <use xlink:href="#icon-play" x="0" y="0" width="64" height="64"></use>
+            </svg>
+            <span>Start Race</span>
+        </button>
+        <button class="fav-delete-btn" title="Delete favorite" onclick="RacerUI.views.history.confirmDelete(this)">
+            <svg viewBox="0 0 64 64" class="dark">
+                <use xlink:href="#icon-trash" x="0" y="0" width="64" height="64"></use>
+            </svg>
+        </button>
+    </div>
+</div>

@@ -88,6 +88,31 @@ namespace RacerUI.Controllers
             return Ok(result);
         }
 
+        public class UpdateRatingRequest
+        {
+            public int? Rating { get; set; }
+        }
+
+        /// <summary>
+        /// Saves a 0-5 rating for a track
+        /// </summary>
+        [HttpPost("{id}/rating")]
+        public IActionResult UpdateRating(int id, [FromBody] UpdateRatingRequest request)
+        {
+            if (request == null || !request.Rating.HasValue)
+            {
+                return BadRequest(new { error = "A rating value is required." });
+            }
+            if (request.Rating.Value < 0 || request.Rating.Value > 5)
+            {
+                return BadRequest(new { error = "Rating must be between 0 and 5." });
+            }
+
+            return TracksRepository.UpdateRating(id, request.Rating.Value)
+                ? Ok(new { id, rating = request.Rating.Value })
+                : NotFound();
+        }
+
         [HttpGet("{id}")]
         public IActionResult GetById(int id)
         {

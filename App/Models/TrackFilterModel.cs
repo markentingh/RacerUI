@@ -13,7 +13,13 @@ namespace RacerUI.Models
         
         [JsonPropertyName("search")]
         public string Search { get; set; }
-        
+
+        /// <summary>
+        /// Sort key: name | country | distance | year | rating
+        /// </summary>
+        [JsonPropertyName("sort")]
+        public string Sort { get; set; }
+
         [JsonPropertyName("start")]
         public int? Start { get; set; }
         

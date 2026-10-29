@@ -34,6 +34,9 @@
                     </div>
                 {{/has-type}}
             </div>
+            <div class="track-layouts" style="display:none;">
+                <select id="track_layouts_select"></select>
+            </div>
         </div>
         <div class="track-stats">
                 {{has-length}}
@@ -50,6 +53,7 @@
                         <strong>Author:</strong> <span>{{author}}</span>
                     </div>
                 {{/has-author}}
+                <rating-stars class="details-rating" item-type="track" item-id="{{id}}" rating="{{rating}}"></rating-stars>
         </div>
         {{has-details}}
             <div class="track-description">

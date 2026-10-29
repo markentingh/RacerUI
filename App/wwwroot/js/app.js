@@ -196,6 +196,11 @@ ui.nav.select = (id) => {
 }
 
 ui.nav.navigate = (path) => {
+    // Collapse the expanded footer before switching views
+    if (ui.views.footer && ui.views.footer.expanded) {
+        ui.views.footer.collapseDetails();
+    }
+
     // Update the URL first, which will trigger the route execution via our location change listener
     history.pushState({path: path}, '', `/dashboard/${path}`);
     
@@ -406,6 +411,340 @@ class DarkModeToggle extends HTMLElement {
 }
 
 customElements.define('darkmode-toggle', DarkModeToggle);
+//#region "DropdownList"
+
+// <dropdown-list> - a styled drop-in replacement for <select>.
+// Reads its child <option> elements as the data source, so existing code that
+// sets innerHTML/value/querySelector keeps working. The option list is hidden;
+// the visible toggle + popup list are themed via colors.less.
+class DropdownList extends HTMLElement {
+
+    connectedCallback() {
+        if (!this._toggle) {
+            this._toggle = document.createElement('div');
+            this._toggle.className = 'ddl-toggle';
+            const label = document.createElement('span');
+            label.className = 'ddl-label';
+            const caret = document.createElement('span');
+            caret.className = 'material-symbols-outlined ddl-caret';
+            caret.textContent = 'keyboard_arrow_down';
+            this._toggle.append(label, caret);
+            this._toggle.addEventListener('click', () => this.toggle());
+        }
+        this.prepend(this._toggle);
+
+        // Rebuild the item list whenever options are added/removed
+        this._observer = new MutationObserver(() => this._syncOptions());
+        this._observer.observe(this, { childList: true });
+
+        this._onDocPointerDown = (e) => {
+            if (!this.contains(e.target) && !(this._portal && this._portal.contains(e.target))) {
+                this.close();
+            }
+        };
+        document.addEventListener('pointerdown', this._onDocPointerDown, true);
+        this._onClose = () => this.close();
+        window.addEventListener('resize', this._onClose);
+        document.addEventListener('scroll', this._onClose, true);
+
+        this._syncOptions();
+    }
+
+    disconnectedCallback() {
+        if (this._observer) this._observer.disconnect();
+        document.removeEventListener('pointerdown', this._onDocPointerDown, true);
+        window.removeEventListener('resize', this._onClose);
+        document.removeEventListener('scroll', this._onClose, true);
+        this.close();
+    }
+
+    // The raw <option> children are the data source (they're hidden by CSS).
+    // NB: the .selected *property* doesn't stick on <option> elements that
+    // aren't inside a real <select>, so selection is tracked on _selectedValue
+    // and mirrored to the selected attribute.
+    get options() {
+        return Array.from(this.children).filter((c) => c.tagName === 'OPTION');
+    }
+
+    get value() {
+        const opt = this.options.find((o) => o.value === this._selectedValue)
+            || this.options.find((o) => o.hasAttribute('selected'))
+            || this.options[0];
+        return opt ? opt.value : '';
+    }
+
+    set value(v) {
+        v = String(v);
+        const opt = this.options.find((o) => o.value === v);
+        if (opt) {
+            this._select(opt, false);
+        } else {
+            // Value set before options exist - apply it when they arrive
+            this._pendingValue = v;
+        }
+    }
+
+    _select(opt, fireEvent) {
+        this._selectedValue = opt.value;
+        this.options.forEach((o) => {
+            o.toggleAttribute('selected', o === opt);
+            o.selected = (o === opt);
+        });
+        if (this._toggle) {
+            this._toggle.querySelector('.ddl-label').textContent = opt.textContent;
+        }
+        if (this._portal) {
+            this._portal.querySelectorAll('.ddl-item').forEach((item) => {
+                item.classList.toggle('selected', item._option === opt);
+            });
+        }
+        if (fireEvent) {
+            this.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    _syncOptions() {
+        // innerHTML assignment wipes our toggle (and serializes it into dead
+        // clones when it was connected during `+=`) - restore the real toggle
+        // first and remove any dead copies
+        if (this._toggle && this._toggle.parentNode !== this) {
+            this.prepend(this._toggle);
+        }
+        Array.from(this.children)
+            .filter((c) => c.classList && c.classList.contains('ddl-toggle') && c !== this._toggle)
+            .forEach((c) => c.remove());
+
+        const pending = this._pendingValue;
+        if (pending !== undefined && this.options.some((o) => o.value === pending)) {
+            this._pendingValue = undefined;
+        }
+
+        const selected =
+            this.options.find((o) => o.value === this._selectedValue)
+            || this.options.find((o) => o.value === pending)
+            || this.options.find((o) => o.hasAttribute('selected'))
+            || this.options[0];
+
+        if (selected) {
+            this._select(selected, false);
+        } else if (this._toggle) {
+            this._toggle.querySelector('.ddl-label').textContent = '';
+        }
+
+        // Keep the open list in sync if options change while open
+        if (this._portal) {
+            this._buildItems();
+        }
+    }
+
+    toggle() {
+        if (this._portal) {
+            this.close();
+        } else {
+            this.open();
+        }
+    }
+
+    open() {
+        if (!this.options.length || this._portal) return;
+
+        this._portal = document.createElement('div');
+        this._portal.className = 'ddl-portal';
+        this._buildItems();
+        document.body.appendChild(this._portal);
+
+        // The toggle may live inside a scaled .scale-ui container - measure the
+        // effective scale and reproduce it on the portal so it matches visually
+        const rect = this._toggle.getBoundingClientRect();
+        const scale = this._toggle.offsetWidth ? rect.width / this._toggle.offsetWidth : 1;
+
+        const portal = this._portal;
+        portal.style.transform = `scale(${scale})`;
+        portal.style.transformOrigin = 'top left';
+        portal.style.width = `${this._toggle.offsetWidth}px`;
+
+        // Open upward when there isn't room below
+        const portalHeight = portal.offsetHeight;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < portalHeight && rect.top > portalHeight) {
+            portal.style.left = `${rect.left}px`;
+            portal.style.top = `${rect.top - portalHeight}px`;
+            portal.style.transformOrigin = 'bottom left';
+        } else {
+            portal.style.left = `${rect.left}px`;
+            portal.style.top = `${rect.bottom}px`;
+            portal.style.transformOrigin = 'top left';
+        }
+    }
+
+    _buildItems() {
+        this._portal.innerHTML = '';
+        this.options.forEach((opt) => {
+            const item = document.createElement('div');
+            item.className = 'ddl-item' + (opt.selected ? ' selected' : '');
+            item.textContent = opt.textContent;
+            item._option = opt;
+            item.addEventListener('click', () => {
+                this._select(opt, true);
+                this.close();
+            });
+            this._portal.appendChild(item);
+        });
+    }
+
+    close() {
+        if (this._portal) {
+            this._portal.remove();
+            this._portal = null;
+        }
+    }
+}
+
+customElements.define('dropdown-list', DropdownList);
+
+//#endregion
+
+//#region "RatingStars"
+
+// <rating-stars> - five-star rating display + one-shot rater.
+//
+// Attributes:
+//   rating      0-5. >0 renders locked (filled gold + grey outlines, no hover).
+//   item-type   'car' | 'track' - enables saving when unrated.
+//   item-id     database id for the save endpoint.
+//   readonly    never interactive (display only).
+//   filled-only render only the filled stars (preview badge mode).
+//
+// Behaviour: unrated shows grey outlines; hovering the component turns all
+// stars gold outline and hovering star N fills 1..N gold; clicking saves
+// rating N to /api/{type}s/{id}/rating and locks the component.
+// Emits a bubbling 'rated' CustomEvent {itemType, itemId, rating} on save.
+class RatingStars extends HTMLElement {
+
+    static get observedAttributes() { return ['rating']; }
+
+    connectedCallback() {
+        this._build();
+        if (this._interactive()) this._wire();
+        this._paint();
+    }
+
+    attributeChangedCallback() {
+        if (!this.isConnected) return;
+        // filled-only badges render `rating` stars - a rating change needs a rebuild
+        if (this.hasAttribute('filled-only')) this._build();
+        this._paint();
+    }
+
+    get rating() {
+        const r = parseInt(this.getAttribute('rating') || '0', 10);
+        return Number.isFinite(r) ? Math.min(Math.max(r, 0), 5) : 0;
+    }
+
+    get locked() {
+        return this.rating > 0 || this.hasAttribute('readonly');
+    }
+
+    _interactive() {
+        return !this.locked
+            && this.hasAttribute('item-type')
+            && this.hasAttribute('item-id');
+    }
+
+    _build() {
+        this.replaceChildren();
+        this._stars = [];
+        const count = this.hasAttribute('filled-only') ? this.rating : 5;
+        for (let i = 0; i < count; i++) {
+            const star = document.createElement('span');
+            star.className = 'rs-star';
+            star.dataset.index = String(i + 1);
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+            use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#icon-star-outline');
+            use.setAttribute('href', '#icon-star-outline');
+            svg.appendChild(use);
+            star.appendChild(svg);
+            this.appendChild(star);
+            this._stars.push(star);
+        }
+        this.classList.toggle('rs-badge', this.hasAttribute('filled-only'));
+    }
+
+    _paint() {
+        const r = this.rating;
+        const hover = !!(this._hovering && this._interactive());
+        const preview = hover && this._preview ? this._preview : 0;
+        this.classList.toggle('rs-interactive', this._interactive());
+        this._stars.forEach((star, idx) => {
+            const n = idx + 1;
+            const filled = n <= r || (preview > 0 && n <= preview);
+            // NB: toggle() with an undefined force flips the class - keep gold boolean
+            const gold = !!(n <= r || hover);
+            star.classList.toggle('gold', this.hasAttribute('filled-only') ? true : gold);
+            const use = star.querySelector('use');
+            use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', filled ? '#icon-star' : '#icon-star-outline');
+            use.setAttribute('href', filled ? '#icon-star' : '#icon-star-outline');
+        });
+    }
+
+    _wire() {
+        // pointermove only fires on real pointer movement - mouseover/enter can
+        // fire when the details panel animates open under a stationary cursor,
+        // which would wrongly show the gold hover state on first render
+        this.addEventListener('pointermove', (e) => {
+            this._hovering = true;
+            const star = e.target.closest('.rs-star');
+            this._preview = star && this.contains(star) ? parseInt(star.dataset.index, 10) : 0;
+            this._paint();
+        });
+        this.addEventListener('pointerleave', () => {
+            this._hovering = false;
+            this._preview = 0;
+            this._paint();
+        });
+        this._stars.forEach((star) => {
+            star.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!this._interactive()) return;
+                this._rate(parseInt(star.dataset.index, 10));
+            });
+        });
+    }
+
+    _rate(n) {
+        const type = this.getAttribute('item-type');
+        const id = this.getAttribute('item-id');
+        const el = this;
+        el.classList.add('rs-saving');
+        ui.ajax({
+            url: `/api/${type}s/${id}/rating`,
+            method: 'POST',
+            data: { rating: n },
+            complete: () => {
+                el.classList.remove('rs-saving');
+                el.setAttribute('rating', String(n));
+                el.dispatchEvent(new CustomEvent('rated', {
+                    bubbles: true,
+                    detail: { itemType: type, itemId: id, rating: n }
+                }));
+            },
+            error: () => {
+                el.classList.remove('rs-saving');
+                el._hovering = false;
+                el._preview = 0;
+                el._paint();
+            }
+        });
+    }
+}
+
+customElements.define('rating-stars', RatingStars);
+
+//#endregion
+
 //#region "Cars"
 
 ui.views.cars = {
@@ -418,6 +757,7 @@ ui.views.cars = {
         styles: [],//styleId int
         specializations: [],//specializationId int
         search: '',
+        sort: 'year',
         start: 0,
         length: 20,
         view: 'grid',
@@ -452,6 +792,7 @@ ui.views.cars.load = (e) => {
                 ui.views.cars.updateNav(e.id);
             }
             ui.views.cars.setupSearchListener();
+            ui.views.cars.setupSortDropdown();
             ui.views.cars.updateClearFilterButton();
             ui.views.cars.getFilteredList();
             ui.views.cars.resize();
@@ -634,6 +975,19 @@ ui.views.cars.setupSearchListener = () => {
     }
 };
 
+ui.views.cars.setupSortDropdown = () => {
+    const sortDdl = document.getElementById('cars_sort');
+    if (!sortDdl) return;
+    // stale localStorage values (e.g. removed options) snap back to the default
+    const valid = ['year', 'yearasc', 'country', 'manufacturer', 'model', 'rating', 'maxspeed'];
+    if (!valid.includes(ui.views.cars.filter.sort)) ui.views.cars.filter.sort = 'year';
+    sortDdl.value = ui.views.cars.filter.sort;
+    sortDdl.addEventListener('change', () => {
+        ui.views.cars.filter.sort = sortDdl.value;
+        ui.views.cars.getFilteredList();
+    });
+};
+
 ui.views.cars.unload = () => {
     window.removeEventListener('resize', ui.views.cars.resize);
     const container = document.querySelector('.cars-content');
@@ -725,8 +1079,8 @@ ui.views.cars.saveFilter = () => {
     localStorage.setItem('RacerUI:cars-filter', JSON.stringify(ui.views.cars.filter));
 };
 
-ui.views.cars.hasActiveFilters = () => {
-    // Check if any filters are active (not default state)
+ui.views.cars.hasNonModelFilters = () => {
+    // Check if any filters other than models are active
     const hasCountryFilter = ui.views.cars.filter.countries.length > 0 && !ui.views.cars.filter.countries.includes('all');
     const hasMakesFilter = ui.views.cars.filter.makes.length > 0;
     const hasYearsFilter = ui.views.cars.filter.years.length > 0;
@@ -735,9 +1089,13 @@ ui.views.cars.hasActiveFilters = () => {
     const hasStylesFilter = ui.views.cars.filter.styles.length > 0;
     const hasSpecializationsFilter = ui.views.cars.filter.specializations.length > 0;
     const hasSearchFilter = ui.views.cars.filter.search && ui.views.cars.filter.search.length > 0;
-    
-    return hasCountryFilter || hasMakesFilter || hasYearsFilter || hasClassesFilter || 
+
+    return hasCountryFilter || hasMakesFilter || hasYearsFilter || hasClassesFilter ||
            hasTypesFilter || hasStylesFilter || hasSpecializationsFilter || hasSearchFilter;
+};
+
+ui.views.cars.hasActiveFilters = () => {
+    return ui.views.cars.hasNonModelFilters() || ui.views.cars.filter.models.length > 0;
 };
 
 ui.views.cars.updateClearFilterButton = () => {
@@ -773,6 +1131,7 @@ ui.views.cars.getFilterData = (excludeFilter) => {
         Makes: excludeFilter === 'makes' ? [] : ui.views.cars.filter.makes,
         Years: excludeFilter === 'years' ? [] : ui.views.cars.filter.years,
         Classes: excludeFilter === 'classes' ? [] : (ui.views.cars.filter.classes || []),
+        Models: excludeFilter === 'models' ? [] : ui.views.cars.filter.models,
         Types: excludeFilter === 'types' ? [] : ui.views.cars.filter.types,
         Styles: excludeFilter === 'styles' ? [] : ui.views.cars.filter.styles,
         Specializations: excludeFilter === 'specializations' ? [] : ui.views.cars.filter.specializations,
@@ -804,6 +1163,7 @@ ui.views.cars.getFilteredList = (reset = true) => {
         Styles: ui.views.cars.filter.styles,
         Specializations: ui.views.cars.filter.specializations,
         Search: ui.views.cars.filter.search || '',
+        Sort: ui.views.cars.filter.sort,
         Start: ui.views.cars.filter.start,
         Length: ui.views.cars.filter.length
     };
@@ -1044,8 +1404,10 @@ ui.views.cars.views.renderCarItem = (car, htmlItem) => {
         .split('{{class}}').join(car.class)
         .split('{{description}}').join(car.description ?? '')
         .split('{{path}}').join(car.path ?? '')
+        .split('{{rating}}').join(car.rating || 0)
         .split('{{countryCode}}').join((car.country || 'unknown').toLowerCase())
-        .split('{{country}}').join(car.countryName || car.country || 'Unknown');
+        .split('{{country}}').join(car.countryName || car.country || 'Unknown')
+        .hasBlock('has-rating', (car.rating || 0) > 0);
 };
 
 ui.views.cars.views.load = (list) => {
@@ -1258,6 +1620,8 @@ ui.views.cars.views.grid = {
                 .split('{{gears}}').join(car.gears || 'N/A')
                 .split('{{description}}').join(car.description || '')
                 .split('{{details}}').join(car.details || '')
+                .split('{{id}}').join(car.id)
+                .split('{{rating}}').join(car.rating || 0)
                 .hasBlock('has-country', car.countryName || car.country)
                 .hasBlock('has-max-speed', car.maxSpeed)
                 .hasBlock('has-max-bhp', car.maxBHP)
@@ -1267,10 +1631,16 @@ ui.views.cars.views.grid = {
                 item.insertAdjacentHTML('afterend', view);
                 ui.views.cars.views.grid.detailsDiv = item.nextSibling;
                 ui.views.cars.selected = {car, item};
-                
+
+                // Keep the model + grid-item badge in sync when a rating saves
+                ui.views.cars.views.grid.detailsDiv.addEventListener('rated', (e) => {
+                    car.rating = e.detail.rating;
+                    ui.views.cars.views.grid.applyRating(item, car);
+                });
+
                 // Add selected class to the item
                 item.classList.add('selected');
-                
+
                 // Setup skin hover and click handlers
                 ui.views.cars.views.grid.setupSkinHandlers();
                 
@@ -1279,9 +1649,12 @@ ui.views.cars.views.grid = {
                 
                 // Setup select car button handler
                 ui.views.cars.views.grid.setupSelectCarHandler();
-                
+
                 // Setup button hover effects
                 ui.views.cars.views.grid.setupButtonHoverEffects();
+
+                // Load the power/torque graph
+                ui.views.cars.views.grid.setupPowerGraph(car);
                 
                 setTimeout(() => {
                     //scroll to car details
@@ -1446,6 +1819,123 @@ ui.views.cars.views.grid = {
             return car.path == item.getAttribute('data-path');
         });
         return car;
+    },
+    setupPowerGraph: (car) => {
+        const container = ui.views.cars.views.grid.detailsDiv && ui.views.cars.views.grid.detailsDiv.querySelector
+            ? ui.views.cars.views.grid.detailsDiv.querySelector('.car-graph')
+            : document.querySelector('.grid-details .car-graph');
+        if (!container || !car.id) return;
+        ui.ajax({
+            url: `/api/cars/${car.id}/powercurve`,
+            method: 'GET',
+            complete: (response) => {
+                try {
+                    const data = JSON.parse(response.responseText);
+                    ui.views.cars.views.grid.renderPowerGraph(container, data);
+                } catch (error) {
+                    console.error('Error loading power curve:', error);
+                }
+            }
+        });
+    },
+    renderPowerGraph: (container, data) => {
+        const rpm = data.rpm || data.Rpm || [];
+        const torque = data.torque || data.Torque || [];
+        const power = data.power || data.Power || [];
+        if (rpm.length < 2) return;
+
+        const W = 640, H = 248;
+        const m = { left: 56, right: 56, top: 14, bottom: 40 };
+        const pw = W - m.left - m.right;
+        const ph = H - m.top - m.bottom;
+
+        // domain floor is 0 - negative rpm entries (engine braking data in
+        // some luts) stay in the series but are clipped at the left axis edge
+        const rpmMin = Math.max(0, Math.min.apply(null, rpm));
+        const rpmMax = Math.max.apply(null, rpm);
+
+        // round a max value up to 5 "nice" tick steps (1/2/2.5/5 x 10^n)
+        const niceScale = (v) => {
+            const raw = (v || 1) / 5;
+            const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+            const norm = raw / mag;
+            const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+            return { step, max: step * 5 };
+        };
+        const t = niceScale(Math.max.apply(null, torque));
+        const p = niceScale(Math.max.apply(null, power));
+
+        const x = (r) => m.left + (r - rpmMin) / (rpmMax - rpmMin || 1) * pw;
+        const yT = (v) => m.top + ph - v / t.max * ph;
+        const yP = (v) => m.top + ph - v / p.max * ph;
+        const f = (n) => Math.round(n * 100) / 100;
+
+        let svg = `<svg class="pt-graph" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">`;
+
+        // horizontal gridlines + left (Nm) / right (bhp) labels
+        for (let i = 0; i <= 5; i++) {
+            const y = f(m.top + ph - i / 5 * ph);
+            svg += `<line class="pt-grid" x1="${m.left}" y1="${y}" x2="${m.left + pw}" y2="${y}"/>`;
+            svg += `<text class="pt-label pt-tick-torque" x="${m.left - 6}" y="${f(y + 4)}" text-anchor="end">${Math.round(t.step * i)}</text>`;
+            svg += `<text class="pt-label pt-tick-power" x="${m.left + pw + 6}" y="${f(y + 4)}" text-anchor="start">${Math.round(p.step * i)}</text>`;
+        }
+
+        // axis frame: bottom + left + right
+        svg += `<line class="pt-axis" x1="${m.left}" y1="${m.top + ph}" x2="${m.left + pw}" y2="${m.top + ph}"/>`;
+        svg += `<line class="pt-axis" x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${m.top + ph}"/>`;
+        svg += `<line class="pt-axis" x1="${m.left + pw}" y1="${m.top}" x2="${m.left + pw}" y2="${m.top + ph}"/>`;
+
+        // rpm ticks along the bottom (5-7 nice round values inside the range)
+        const rpmStep = niceScale(rpmMax - rpmMin).step;
+        for (let r = Math.ceil(rpmMin / rpmStep) * rpmStep; r <= rpmMax; r += rpmStep) {
+            svg += `<line class="pt-grid" x1="${f(x(r))}" y1="${m.top}" x2="${f(x(r))}" y2="${m.top + ph}"/>`;
+            svg += `<text class="pt-label" x="${f(x(r))}" y="${m.top + ph + 16}" text-anchor="middle">${r}</text>`;
+        }
+
+        // rpm label centered below the plot + series legend aligned far right
+        const legendY = H - 10;
+        const e = m.left + pw;
+        svg += `<text class="pt-label" x="${f(m.left + pw / 2)}" y="${legendY}" text-anchor="middle">rpm</text>`;
+        svg += `<text class="pt-label pt-legend-torque" x="${f(e)}" y="${legendY}" text-anchor="end">torque</text>`;
+        svg += `<line class="pt-line pt-line-torque" x1="${f(e - 68)}" y1="${legendY - 4}" x2="${f(e - 44)}" y2="${legendY - 4}"/>`;
+        svg += `<text class="pt-label pt-legend-power" x="${f(e - 84)}" y="${legendY}" text-anchor="end">power</text>`;
+        svg += `<line class="pt-line pt-line-power" x1="${f(e - 150)}" y1="${legendY - 4}" x2="${f(e - 124)}" y2="${legendY - 4}"/>`;
+
+        // unit labels rotated 90deg, centered on their axes
+        const cy = m.top + ph / 2;
+        svg += `<text class="pt-label pt-legend-torque" x="14" y="${f(cy)}" text-anchor="middle" transform="rotate(-90 14 ${f(cy)})">Nm</text>`;
+        svg += `<text class="pt-label pt-legend-power" x="${W - 14}" y="${f(cy)}" text-anchor="middle" transform="rotate(-90 ${W - 14} ${f(cy)})">bhp</text>`;
+
+        // series polylines - clipped to the plot area so out-of-range
+        // points (negative rpm/torque) never draw outside the axes
+        const torquePts = rpm.map((r, i) => `${f(x(r))},${f(yT(torque[i]))}`).join(' ');
+        const powerPts = rpm.map((r, i) => `${f(x(r))},${f(yP(power[i]))}`).join(' ');
+        svg += `<defs><clipPath id="pt-clip"><rect x="${m.left}" y="${m.top}" width="${pw}" height="${ph}"/></clipPath></defs>`;
+        svg += `<g clip-path="url(#pt-clip)">`;
+        svg += `<polyline class="pt-line pt-line-torque" points="${torquePts}"/>`;
+        svg += `<polyline class="pt-line pt-line-power" points="${powerPts}"/>`;
+        svg += `</g>`;
+
+        svg += `</svg>`;
+        container.innerHTML = svg;
+    },
+    applyRating: (item, car) => {
+        // Create or update the filled-stars badge on a car grid item
+        let badge = item.querySelector('rating-stars.rating-badge');
+        if ((car.rating || 0) <= 0) {
+            if (badge) badge.remove();
+            return;
+        }
+        if (!badge) {
+            badge = document.createElement('rating-stars');
+            badge.className = 'rating-badge';
+            badge.setAttribute('filled-only', '');
+            badge.setAttribute('readonly', '');
+            badge.setAttribute('rating', String(car.rating));
+            item.prepend(badge);
+        } else {
+            badge.setAttribute('rating', String(car.rating));
+        }
     }
 }
 
@@ -1669,22 +2159,57 @@ ui.views.cars.manufacturer.select = (makeId) => {
 ui.views.cars.model = {};
 
 ui.views.cars.model.load = () => {
-    //load selected models
-    if (ui.views.cars.filter.models.length > 0) {
-        document.querySelectorAll('.filter-model li').forEach((li) => {
-            if (ui.views.cars.filter.models.includes(parseInt(li.getAttribute('data-model')))) {
-                li.classList.add('selected');
-            } else {
-                li.classList.remove('selected');
+    const container = document.querySelector('.filter-model .select-list');
+    if (!container) return;
+
+    // Models are a narrowing filter - they are only listed once another
+    // filter is active, never fetched for the whole catalog
+    if (!ui.views.cars.hasNonModelFilters()) {
+        container.innerHTML = '<li class="filter-hint">Select a manufacturer, class or year to list models</li>';
+        return;
+    }
+
+    ui.view.loadComponent('Cars/filter-model-item', (itemTemplate) => {
+        ui.ajax({
+            url: '/api/cars/models',
+            method: 'POST',
+            data: ui.views.cars.getFilterData('models'),
+            complete: (response) => {
+                try {
+                    const models = JSON.parse(response.responseText);
+                    container.innerHTML = '<li data-model="0">All Models</li>';
+
+                    models.forEach(model => {
+                        let itemHtml = itemTemplate
+                            .split('{{id}}').join(model.id)
+                            .split('{{name}}').join(model.name);
+                        container.innerHTML += itemHtml;
+                    });
+
+                    document.querySelectorAll('.filter-model li').forEach((li) => {
+                        li.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ui.views.cars.model.select(parseInt(li.getAttribute('data-model')));
+                        }
+                    });
+
+                    if (ui.views.cars.filter.models.length > 0) {
+                        document.querySelectorAll('.filter-model li').forEach((li) => {
+                            if (ui.views.cars.filter.models.includes(parseInt(li.getAttribute('data-model')))) {
+                                li.classList.add('selected');
+                            } else {
+                                li.classList.remove('selected');
+                            }
+                        });
+                    } else {
+                        document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
+                    }
+                } catch (error) {
+                    console.error('Error loading models:', error);
+                }
             }
         });
-    }
-    document.querySelectorAll('.filter-model li').forEach((li) => {
-        li.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ui.views.cars.model.select(parseInt(li.getAttribute('data-model')));
-        }
     });
 };
 
@@ -1694,6 +2219,7 @@ ui.views.cars.model.select = (modelId) => {
         document.querySelectorAll('.filter-model li').forEach((li) => {
             li.classList.remove('selected');
         });
+        document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.models.includes(modelId)) {
             ui.views.cars.filter.models.splice(ui.views.cars.filter.models.indexOf(modelId), 1);
@@ -1703,6 +2229,10 @@ ui.views.cars.model.select = (modelId) => {
         document.querySelectorAll('.filter-model li[data-model="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
+        // If no models selected, select 'All'
+        if (ui.views.cars.filter.models.length === 0) {
+            document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
+        }
     }
     document.querySelectorAll('.filter-model li[data-model="' + modelId + '"]').forEach((li) => {
         li.classList.toggle('selected');
@@ -2151,9 +2681,66 @@ ui.views.cars.specialization.select = (specializationId) => {
 ui.views.footer = {
     selectedCar: null,
     selectedTrack: null,
+    selectedLayout: null,
     selectedSkin: null,
-    footerHeight: 8 // Footer height in em
+    footerHeight: 8, // Footer height in em
+    expanded: false
 };
+
+// Static weather types from AC's WeatherType enum (as written to
+// race.ini [LIGHTING] __CM_WEATHER_TYPE by Content Manager / CSP)
+ui.views.footer.staticWeatherTypes = [
+    { value: 15, label: 'Clear' },
+    { value: 16, label: 'Few Clouds' },
+    { value: 17, label: 'Scattered Clouds' },
+    { value: 18, label: 'Broken Clouds' },
+    { value: 19, label: 'Overcast Clouds' },
+    { value: 20, label: 'Fog' },
+    { value: 21, label: 'Mist' },
+    { value: 22, label: 'Smoke' },
+    { value: 23, label: 'Haze' },
+    { value: 24, label: 'Sand' },
+    { value: 25, label: 'Dust' },
+    { value: 3,  label: 'Light Drizzle' },
+    { value: 4,  label: 'Drizzle' },
+    { value: 5,  label: 'Heavy Drizzle' },
+    { value: 6,  label: 'Light Rain' },
+    { value: 7,  label: 'Rain' },
+    { value: 8,  label: 'Heavy Rain' },
+    { value: 0,  label: 'Light Thunderstorm' },
+    { value: 1,  label: 'Thunderstorm' },
+    { value: 2,  label: 'Heavy Thunderstorm' },
+    { value: 12, label: 'Light Sleet' },
+    { value: 13, label: 'Sleet' },
+    { value: 14, label: 'Heavy Sleet' },
+    { value: 9,  label: 'Light Snow' },
+    { value: 10, label: 'Snow' },
+    { value: 11, label: 'Heavy Snow' },
+    { value: 26, label: 'Squalls' },
+    { value: 27, label: 'Tornado' },
+    { value: 28, label: 'Hurricane' },
+    { value: 29, label: 'Cold' },
+    { value: 30, label: 'Hot' },
+    { value: 31, label: 'Windy' },
+    { value: 32, label: 'Hail' }
+];
+
+// Launch settings shown in the expanded footer (defaults mirror Content Manager)
+ui.views.footer.raceSettings = {
+    timeMinutes: 840,            // 14:00 -> SUN_ANGLE 16
+    weatherMode: 'static',       // 'static' or 'dynamic:<controllerId>'
+    weatherController: 'base',
+    staticWeatherType: 15,       // Clear
+    dynamicControllerId: null,
+    dynamicControllerName: null,
+    controllerSettings: {},      // section -> {key: value} for the dynamic controller
+    temperature: 26,             // deg C
+    windSpeed: 10,               // km/h
+    windDirection: 0,            // degrees
+    trackPreset: -1              // -1 Auto, 0-5 Dusty..Optimum
+};
+
+ui.views.footer.weatherControllers = null; // loaded once from the server
 
 ui.views.footer.load = () => {
     ui.view.loadComponent('Footer/footer', (html) => {
@@ -2162,6 +2749,17 @@ ui.views.footer.load = () => {
             footerContainer.remove();
         }
         document.body.insertAdjacentHTML('beforeend', html);
+
+        // Restore expanded state after re-inserting the footer
+        const newFooterContainer = document.querySelector('.footer-container');
+        if (newFooterContainer) {
+            newFooterContainer.classList.toggle('expanded', ui.views.footer.expanded);
+        }
+
+        // Re-apply the scale-ui transform to the re-inserted footer
+        if (ui.utils.scaleUI) {
+            ui.utils.scaleUI();
+        }
         
         // Restore selected car and track from localStorage
         const savedCar = localStorage.getItem('RacerUI:footer-selected-car');
@@ -2179,7 +2777,15 @@ ui.views.footer.load = () => {
         
         if (savedTrack) {
             try {
-                ui.views.footer.selectedTrack = JSON.parse(savedTrack);
+                const trackData = JSON.parse(savedTrack);
+                if (trackData.track) {
+                    ui.views.footer.selectedTrack = trackData.track;
+                    ui.views.footer.selectedLayout = trackData.layout || null;
+                } else {
+                    // Legacy format - the saved value was the track object itself
+                    ui.views.footer.selectedTrack = trackData;
+                    ui.views.footer.selectedLayout = null;
+                }
             } catch (e) {
                 console.error('Error parsing saved track data:', e);
             }
@@ -2188,10 +2794,23 @@ ui.views.footer.load = () => {
         ui.views.footer.updateDisplay();
         ui.views.footer.resize();
         ui.views.footer.setupButtonHoverEffects();
+        ui.views.footer.initRaceSettings();
+        ui.views.footer.syncGameState();
         
         // Add resize listener
         window.addEventListener('resize', ui.views.footer.resize);
     });
+};
+
+// Removes the footer on views that don't show it (everything except Cars and
+// Tracks). Selection/expanded state is kept so the next load restores it.
+ui.views.footer.unload = () => {
+    const container = document.querySelector('.footer-container');
+    if (container) container.remove();
+    const modal = document.getElementById('ftr-fav-modal');
+    if (modal) modal.remove();
+    document.body.classList.remove('footer-expanded');
+    window.removeEventListener('resize', ui.views.footer.resize);
 };
 
 ui.views.footer.setupButtonHoverEffects = () => {
@@ -2231,13 +2850,67 @@ ui.views.footer.setupButtonHoverEffects = () => {
 ui.views.footer.resize = () => {
     const el = document.querySelector('.footer-container');
     if (!el) return;
-    
-    const rect = el.getBoundingClientRect();
-    const scaledFooterHeight = window.innerWidth <= 1920 
-        ? ui.views.footer.footerHeight 
-        : ((ui.views.footer.footerHeight / 1920) * window.innerWidth);
-    
-    el.style.height = `${scaledFooterHeight}em`;
+
+    if (ui.views.footer.expanded) {
+        // Fill the viewport up to the dash nav's rendered bottom edge (the
+        // cars/tracks toolbar sits right below it). getBoundingClientRect
+        // already includes the scale transform, so this is the true bottom
+        // at any resolution.
+        const nav = document.querySelector('.dash > nav');
+        const navBottom = nav ? nav.getBoundingClientRect().bottom : 0;
+        const actualScale = el.offsetHeight ? (el.getBoundingClientRect().height / el.offsetHeight) : 1;
+        el.style.height = `${(window.innerHeight - navBottom) / (actualScale || 1)}px`;
+    } else {
+        // The scale-ui transform already scales the footer, so the
+        // unscaled height stays at footerHeight em (anchored bottom left)
+        el.style.height = `${ui.views.footer.footerHeight}em`;
+    }
+};
+
+ui.views.footer.toggleDetails = () => {
+    ui.views.footer.expanded = !ui.views.footer.expanded;
+
+    const container = document.querySelector('.footer-container');
+    if (container) {
+        if (ui.views.footer.expanded) {
+            container.classList.remove('collapsing');
+            container.classList.add('expanded');
+        } else {
+            // Keep the expanded geometry while the bar shrinks so the grid
+            // placements don't teleport; drop it when the transition ends
+            container.classList.add('collapsing');
+            container.classList.remove('expanded');
+            setTimeout(() => {
+                container.classList.remove('collapsing');
+            }, 450);
+        }
+    }
+    document.body.classList.toggle('footer-expanded', ui.views.footer.expanded);
+
+    // Refresh the collapsed summary so it always reflects the latest settings
+    ui.views.footer.updateSettingsSummary();
+
+    // Sync the footer height the cars/tracks views subtract from their content
+    const footerHeight = ui.views.footer.expanded
+        ? (window.innerHeight / 16)
+        : ui.views.footer.footerHeight;
+    if (ui.views.cars) {
+        ui.views.cars.footerHeight = footerHeight;
+        if (ui.views.cars.resize) ui.views.cars.resize();
+    }
+    if (ui.views.tracks) {
+        ui.views.tracks.footerHeight = footerHeight;
+        if (ui.views.tracks.resize) ui.views.tracks.resize();
+    }
+
+    ui.views.footer.resize();
+};
+
+// Collapses the footer when expanded (e.g. on dash nav clicks) - no-op otherwise
+ui.views.footer.collapseDetails = () => {
+    if (ui.views.footer.expanded) {
+        ui.views.footer.toggleDetails();
+    }
 };
 
 ui.views.footer.selectCar = (car, skin) => {
@@ -2253,18 +2926,452 @@ ui.views.footer.selectCar = (car, skin) => {
     ui.views.footer.updateDisplay();
 };
 
-ui.views.footer.selectTrack = (track) => {
+ui.views.footer.selectTrack = (track, layout) => {
     ui.views.footer.selectedTrack = track;
+    ui.views.footer.selectedLayout = layout || null;
     
     // Save to localStorage
-    localStorage.setItem('RacerUI:footer-selected-track', JSON.stringify(track));
+    localStorage.setItem('RacerUI:footer-selected-track', JSON.stringify({
+        track: track,
+        layout: layout || null
+    }));
     
     ui.views.footer.updateDisplay();
+};
+
+// Measure a preview image's aspect ratio so the expanded preview can show
+// the full background-image instead of cropping it with cover
+ui.views.footer.setPreviewRatio = (url, varName) => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+
+    if (!url) {
+        container.style.removeProperty(varName);
+        return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+        if (img.naturalWidth && img.naturalHeight) {
+            container.style.setProperty(varName, img.naturalWidth / img.naturalHeight);
+        }
+    };
+    img.src = url;
+};
+
+//#region "Race Settings"
+
+// "under water" -> "Under Water"
+ui.views.footer.toTitleCase = (text) =>
+    text.split(' ').map((w) => w ? w[0].toUpperCase() + w.substring(1) : w).join(' ');
+
+ui.views.footer.formatTime = (minutes) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
+// Parses "14", "14:30", "1430", "2:30 pm" etc. into minutes since midnight
+ui.views.footer.parseTime = (text) => {
+    if (!text) return null;
+    const match = text.trim().toLowerCase().match(/^(\d{1,2})(?::?(\d{2}))?\s*(am|pm)?$/);
+    if (!match) return null;
+    let h = parseInt(match[1], 10);
+    const m = match[2] ? parseInt(match[2], 10) : 0;
+    if (match[3] === 'pm' && h < 12) h += 12;
+    if (match[3] === 'am' && h === 12) h = 0;
+    if (h > 23 || m > 59) return null;
+    return h * 60 + m;
+};
+
+ui.views.footer.saveRaceSettings = () => {
+    localStorage.setItem('RacerUI:footer-race-settings', JSON.stringify(ui.views.footer.raceSettings));
+    ui.views.footer.updateSettingsSummary();
+};
+
+// Collapsed-footer summary line, e.g. "2:30 PM, Dynamic Pure, Wind at 7MPH NNE"
+ui.views.footer.updateSettingsSummary = () => {
+    const el = document.querySelector('.footer-container .session-settings');
+    if (!el) return;
+    const s = ui.views.footer.raceSettings;
+
+    // Time in 12h format
+    let h = Math.floor(s.timeMinutes / 60);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    const time = `${h}:${(s.timeMinutes % 60).toString().padStart(2, '0')} ${ampm}`;
+
+    // Weather - static shows the weather type, dynamic shows the controller name
+    let weather;
+    if (s.weatherMode === 'static') {
+        const w = ui.views.footer.staticWeatherTypes.find((w) => w.value === s.staticWeatherType);
+        weather = w ? w.label : 'Clear';
+    } else {
+        const id = s.weatherMode.substring('dynamic:'.length);
+        const c = (ui.views.footer.weatherControllers || []).find((c) => c.id === id);
+        weather = `Dynamic ${c ? c.name : id}`;
+    }
+
+    // Wind - speed in km/h + 16-point compass direction
+    const kmh = Math.round(s.windSpeed);
+    const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                  'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const dir = dirs[Math.round(s.windDirection / 22.5) % 16];
+
+    el.textContent = `${time}, ${weather}, ${s.temperature}\u00B0C, Wind at ${kmh}KM/H ${dir}`;
+};
+
+ui.views.footer.restoreRaceSettings = () => {
+    try {
+        const saved = localStorage.getItem('RacerUI:footer-race-settings');
+        if (saved) {
+            Object.assign(ui.views.footer.raceSettings, JSON.parse(saved));
+        }
+    } catch (e) {
+        console.error('Error restoring race settings:', e);
+    }
+};
+
+ui.views.footer.initRaceSettings = () => {
+    ui.views.footer.restoreRaceSettings();
+
+    const settings = ui.views.footer.raceSettings;
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+
+    // Static weather types
+    const staticSelect = container.querySelector('#ftr-static-weather');
+    staticSelect.innerHTML = '';
+    ui.views.footer.staticWeatherTypes.forEach((w) => {
+        staticSelect.appendChild(new Option(w.label, w.value));
+    });
+    staticSelect.value = settings.staticWeatherType;
+    staticSelect.onchange = () => {
+        settings.staticWeatherType = parseInt(staticSelect.value, 10);
+        ui.views.footer.saveRaceSettings();
+    };
+
+    // Weather system mode (Static / Dynamic: <controller>) + controller dropdown
+    const modeSelect = container.querySelector('#ftr-weather-mode');
+    const controllerSelect = container.querySelector('#ftr-weather-controller');
+    modeSelect.onchange = () => {
+        settings.weatherMode = modeSelect.value;
+        ui.views.footer.applyWeatherMode();
+        ui.views.footer.saveRaceSettings();
+    };
+    controllerSelect.onchange = () => {
+        settings.weatherController = controllerSelect.value;
+        ui.views.footer.saveRaceSettings();
+    };
+    ui.views.footer.loadWeatherControllers();
+
+    // Track state preset
+    const trackState = container.querySelector('#ftr-track-state');
+    trackState.value = settings.trackPreset;
+    trackState.onchange = () => {
+        settings.trackPreset = parseInt(trackState.value, 10);
+        ui.views.footer.saveRaceSettings();
+    };
+
+    // Time of day - slider and manual input stay in sync
+    const timeSlider = container.querySelector('#ftr-time-slider');
+    const timeInput = container.querySelector('#ftr-time-input');
+    const setTime = (minutes) => {
+        settings.timeMinutes = Math.max(0, Math.min(1439, minutes));
+        timeSlider.value = settings.timeMinutes;
+        timeInput.value = ui.views.footer.formatTime(settings.timeMinutes);
+    };
+    timeSlider.oninput = () => {
+        setTime(parseInt(timeSlider.value, 10));
+        ui.views.footer.saveRaceSettings();
+    };
+    timeInput.onchange = () => {
+        const parsed = ui.views.footer.parseTime(timeInput.value);
+        setTime(parsed !== null ? parsed : settings.timeMinutes);
+        ui.views.footer.saveRaceSettings();
+    };
+    setTime(settings.timeMinutes);
+
+    // Temperature slider
+    const tempSlider = container.querySelector('#ftr-temp-slider');
+    const tempValue = container.querySelector('#ftr-temp-value');
+    const setTemp = (v) => {
+        settings.temperature = v;
+        tempSlider.value = v;
+        tempValue.textContent = `${v}\u00B0C`;
+    };
+    tempSlider.oninput = () => {
+        setTemp(parseInt(tempSlider.value, 10));
+        ui.views.footer.saveRaceSettings();
+    };
+    setTemp(settings.temperature);
+
+    // Wind slider + compass direction
+    const windSlider = container.querySelector('#ftr-wind-slider');
+    const windValue = container.querySelector('#ftr-wind-value');
+    const setWind = (v) => {
+        settings.windSpeed = v;
+        windSlider.value = v;
+        windValue.textContent = `${v} km/h`;
+    };
+    windSlider.oninput = () => {
+        setWind(parseInt(windSlider.value, 10));
+        ui.views.footer.saveRaceSettings();
+    };
+    setWind(settings.windSpeed);
+
+    ui.views.footer.setupWindCompass();
+    ui.views.footer.setWindDirection(settings.windDirection);
+    ui.views.footer.applyWeatherMode();
+    ui.views.footer.updateSettingsSummary();
+};
+
+// Enumerates CSP weather controllers (extension/weather-controllers/*) from the
+// server, splitting them the way Content Manager does: controllers that follow
+// the selected weather go in the "Controller" dropdown, the rest become
+// "Dynamic: <name>" entries in the "Type" dropdown
+ui.views.footer.loadWeatherControllers = () => {
+    const render = (controllers) => {
+        const container = document.querySelector('.footer-container');
+        if (!container) return;
+        const settings = ui.views.footer.raceSettings;
+        const modeSelect = container.querySelector('#ftr-weather-mode');
+        const controllerSelect = container.querySelector('#ftr-weather-controller');
+
+        modeSelect.innerHTML = '';
+        modeSelect.appendChild(new Option('Static', 'static'));
+        controllerSelect.innerHTML = '';
+
+        controllers.forEach((c) => {
+            if (c.followsWeather) {
+                controllerSelect.appendChild(new Option(c.name, c.id));
+            } else {
+                modeSelect.appendChild(new Option(`Dynamic: ${c.name}`, `dynamic:${c.id}`));
+            }
+        });
+
+        // Restore selections (fall back to first option when the saved id no longer exists)
+        const savedMode = settings.weatherMode;
+        if (savedMode !== 'static' && !modeSelect.querySelector(`option[value="${savedMode}"]`)) {
+            settings.weatherMode = 'static';
+        }
+        modeSelect.value = settings.weatherMode;
+        if (controllerSelect.querySelector(`option[value="${settings.weatherController}"]`)) {
+            controllerSelect.value = settings.weatherController;
+        } else {
+            settings.weatherController = controllerSelect.value || 'base';
+        }
+        ui.views.footer.applyWeatherMode();
+        ui.views.footer.updateSettingsSummary();
+    };
+
+    if (ui.views.footer.weatherControllers) {
+        render(ui.views.footer.weatherControllers);
+        return;
+    }
+
+    ui.ajax({
+        url: '/api/ac/weather-controllers',
+        method: 'GET',
+        complete: (response) => {
+            try {
+                ui.views.footer.weatherControllers = JSON.parse(response.responseText);
+            } catch (e) {
+                ui.views.footer.weatherControllers = [];
+            }
+            render(ui.views.footer.weatherControllers);
+        },
+        error: () => {
+            // No CSP/controllers installed - static weather only
+            ui.views.footer.weatherControllers = [];
+            render([]);
+        }
+    });
+};
+
+// Shows/hides the Static Weather dropdown vs the dynamic controller settings
+// form based on the selected weather mode
+ui.views.footer.applyWeatherMode = () => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    const settings = ui.views.footer.raceSettings;
+    const isStatic = settings.weatherMode === 'static';
+
+    container.querySelector('#ftr-static-weather-group').style.display = isStatic ? '' : 'none';
+    const dynamicArea = container.querySelector('#ftr-dynamic-weather');
+    dynamicArea.style.display = isStatic ? 'none' : '';
+
+    if (!isStatic) {
+        const controllerId = settings.weatherMode.substring('dynamic:'.length);
+        if (settings.dynamicControllerId !== controllerId) {
+            settings.dynamicControllerId = controllerId;
+            settings.controllerSettings = {};
+            ui.views.footer.loadDynamicSettings(controllerId);
+        } else if (!dynamicArea.hasChildNodes()) {
+            // Settings already loaded for this controller (e.g. restored from
+            // localStorage) but the DOM was rebuilt - re-render the fields
+            ui.views.footer.loadDynamicSettings(controllerId);
+        }
+    }
+};
+
+// Parses the selected dynamic controller's settings.ini server-side and renders
+// a field per setting (the same generic mechanism Content Manager uses)
+ui.views.footer.loadDynamicSettings = (controllerId) => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    const area = container.querySelector('#ftr-dynamic-weather');
+    const settings = ui.views.footer.raceSettings;
+
+    ui.ajax({
+        url: `/api/ac/weather-controllers/${encodeURIComponent(controllerId)}/settings`,
+        method: 'GET',
+        complete: (response) => {
+            let fields = [];
+            try {
+                fields = JSON.parse(response.responseText);
+            } catch (e) { /* no settings */ }
+
+            area.innerHTML = '';
+
+            ui.view.loadComponent('Footer/dynamic-field', (fieldHtml) => {
+
+            // Render checkbox fields first so they pack onto shared grid rows;
+            // full-width text/select fields come after
+            const ordered = [...fields.filter((f) => f.type === 'bool'),
+                             ...fields.filter((f) => f.type !== 'bool')];
+
+            ordered.forEach((f) => {
+                const section = settings.controllerSettings[f.section] ||
+                    (settings.controllerSettings[f.section] = {});
+                // Keep a previously saved value; fall back to the ini default
+                const current = section[f.key] !== undefined ? section[f.key] : f.value;
+                section[f.key] = current;
+
+                const row = document.createElement('label');
+                row.className = 'dynamic-field';
+                const inputId = `ftr-dyn-${f.key}`;
+
+                row.innerHTML = fieldHtml
+                    .split('{{inputId}}').join(inputId)
+                    .split('{{inputType}}').join(f.type === 'number' ? 'number' : 'text')
+                    .hasBlock('is-bool', f.type === 'bool')
+                    .hasBlock('is-select', f.type === 'select')
+                    .hasBlock('is-input', f.type !== 'bool' && f.type !== 'select');
+                row.querySelector('span').textContent = f.label;
+
+                if (f.type === 'bool') {
+                    const checked = current === '1' || String(current).toLowerCase() === 'true';
+                    row.classList.add('bool-field');
+                    row.querySelector('input').checked = checked;
+                    section[f.key] = checked ? '1' : '0';
+                    row.querySelector('input').onchange = (e) => {
+                        section[f.key] = e.target.checked ? '1' : '0';
+                        ui.views.footer.saveRaceSettings();
+                    };
+                } else if (f.type === 'select') {
+                    const ddl = row.querySelector('dropdown-list');
+                    f.options.forEach((o) => {
+                        const sel = o.value === current;
+                        ddl.appendChild(new Option(ui.views.footer.toTitleCase(o.label),
+                            o.value, sel, sel));
+                    });
+                    ddl.addEventListener('change', (e) => {
+                        section[f.key] = e.target.value;
+                        ui.views.footer.saveRaceSettings();
+                    });
+                } else {
+                    const input = row.querySelector('input');
+                    input.value = current;
+                    input.onchange = (e) => {
+                        section[f.key] = e.target.value;
+                        ui.views.footer.saveRaceSettings();
+                    };
+                }
+
+                // Long descriptions become tooltips on the control itself
+                if (f.hint) {
+                    const control = row.querySelector('input, select, dropdown-list');
+                    if (control) control.title = f.hint;
+                }
+
+                area.appendChild(row);
+            });
+
+            ui.views.footer.saveRaceSettings();
+            });
+        },
+        error: () => {
+            area.innerHTML = '';
+        }
+    });
+};
+
+// Wind compass - click/drag on the dial sets the wind direction
+ui.views.footer.setupWindCompass = () => {
+    const compass = document.querySelector('#ftr-wind-compass');
+    if (!compass) return;
+
+    const updateFromEvent = (e) => {
+        const rect = compass.getBoundingClientRect();
+        const dx = e.clientX - (rect.left + rect.width / 2);
+        const dy = e.clientY - (rect.top + rect.height / 2);
+        let deg = Math.round(Math.atan2(dx, -dy) * 180 / Math.PI);
+        ui.views.footer.setWindDirection(((deg % 360) + 360) % 360);
+        ui.views.footer.saveRaceSettings();
+    };
+
+    compass.addEventListener('pointerdown', (e) => {
+        compass.setPointerCapture(e.pointerId);
+        updateFromEvent(e);
+    });
+    compass.addEventListener('pointermove', (e) => {
+        if (e.buttons === 1) updateFromEvent(e);
+    });
+};
+
+ui.views.footer.setWindDirection = (deg) => {
+    ui.views.footer.raceSettings.windDirection = deg;
+    const needle = document.querySelector('#ftr-wind-needle');
+    if (needle) {
+        needle.setAttribute('transform', `rotate(${deg} 50 50)`);
+    }
+    const compass = document.querySelector('#ftr-wind-compass');
+    if (compass) {
+        compass.title = `Wind direction: ${deg}\u00B0`;
+    }
+};
+
+// Serializes the race settings into the settingsJson argument for PlayGame.
+// A dynamic controller launch uses weather type 15 (Clear) and its own id as
+// the controller, like Content Manager; static mode passes the chosen type.
+ui.views.footer.buildLaunchSettings = () => {
+    const s = ui.views.footer.raceSettings;
+    const isStatic = s.weatherMode === 'static';
+    return {
+        WeatherType: isStatic ? s.staticWeatherType : 15,
+        WeatherController: isStatic ? s.weatherController : s.dynamicControllerId,
+        ControllerSettings: isStatic ? null : s.controllerSettings,
+        WindSpeedKmh: s.windSpeed,
+        WindDirectionDeg: s.windDirection,
+        TrackPreset: s.trackPreset
+    };
+};
+
+//#endregion
+
+// Returns the track the game should launch with - the chosen layout when it
+// belongs to the selected track, otherwise the selected track itself
+ui.views.footer.getEffectiveTrack = () => {
+    const track = ui.views.footer.selectedTrack;
+    const layout = ui.views.footer.selectedLayout;
+    return (layout && track && layout.path === track.path) ? layout : track;
 };
 
 ui.views.footer.updateDisplay = () => {
     const carPreview = document.querySelector('.footer-car-preview');
     const trackPreview = document.querySelector('.footer-track-preview');
+    const trackOutline = document.querySelector('.footer-track-outline');
     const sessionInfo = document.querySelector('.footer-session-info .session-text');
     const playBtn = document.querySelector('.footer-play-button .play-btn');
 
@@ -2278,66 +3385,216 @@ ui.views.footer.updateDisplay = () => {
         }
         carPreview.style.backgroundImage = `url('${carPreviewUrl}')`;
         carPreview.classList.add('has-preview');
+        ui.views.footer.setPreviewRatio(carPreviewUrl, '--car-preview-ratio');
     } else {
         carPreview.style.backgroundImage = '';
         carPreview.classList.remove('has-preview');
+        ui.views.footer.setPreviewRatio(null, '--car-preview-ratio');
     }
 
-    // Update track preview
+    // Update track preview (uses the selected layout's subPath when set)
     if (ui.views.footer.selectedTrack) {
-        let trackPreviewUrl = `/image/assetto corsa/track/${ui.views.footer.selectedTrack.path}`;
-        if (ui.views.footer.selectedTrack.subPath) {
-            trackPreviewUrl += `/${ui.views.footer.selectedTrack.subPath}`;
+        const effectiveTrack = ui.views.footer.getEffectiveTrack();
+        let trackPreviewUrl = `/image/assetto corsa/track/${effectiveTrack.path}`;
+        if (effectiveTrack.subPath) {
+            trackPreviewUrl += `/${effectiveTrack.subPath}`;
         }
         trackPreview.style.backgroundImage = `url('${trackPreviewUrl}')`;
         trackPreview.classList.add('has-preview');
+        ui.views.footer.setPreviewRatio(trackPreviewUrl, '--track-preview-ratio');
+
+        if (trackOutline) {
+            let outlineUrl = `/image/assetto corsa/track-outline/${effectiveTrack.path}`;
+            if (effectiveTrack.subPath) {
+                outlineUrl += `/${effectiveTrack.subPath}`;
+            }
+            trackOutline.style.display = '';
+            trackOutline.src = outlineUrl;
+        }
     } else {
         trackPreview.style.backgroundImage = '';
         trackPreview.classList.remove('has-preview');
+        ui.views.footer.setPreviewRatio(null, '--track-preview-ratio');
+
+        if (trackOutline) {
+            trackOutline.removeAttribute('src');
+        }
     }
 
-    // Update session info text
-    if (ui.views.footer.selectedCar && ui.views.footer.selectedTrack) {
-        sessionInfo.innerHTML = `<span class="car-name">${ui.views.footer.selectedCar.name}</span> at <span class="track-name">${ui.views.footer.selectedTrack.name}</span>`;
-        playBtn.disabled = false;
-    } else if (ui.views.footer.selectedCar) {
-        sessionInfo.innerHTML = `<span class="car-name">${ui.views.footer.selectedCar.name}</span> <span class="no-selection">- Select a track</span>`;
-        playBtn.disabled = true;
-    } else if (ui.views.footer.selectedTrack) {
-        sessionInfo.innerHTML = `<span class="no-selection">Select a car - </span><span class="track-name">${ui.views.footer.selectedTrack.name}</span>`;
-        playBtn.disabled = true;
-    } else {
-        sessionInfo.innerHTML = '<span class="no-selection">Select a car and track to play</span>';
-        playBtn.disabled = true;
-    }
+    // Update session info text - show the layout name next to the track name
+    // when a layout different from the selected track is chosen
+    const layout = ui.views.footer.selectedLayout;
+    const track = ui.views.footer.selectedTrack;
+    const layoutName = layout ? (layout.layoutName || layout.name) : null;
+    const showLayout = layout && track && layoutName &&
+        (layout.id !== track.id || layout.name !== track.name);
+    const car = ui.views.footer.selectedCar;
+    const esc = ui.utils.strings.escapeHtml;
+
+    ui.view.loadComponent('Footer/session-info', (html) => {
+        sessionInfo.innerHTML = html
+            .split('{{carName}}').join(esc(car && car.name))
+            .split('{{trackName}}').join(esc(track && track.name))
+            .split('{{layoutName}}').join(esc(layoutName))
+            .hasBlock('has-layout', showLayout)
+            .hasBlock('has-car-and-track', car && track)
+            .hasBlock('has-car-only', car && !track)
+            .hasBlock('has-track-only', !car && track)
+            .hasBlock('has-none', !car && !track);
+    });
+    ui.views.footer.updatePlayButtonEnabled();
 };
+
+// Play button state machine: idle -> starting -> running (driven by the
+// server's acs.exe process watch, broadcast as 'gameState')
+ui.views.footer.gameLaunchState = 'idle';
+ui.views.footer._startTimeout = null;
+
+ui.views.footer.setPlayButtonState = (state) => {
+    ui.views.footer.gameLaunchState = state;
+    const btn = document.querySelector('.footer-play-button .play-btn');
+    if (!btn) return;
+
+    btn.classList.toggle('launching', state === 'starting');
+    btn.classList.toggle('running', state === 'running');
+
+    const label = btn.querySelector('span');
+    if (label) {
+        label.textContent = state === 'running' ? 'Session Running'
+            : state === 'starting' ? 'Starting...' : 'Start Race';
+    }
+    ui.views.footer.updatePlayButtonEnabled();
+};
+
+ui.views.footer.updatePlayButtonEnabled = () => {
+    const btn = document.querySelector('.footer-play-button .play-btn');
+    if (!btn) return;
+    const hasSelection = !!(ui.views.footer.selectedCar && ui.views.footer.selectedTrack);
+    btn.disabled = ui.views.footer.gameLaunchState !== 'idle' || !hasSelection;
+
+    const favBtn = document.querySelector('#ftr-add-favorite');
+    if (favBtn) favBtn.disabled = !hasSelection;
+};
+
+// Called by the server broadcast whenever acs.exe starts or exits
+ui.views.footer.onGameState = (running) => {
+    if (ui.views.footer._startTimeout) {
+        clearTimeout(ui.views.footer._startTimeout);
+        ui.views.footer._startTimeout = null;
+    }
+    ui.views.footer.setPlayButtonState(running ? 'running' : 'idle');
+};
+
+// Registers the gameState listener and syncs the button with the current
+// acs.exe state (covers page reloads mid-session and externally launched games)
+ui.views.footer.syncGameState = () => {
+    if (!dashHub) return;
+    dashHub.off('gameState', ui.views.footer.onGameState);
+    dashHub.on('gameState', ui.views.footer.onGameState);
+    dashHub.invoke('GetGameState')
+        .then((running) => {
+            if (ui.views.footer.gameLaunchState === 'idle') {
+                ui.views.footer.setPlayButtonState(running ? 'running' : 'idle');
+            }
+        })
+        .catch(() => { });
+};
+
+//#region "Favorites"
+
+ui.views.footer.openFavoriteModal = () => {
+    if (!ui.views.footer.selectedCar || !ui.views.footer.selectedTrack) return;
+
+    const modal = document.getElementById('ftr-fav-modal');
+    if (!modal) return;
+
+    // Reset back to the input form
+    modal.querySelector('#ftr-fav-form').style.display = '';
+    modal.querySelector('#ftr-fav-message').style.display = 'none';
+    modal.querySelector('#ftr-fav-name').value = '';
+    modal.querySelector('#ftr-fav-cancel').style.display = '';
+    modal.querySelector('#ftr-fav-save').style.display = '';
+    modal.querySelector('#ftr-fav-ok').style.display = 'none';
+    modal.querySelector('.fav-modal-actions').classList.remove('saved');
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('ftr-fav-name').focus(), 0);
+};
+
+ui.views.footer.closeFavoriteModal = () => {
+    const modal = document.getElementById('ftr-fav-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+ui.views.footer.saveFavorite = () => {
+    const nameInput = document.getElementById('ftr-fav-name');
+    const title = nameInput.value.trim();
+    if (!title) {
+        nameInput.focus();
+        return;
+    }
+
+    const effectiveTrack = ui.views.footer.getEffectiveTrack();
+
+    ui.ajax({
+        url: '/api/favorites',
+        method: 'POST',
+        data: {
+            title: title,
+            configJson: JSON.stringify(ui.views.footer.raceSettings),
+            carId: ui.views.footer.selectedCar.id,
+            skin: ui.views.footer.selectedSkin,
+            trackId: effectiveTrack && effectiveTrack.id
+        },
+        complete: () => {
+            const modal = document.getElementById('ftr-fav-modal');
+            if (!modal) return;
+            modal.querySelector('#ftr-fav-form').style.display = 'none';
+            modal.querySelector('#ftr-fav-message').style.display = '';
+            modal.querySelector('#ftr-fav-cancel').style.display = 'none';
+            modal.querySelector('#ftr-fav-save').style.display = 'none';
+            modal.querySelector('#ftr-fav-ok').style.display = '';
+            modal.querySelector('.fav-modal-actions').classList.add('saved');
+        },
+        error: () => {
+            nameInput.focus();
+        }
+    });
+};
+
+//#endregion
 
 ui.views.footer.play = () => {
     if (!ui.views.footer.selectedCar || !ui.views.footer.selectedTrack) {
         console.warn('Cannot play: Car or track not selected');
         return;
     }
+    if (ui.views.footer.gameLaunchState !== 'idle') return;
 
     // Prepare parameters for game launch
     const carPath = ui.views.footer.selectedCar.path;
     const skinPath = ui.views.footer.selectedSkin || '';
-    const trackPath = ui.views.footer.selectedTrack.path;
-    const trackSubPath = ui.views.footer.selectedTrack.subPath || '';
+    const effectiveTrack = ui.views.footer.getEffectiveTrack();
+    const trackPath = effectiveTrack.path;
+    const trackSubPath = effectiveTrack.subPath || '';
     
     // Combine track path with subPath if it exists
     const fullTrackPath = trackSubPath ? `${trackPath}/${trackSubPath}` : trackPath;
     
     const gameName = 'assetto corsa';
-    
+    const settings = ui.views.footer.raceSettings;
+
+    // Time of day -> sun angle (AC's formula: 0 at 13:00, +16 deg per hour)
+    const sunAngle = Math.round(16.0 * (settings.timeMinutes * 60 - 46800) / 3600);
+
     // Race configuration parameters (with default values for now)
     const config = {
         driverName: 'Player',
         sessionType: 4,              // 1=Practice, 2=Qualification, 3=Race, 4=Hotlap
         sessionName: 'Hotlap',
         spawnSet: 'HOTLAP_START',    // PIT, START, HOTLAP_START
-        sunAngle: 16,                // -80 to 80, where 0 = 13:00, 16 = 14:00
-        ambientTemp: 26,             // Ambient temperature in °C
-        roadTemp: 32,                // Road temperature in °C
+        sunAngle: sunAngle,          // -80 to 80, where 0 = 13:00, 16 = 14:00
+        ambientTemp: settings.temperature,
+        roadTemp: settings.temperature,
         weatherName: '4_mid_clear',  // Weather preset ID
         aiLevel: 95,                 // AI difficulty (0-100)
         raceLaps: 5,                 // Number of laps for race
@@ -2359,9 +3616,20 @@ ui.views.footer.play = () => {
         game: gameName,
         config: config
     });
-    
+
+    ui.views.footer.setPlayButtonState('starting');
+
+    // Safety net: if acs.exe never shows up (failed launch, launcher cancelled),
+    // fall back to idle so the button doesn't stay stuck on "Starting..."
+    ui.views.footer._startTimeout = setTimeout(() => {
+        ui.views.footer._startTimeout = null;
+        if (ui.views.footer.gameLaunchState === 'starting') {
+            ui.views.footer.setPlayButtonState('idle');
+        }
+    }, 60000);
+
     // Call SignalR method to launch the game with full configuration
-    dashHub.invoke('PlayGame', 
+    dashHub.invoke('PlayGame',
         carPath, 
         skinPath, 
         fullTrackPath, 
@@ -2384,16 +3652,27 @@ ui.views.footer.play = () => {
         config.trackGripRandomness,
         config.trackGripLapGain,
         config.trackGripTransfer,
-        config.launcherType)
+        config.launcherType,
+        JSON.stringify(ui.views.footer.buildLaunchSettings()))
         .then((success) => {
             if (success) {
                 console.log('Game launched successfully');
             } else {
                 console.error('Failed to launch game');
+                if (ui.views.footer._startTimeout) {
+                    clearTimeout(ui.views.footer._startTimeout);
+                    ui.views.footer._startTimeout = null;
+                }
+                ui.views.footer.setPlayButtonState('idle');
             }
         })
         .catch((error) => {
             console.error('Error launching game:', error);
+            if (ui.views.footer._startTimeout) {
+                clearTimeout(ui.views.footer._startTimeout);
+                ui.views.footer._startTimeout = null;
+            }
+            ui.views.footer.setPlayButtonState('idle');
         });
 };
 
@@ -2401,6 +3680,21 @@ ui.views.footer.play = () => {
 document.addEventListener('click', (e) => {
     if (e.target.closest('.footer-play-button .play-btn')) {
         ui.views.footer.play();
+    }
+    if (e.target.closest('.footer-container .details-btn') || e.target.closest('.hide-details-btn')) {
+        ui.views.footer.toggleDetails();
+    }
+    if (e.target.closest('#ftr-add-favorite')) {
+        ui.views.footer.openFavoriteModal();
+    }
+    if (e.target.closest('#ftr-fav-save')) {
+        ui.views.footer.saveFavorite();
+    }
+    if (e.target.closest('#ftr-fav-cancel') || e.target.closest('#ftr-fav-ok')) {
+        ui.views.footer.closeFavoriteModal();
+    }
+    if (e.target.classList && e.target.classList.contains('fav-modal-backdrop')) {
+        ui.views.footer.closeFavoriteModal();
     }
 });
 
@@ -2501,15 +3795,326 @@ ui.views.game.setPath = () => {
     });
 };
 
-ui.views.history = {};
+ui.views.history = {
+    section: 'results'
+};
 
 // Load default game view
-ui.views.history.load = () => {
-    ui.view.loadComponent(`History/history`, (html) => {
-        ui.nav.select('history');   
-        ui.view.inject(html, 'history');
+ui.views.history.load = (e) => {
+    if (e && e.id) {
+        ui.views.history.section = e.id;
+    }
+    if (document.querySelector('.history-toolbar') == null) {
+        ui.view.loadComponent(`History/history`, (html) => {
+            ui.nav.select('history');
+            ui.view.inject(html, 'history');
+            ui.views.history.showSection(ui.views.history.section);
+        });
+    } else {
+        ui.views.history.showSection(ui.views.history.section);
+    }
+};
+
+ui.views.history.nav = (e, section) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // pushState triggers the router's locationchange -> history.load({id})
+    history.pushState(null, '', `/dashboard/history/${section}` + window.location.search);
+    return true;
+};
+
+ui.views.history.showSection = (section) => {
+    ui.views.history.section = section;
+    document.querySelectorAll('.history-toolbar li[class^="item-"]').forEach((li) => {
+        li.classList.toggle('selected', li.classList.contains(`item-${section}`));
+    });
+
+    const content = document.querySelector('.history-content');
+    if (!content) return;
+
+    if (section === 'favorites') {
+        ui.views.history.loadFavorites(content);
+    } else {
+        ui.views.history.showMessage(content, `${ui.views.history.sectionTitle(section)} Coming Soon!`);
+    }
+};
+
+ui.views.history.sectionTitle = (section) =>
+    section.split('-').map((w) => w.charAt(0).toUpperCase() + w.substring(1)).join(' ');
+
+//#region "Favorites"
+
+ui.views.history.EMPTY_FAVORITES_MSG = 'No favorites saved yet.<br/>Expand the footer and use "Add To Favorites" to save your current racing configuration.';
+
+// Renders a status/empty-state message into the content area
+ui.views.history.showMessage = (content, message) => {
+    ui.view.loadComponent('History/message', (html) => {
+        content.innerHTML = html.split('{{message}}').join(message);
+        ui.utils.scaleUI();
     });
 };
+
+// Paging state for the favorites list (50 rows per API call)
+ui.views.history.favPage = { start: 0, length: 50, hasMore: true, isLoading: false };
+ui.views.history.favorites = [];
+
+ui.views.history.loadFavorites = (content) => {
+    ui.views.history.favorites = [];
+    ui.views.history.favPage = { start: 0, length: 50, hasMore: true, isLoading: false };
+    ui.views.history.showMessage(content, 'Loading favorites...');
+    ui.views.history.setupFavoritesScroll(content);
+    ui.views.history.loadMoreFavorites(content);
+};
+
+// Fetches the next page of favorites and appends it to the list
+ui.views.history.loadMoreFavorites = (content) => {
+    const page = ui.views.history.favPage;
+    if (page.isLoading || !page.hasMore) return;
+    page.isLoading = true;
+
+    ui.ajax({
+        url: `/api/favorites?start=${page.start}&length=${page.length}`,
+        method: 'GET',
+        complete: (response) => {
+            page.isLoading = false;
+            let data = {};
+            try {
+                data = JSON.parse(response.responseText) || {};
+            } catch (e) { /* empty */ }
+            const batch = data.favorites || [];
+
+            if (!batch.length) {
+                page.hasMore = false;
+                if (page.start === 0) {
+                    ui.views.history.showMessage(content, ui.views.history.EMPTY_FAVORITES_MSG);
+                }
+                return;
+            }
+
+            const firstIndex = ui.views.history.favorites.length;
+            ui.views.history.favorites.push(...batch);
+            page.start += batch.length;
+            page.hasMore = ui.views.history.favorites.length < (data.total || 0);
+
+            ui.view.loadComponent('History/favorites-list', (viewHtml) => {
+                ui.view.loadComponent('History/favorite-item', (itemHtml) => {
+                    const items = batch.map((fav, i) =>
+                        ui.views.history.favoriteHtml(itemHtml, fav, firstIndex + i)).join('');
+                    const list = content.querySelector('.favorites-list');
+                    if (list) {
+                        list.insertAdjacentHTML('beforeend', items);
+                    } else {
+                        content.innerHTML = viewHtml.split('{{items}}').join(items);
+                    }
+                    ui.utils.scaleUI();
+                });
+            });
+        },
+        error: () => {
+            page.isLoading = false;
+            if (page.start === 0) {
+                ui.views.history.showMessage(content, 'Failed to load favorites.');
+            }
+        }
+    });
+};
+
+// Infinite scroll - fetch the next page when the list is 80% scrolled
+ui.views.history.setupFavoritesScroll = (content) => {
+    if (ui.views.history.favScrollListener) {
+        content.removeEventListener('scroll', ui.views.history.favScrollListener);
+    }
+    ui.views.history.favScrollListener = () => {
+        if (ui.views.history.section !== 'favorites') return;
+        if (content.scrollTop + content.clientHeight >= content.scrollHeight * 0.8) {
+            ui.views.history.loadMoreFavorites(content);
+        }
+    };
+    content.addEventListener('scroll', ui.views.history.favScrollListener);
+};
+
+// Fills the favorite-item template with one favorite's display data
+ui.views.history.favoriteHtml = (itemHtml, fav, index) => {
+    const esc = ui.utils.strings.escapeHtml;
+    const skinPath = fav.skinPath ? `/${fav.skinPath}` : '';
+    const trackSub = fav.trackSubPath ? `/${fav.trackSubPath}` : '';
+    const layoutName = ui.views.history.layoutName(fav);
+    const cfg = ui.views.history.favoriteConfig(fav);
+    const s = cfg.settings || cfg;
+
+    return itemHtml
+        .split('{{favIndex}}').join(index)
+        .split('{{carPreview}}').join(fav.carPath ? `/image/assetto corsa/skin/${fav.carPath}${skinPath}` : '')
+        .split('{{trackPreview}}').join(fav.trackPath ? `/image/assetto corsa/track/${fav.trackPath}${trackSub}` : '')
+        .split('{{trackOutline}}').join(fav.trackPath ? `/image/assetto corsa/track-outline/${fav.trackPath}${trackSub}` : '')
+        .split('{{title}}').join(esc(fav.title))
+        .split('{{carName}}').join(esc(fav.carName))
+        .split('{{trackName}}').join(esc(fav.trackParentId ? fav.parentTrackName : fav.trackName))
+        .split('{{layoutName}}').join(esc(layoutName))
+        .hasBlock('has-layout', layoutName)
+        .split('{{settingsSummary}}').join(esc(ui.views.history.settingsSummary(cfg)))
+        .split('{{timeMinutes}}').join(s.timeMinutes != null ? s.timeMinutes : 840);
+};
+
+// Short layout label for a favorite whose saved track is a layout row:
+// strips the parent track name from the layout's full name, then falls
+// back to the humanized subfolder ("shibaura_pa" -> "Shibaura Pa")
+ui.views.history.layoutName = (fav) => {
+    if (!fav.trackParentId) return null;
+
+    let name = fav.trackName || '';
+    const parent = fav.parentTrackName || '';
+    if (parent && name.startsWith(parent)) {
+        const stripped = name.substring(parent.length)
+            .replace(/^[\s\-—/()]+|[\s)]+$/g, '')
+            .trim();
+        if (stripped) return stripped;
+    }
+    if (name && name !== parent) return name;
+    if (fav.trackSubPath) {
+        return fav.trackSubPath.replace(/_/g, ' ')
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+    return null;
+};
+
+// Replicates the collapsed footer's settings summary for a saved config
+ui.views.history.settingsSummary = (s) => {
+    if (s && s.settings) s = s.settings; // legacy blobs wrapped settings
+    if (!s || s.timeMinutes == null) return '';
+
+    let h = Math.floor(s.timeMinutes / 60);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    const time = `${h}:${(s.timeMinutes % 60).toString().padStart(2, '0')} ${ampm}`;
+
+    let weather;
+    if (s.weatherMode === 'static') {
+        const w = ui.views.footer.staticWeatherTypes.find((w) => w.value === s.staticWeatherType);
+        weather = w ? w.label : 'Clear';
+    } else {
+        const id = (s.weatherMode || '').substring('dynamic:'.length);
+        const c = (ui.views.footer.weatherControllers || []).find((c) => c.id === id);
+        weather = `Dynamic ${c ? c.name : id}`;
+    }
+
+    const kmh = Math.round(s.windSpeed);
+    const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                  'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const dir = dirs[Math.round(s.windDirection / 22.5) % 16];
+
+    const trackStates = { '-1': 'Auto', '0': 'Dusty', '1': 'Old', '2': 'Slow', '3': 'Green', '4': 'Fast', '5': 'Optimum' };
+    const trackState = trackStates[s.trackPreset] || 'Auto';
+
+    return `${time}, ${weather}, ${s.temperature}\u00B0C, Wind at ${kmh}KM/H ${dir}, ${trackState} Track`;
+};
+
+ui.views.history.favoriteConfig = (fav) => {
+    try {
+        return JSON.parse(fav.configJson) || {};
+    } catch (e) {
+        return {};
+    }
+};
+
+// Loads the favorite's car/track/settings into the footer and launches
+ui.views.history.playFavorite = (btn) => {
+    const item = btn.closest('.favorite-item');
+    const index = parseInt(item.getAttribute('data-fav-index'), 10);
+    const fav = (ui.views.history.favorites || [])[index];
+    if (!fav || !fav.carPath || !fav.trackPath) return;
+
+    ui.views.footer.selectedCar = { id: fav.carId, name: fav.carName, path: fav.carPath };
+    ui.views.footer.selectedSkin = fav.skinPath || null;
+
+    if (fav.trackParentId) {
+        // Saved track is a layout row - parent is the track, row is the layout
+        ui.views.footer.selectedTrack = { id: fav.trackParentId, name: fav.parentTrackName, path: fav.trackPath };
+        ui.views.footer.selectedLayout = {
+            id: fav.trackId,
+            name: fav.trackName,
+            layoutName: ui.views.history.layoutName(fav),
+            path: fav.trackPath,
+            subPath: fav.trackSubPath
+        };
+    } else {
+        ui.views.footer.selectedTrack = {
+            id: fav.trackId,
+            name: fav.trackName,
+            path: fav.trackPath,
+            subPath: fav.trackSubPath
+        };
+        ui.views.footer.selectedLayout = null;
+    }
+
+    const settings = ui.views.history.favoriteConfig(fav);
+    Object.assign(ui.views.footer.raceSettings, settings.settings || settings);
+    ui.views.footer.updateDisplay();
+    ui.views.footer.play();
+};
+
+// Shows the delete-confirmation modal (injected at body level so
+// position:fixed isn't trapped by the scale-ui transform) for the clicked row
+ui.views.history.confirmDelete = (btn) => {
+    const item = btn.closest('.favorite-item');
+    const index = parseInt(item.getAttribute('data-fav-index'), 10);
+    const fav = (ui.views.history.favorites || [])[index];
+    if (!fav) return;
+
+    ui.view.loadComponent('History/delete-modal', (html) => {
+        const filled = html.split('{{title}}').join(ui.utils.strings.escapeHtml(fav.title));
+        const existing = document.getElementById('fav-delete-modal');
+        if (existing) {
+            existing.outerHTML = filled;
+        } else {
+            document.body.insertAdjacentHTML('beforeend', filled);
+        }
+        if (ui.utils.scaleUI) ui.utils.scaleUI();
+
+        const modal = document.getElementById('fav-delete-modal');
+        modal.dataset.favIndex = index;
+        modal.dataset.favId = fav.id;
+        modal.style.display = 'flex';
+    });
+};
+
+ui.views.history.closeDeleteModal = () => {
+    const modal = document.getElementById('fav-delete-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+// Deletes the favorite server-side, then drops the row + reindexes the list
+ui.views.history.deleteFavorite = () => {
+    const modal = document.getElementById('fav-delete-modal');
+    if (!modal || modal.dataset.favId == null) return;
+
+    const id = parseInt(modal.dataset.favId, 10);
+    const index = parseInt(modal.dataset.favIndex, 10);
+
+    ui.ajax({
+        url: `/api/favorites/${id}`,
+        method: 'DELETE',
+        complete: () => {
+            ui.views.history.closeDeleteModal();
+            (ui.views.history.favorites || []).splice(index, 1);
+
+            const item = document.querySelector(`.favorite-item[data-fav-index="${index}"]`);
+            if (item) item.remove();
+            document.querySelectorAll('.favorite-item').forEach((el, i) => {
+                el.setAttribute('data-fav-index', i);
+            });
+
+            if (!ui.views.history.favorites.length) {
+                const content = document.querySelector('.history-content');
+                if (content) {
+                    ui.views.history.showMessage(content, ui.views.history.EMPTY_FAVORITES_MSG);
+                }
+            }
+        }
+    });
+};
+
+//#endregion
 
 ui.views.profile = {};
 
@@ -2538,6 +4143,7 @@ ui.views.tracks = {
         countries: ['all'],
         types: [],
         search: '',
+        sort: 'name',
         start: 0,
         length: 20,
         view: 'grid'
@@ -2571,6 +4177,7 @@ ui.views.tracks.load = (e) => {
                 ui.views.tracks.updateNav(e.id);
             }
             ui.views.tracks.setupSearchListener();
+            ui.views.tracks.setupSortDropdown();
             ui.views.tracks.updateClearFilterButton();
             ui.views.tracks.getFilteredList();
         });
@@ -2700,6 +4307,18 @@ ui.views.tracks.setupSearchListener = () => {
     }
 };
 
+ui.views.tracks.setupSortDropdown = () => {
+    const sortDdl = document.getElementById('tracks_sort');
+    if (!sortDdl) return;
+    const valid = ['name', 'country', 'distance', 'year', 'rating'];
+    if (!valid.includes(ui.views.tracks.filter.sort)) ui.views.tracks.filter.sort = 'name';
+    sortDdl.value = ui.views.tracks.filter.sort;
+    sortDdl.addEventListener('change', () => {
+        ui.views.tracks.filter.sort = sortDdl.value;
+        ui.views.tracks.getFilteredList();
+    });
+};
+
 ui.views.tracks.unload = () => {
     window.removeEventListener('resize', ui.views.tracks.resize);
     const container = document.querySelector('.tracks-content');
@@ -2814,6 +4433,7 @@ ui.views.tracks.getFilteredList = (reset = true) => {
         Countries: ui.views.tracks.filter.countries.includes('all') ? [] : ui.views.tracks.filter.countries,
         Types: ui.views.tracks.filter.types,
         Search: ui.views.tracks.filter.search || '',
+        Sort: ui.views.tracks.filter.sort,
         Start: ui.views.tracks.filter.start,
         Length: ui.views.tracks.filter.length
     };
@@ -3275,6 +4895,8 @@ ui.views.tracks.views.renderTrackItem = (track, itemTemplate) => {
         .split('{{typeName}}').join(track.typeName || '')
         .split('{{length}}').join(track.length ? (track.length / 1000).toFixed(1) + ' km' : '')
         .split('{{distance}}').join(track.distance ? track.distance.toFixed(2) + ' km' : '')
+        .split('{{rating}}').join(track.rating || 0)
+        .hasBlock('has-rating', (track.rating || 0) > 0)
         .hasBlock('has-city', city != '');
 };
 
@@ -3458,6 +5080,8 @@ ui.views.tracks.views.grid = {
                 .split('{{pitBoxes}}').join(track.pitBoxes || 'N/A')
                 .split('{{details}}').join(track.details ? track.details.replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>') : '')
                 .split('{{author}}').join(author || '')
+                .split('{{id}}').join(track.id)
+                .split('{{rating}}').join(track.rating || 0)
                 .hasBlock('has-country', track.countryName || track.country)
                 .hasBlock('has-city', track.city)
                 .hasBlock('has-year', track.year)
@@ -3470,9 +5094,19 @@ ui.views.tracks.views.grid = {
             item.insertAdjacentHTML('afterend', view);
             ui.views.tracks.views.grid.detailsDiv = item.nextSibling;
             ui.views.tracks.selected = {track, item};
+
+            // Keep the model + grid-item badge in sync when a rating saves
+            ui.views.tracks.views.grid.detailsDiv.addEventListener('rated', (e) => {
+                track.rating = e.detail.rating;
+                ui.views.tracks.views.grid.applyRating(item, track);
+            });
+
             // Add selected class to the item
             item.classList.add('selected');
             
+            // Setup track layouts dropdown
+            ui.views.tracks.views.grid.setupLayoutsSelect(track);
+
             // Setup select track button handler
             ui.views.tracks.views.grid.setupSelectTrackHandler();
             
@@ -3484,6 +5118,78 @@ ui.views.tracks.views.grid = {
             }, 350);
         });
     },
+    getCommonTrackName: (names) => {
+        // Ported from ACTools' FindNameForMultiLayoutMode: the longest prefix
+        // shared by every layout name, trimmed and without a trailing separator
+        const baseName = names[0];
+        if (!baseName) return null;
+
+        const minLength = Math.min(...names.filter(n => n).map(n => n.length));
+        for (let i = minLength; i > 2; i--) {
+            let result = baseName.substring(0, i);
+            if (names.slice(1).some(n => !n || n.substring(0, i) !== result)) continue;
+
+            result = result.trim();
+            if (result.length > 2 && /[-—/(]$/.test(result)) {
+                result = result.substring(0, result.length - 1).trim();
+            }
+            return result;
+        }
+        return null;
+    },
+    setupLayoutsSelect: (track) => {
+        const select = document.getElementById('track_layouts_select');
+        if (!select || !ui.views.tracks.selected) return;
+
+        // The parent row is the main layout; track.layouts are the additional layouts
+        const layouts = [track].concat(track.layouts || []);
+        ui.views.tracks.selected.layout = layouts[0];
+
+        // Single-layout track - keep the dropdown hidden
+        if (layouts.length <= 1) return;
+
+        // Show only the layout part of each name (strip the shared track-name prefix)
+        const commonName = ui.views.tracks.views.grid.getCommonTrackName(layouts.map(t => t.name));
+        layouts.forEach((t) => {
+            t.layoutName = t.name;
+            if (commonName && t.name && t.name.startsWith(commonName)) {
+                const stripped = t.name.substring(commonName.length)
+                    .replace(/^[\s\-—/()]+|[\s)]+$/g, '')
+                    .trim();
+                if (stripped) {
+                    t.layoutName = stripped;
+                    return;
+                }
+            }
+            // Fall back to the layout folder name (e.g. "main_layout" -> "Main Layout")
+            if (t.subPath) {
+                t.layoutName = t.subPath.replace(/_/g, ' ')
+                    .replace(/\b\w/g, c => c.toUpperCase());
+            }
+        });
+
+        select.parentElement.style.display = '';
+        select.innerHTML = '';
+        layouts.forEach((t, i) => {
+            select.appendChild(new Option(t.layoutName, i));
+        });
+
+        select.addEventListener('change', () => {
+            const layout = layouts[parseInt(select.value)];
+            ui.views.tracks.selected.layout = layout;
+
+            // Update the outline image to the selected layout
+            const outlineImg = document.querySelector('.grid-details .track-outline-float');
+            if (outlineImg) {
+                let outlineUrl = `/image/assetto corsa/track-outline/${layout.path}`;
+                if (layout.subPath) {
+                    outlineUrl += `/${layout.subPath}`;
+                }
+                outlineImg.style.display = '';
+                outlineImg.src = outlineUrl;
+            }
+        });
+    },
     setupSelectTrackHandler: () => {
         // Add event listeners to all select track buttons
         const selectTrackBtns = document.querySelectorAll('.select-track-btn');
@@ -3491,7 +5197,7 @@ ui.views.tracks.views.grid = {
             btn.addEventListener('click', () => {
                 // Get track from ui.views.tracks.selected
                 if (ui.views.tracks.selected && ui.views.tracks.selected.track) {
-                    ui.views.footer.selectTrack(ui.views.tracks.selected.track);
+                    ui.views.footer.selectTrack(ui.views.tracks.selected.track, ui.views.tracks.selected.layout);
                 }
             });
         });
@@ -3537,6 +5243,24 @@ ui.views.tracks.views.grid = {
             return track.path == item.getAttribute('data-path');
         });
         return track;
+    },
+    applyRating: (item, track) => {
+        // Create or update the filled-stars badge on a track grid item
+        let badge = item.querySelector('rating-stars.rating-badge');
+        if ((track.rating || 0) <= 0) {
+            if (badge) badge.remove();
+            return;
+        }
+        if (!badge) {
+            badge = document.createElement('rating-stars');
+            badge.className = 'rating-badge';
+            badge.setAttribute('filled-only', '');
+            badge.setAttribute('readonly', '');
+            badge.setAttribute('rating', String(track.rating));
+            item.prepend(badge);
+        } else {
+            badge.setAttribute('rating', String(track.rating));
+        }
     }
 };
 
@@ -3581,6 +5305,7 @@ ui.routes = [
     { path: 'dashboard/tracks', action: ui.views.tracks.load, unload: ui.views.tracks.unload },
     { path: 'dashboard/tracks/:id', action: ui.views.tracks.load, unload: ui.views.tracks.unload },
     { path: 'dashboard/history', action: ui.views.history.load },
+    { path: 'dashboard/history/:id', action: ui.views.history.load },
     { path: 'dashboard/settings', action: ui.views.settings.load },
     { path: 'dashboard/profile', action: ui.views.profile.load },
     { path: 'dashboard/*', action: ui.notFound } // Wildcard route for 404
@@ -3679,6 +5404,12 @@ ui.routing.execute = (path) => {
         }
         ui.routing.prevPath = path;
         ui.routing.prevRoute = result.route;
+
+        // The footer only lives on the Cars and Tracks views
+        if (ui.views.footer && !/^dashboard\/(cars|tracks)/.test(result.route.path)) {
+            ui.views.footer.unload();
+        }
+
         result.route.action(result.params);
         return true;
     }
@@ -3752,7 +5483,14 @@ ui.utils.injectJs = (id, sourcecode) => {
     document.querySelector('body').appendChild(js);
 };
 ui.utils.strings = {
-    capitalize: (val) => { return String(val).charAt(0).toUpperCase() + String(val).slice(1) }
+    capitalize: (val) => { return String(val).charAt(0).toUpperCase() + String(val).slice(1) },
+
+    // Escapes text for safe insertion into {{token}} HTML templates
+    escapeHtml: (text) => {
+        const div = document.createElement('div');
+        div.textContent = text == null ? '' : String(text);
+        return div.innerHTML;
+    }
 };
 
 //initialize the app after all scripts are defined

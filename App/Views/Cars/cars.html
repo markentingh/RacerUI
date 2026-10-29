@@ -29,6 +29,15 @@
             </li>
         </ul>
         <div class="right">
+            <dropdown-list id="cars_sort" title="Sort">
+                <option value="year">Year (Newest)</option>
+                <option value="yearasc">Year (Oldest)</option>
+                <option value="country">Country</option>
+                <option value="manufacturer">Manufacturer</option>
+                <option value="model">Model</option>
+                <option value="rating">Rating</option>
+                <option value="maxspeed">Max Speed</option>
+            </dropdown-list>
             <div class="close-btn" onclick="RacerUI.views.cars.hideFilter()" style="display:none;">
                 <svg viewBox="0 0 64 64" class="dark">
                     <use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use>

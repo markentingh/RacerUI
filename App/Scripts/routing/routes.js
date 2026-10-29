@@ -7,6 +7,7 @@ ui.routes = [
     { path: 'dashboard/tracks', action: ui.views.tracks.load, unload: ui.views.tracks.unload },
     { path: 'dashboard/tracks/:id', action: ui.views.tracks.load, unload: ui.views.tracks.unload },
     { path: 'dashboard/history', action: ui.views.history.load },
+    { path: 'dashboard/history/:id', action: ui.views.history.load },
     { path: 'dashboard/settings', action: ui.views.settings.load },
     { path: 'dashboard/profile', action: ui.views.profile.load },
     { path: 'dashboard/*', action: ui.notFound } // Wildcard route for 404

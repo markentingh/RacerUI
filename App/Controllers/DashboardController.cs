@@ -9,7 +9,7 @@ namespace RacerUI.Controllers
         [Route("dashboard/{*path}")]
         public IActionResult Index(string path)
         {
-            if (!CheckSecurity()) { return RedirectToAction("access-denied"); }
+            if (!CheckSecurity()) { return Redirect("/access-denied"); }
 
             if (path == "error")
             {

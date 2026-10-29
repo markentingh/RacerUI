@@ -1,8 +1,173 @@
-.content.history .coming-soon{
-    padding:2em;
-    text-align:center;
-    width:100%;
-    p{
-        padding:2em 0;
+.content.history {
+    display: flex;
+    flex-direction: column;
+
+    .history-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5em 2em 10em;
+    }
+
+    .coming-soon {
+        padding: 2em;
+        text-align: center;
+        width: 100%;
+
+        p {
+            padding: 2em 0;
+        }
+    }
+
+    .favorites-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1em;
+        max-width: 80em;
+        margin: 0 auto;
+    }
+
+    .favorite-item {
+        display: grid;
+        grid-template-columns: 8em 8em 1fr auto;
+        gap: 1.25em;
+        align-items: center;
+        padding: 1em 1.25em;
+        border-radius: 0.75em;
+
+        .fav-preview {
+            position: relative;
+            height: 4.5em;
+            border-radius: 0.5em;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            overflow: hidden;
+
+            .fav-track-outline {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+        }
+
+        .fav-info {
+            min-width: 0;
+
+            h4 {
+                margin: 0 0 0.3em;
+                font-size: 1.15em;
+                font-weight: 600;
+            }
+
+            .fav-names {
+                font-size: 0.9em;
+                line-height: 1.3;
+                opacity: 0.75;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+
+                .fav-at {
+                    opacity: 0.6;
+                }
+            }
+
+            .fav-settings {
+                font-size: 0.75em;
+                line-height: 1.3;
+                opacity: 0.6;
+                margin-top: 0.25em;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            // Read-only time-of-day indicator - same gradient as the footer's
+            // time slider, but fixed so the thumb can't be dragged
+            .fav-time-slider {
+                width: 100%;
+                margin-top: 0.6em;
+                pointer-events: none;
+                cursor: default;
+                opacity: 1;
+
+                &::-webkit-slider-thumb {
+                    cursor: default;
+                }
+
+                &::-moz-range-thumb {
+                    cursor: default;
+                }
+            }
+        }
+
+        .fav-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+        }
+
+        .fav-play-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            padding: 0.5em 1.25em;
+            border: none;
+            border-radius: 0.5em;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 400;
+            transition: all 0.2s ease;
+
+            svg {
+                width: 1.25em;
+                height: 1.25em;
+            }
+        }
+
+        .fav-delete-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.4em;
+            height: 2.4em;
+            padding: 0;
+            border: none;
+            border-radius: 0.5em;
+            font-size: 1em;
+            transform: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+
+            svg {
+                width: 1.4em;
+                height: 1.4em;
+            }
+        }
+    }
+}
+
+// Delete-confirmation modal - reuses the footer's .fav-modal-* chrome,
+// centers the Cancel/Delete buttons in one row
+.fav-modal-backdrop .fav-delete-modal {
+    .fav-modal-message {
+        line-height: 1.4;
+    }
+
+    .fav-modal-actions {
+        justify-content: center;
+
+        .fav-delete-confirm-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.4em;
+
+            svg {
+                width: 1.2em;
+                height: 1.2em;
+            }
+        }
     }
 }

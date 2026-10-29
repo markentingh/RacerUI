@@ -683,6 +683,10 @@ Q 177.25 340.05 196.05 387 202.8 403.9 213.65 418.55 218.9 425.7 225.25 431.7 23
 <use xlink:href="#icon_shifter_0_Layer0_0_FILL"/>
 </g>
 </g>
+</symbol><symbol id="icon-star-outline" viewBox="0 0 24 24">
+<path fill-opacity="0" stroke="currentColor" stroke-width="3" stroke-linejoin="round" d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.63 12 2 9.19 8.63 2 9.24 7.46 13.97 5.82 21 12 17.27 Z"/>
+</symbol><symbol id="icon-star" viewBox="0 0 24 24">
+<path d="M12 17.27 18.18 21 16.54 13.97 22 9.24 14.81 8.63 12 2 9.19 8.63 2 9.24 7.46 13.97 5.82 21 12 17.27 Z"/>
 </symbol><symbol id="icon-track" viewBox="0 0 800 657">
 
 
@@ -691,4 +695,6 @@ Q 177.25 340.05 196.05 387 202.8 403.9 213.65 418.55 218.9 425.7 225.25 431.7 23
 <use xlink:href="#icon_track_0_Layer0_0_FILL"/>
 </g>
 </g>
+</symbol><symbol id="icon-trash" viewBox="0 0 24 24">
+<path stroke="none" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
 </symbol></svg>

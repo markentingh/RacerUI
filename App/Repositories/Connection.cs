@@ -4,21 +4,19 @@ namespace RacerUI.SQL
 {
     public static class Connection
     {
-        public static string DatabasePath;
-
-        private static SqliteConnection? _connection;
+        public static string? DatabasePath;
+        private static string? _connectionString;
         private static bool connecting { get; set; } = false;
 
         public static void Load(string? databasePath = null)
         {
             if (connecting) return;
-            if (_connection != null && _connection.State == System.Data.ConnectionState.Open) return;
+            if (_connectionString != null) return;
             connecting = true;
             DatabasePath = databasePath ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "RacerUI.sqlite");
-            if(File.Exists(DatabasePath))
+            if (File.Exists(DatabasePath))
             {
-                _connection = new SqliteConnection($"Data Source={DatabasePath}");
-                _connection.Open();
+                _connectionString = $"Data Source={DatabasePath};Default Timeout=30";
                 connecting = false;
             }
             else
@@ -28,17 +26,16 @@ namespace RacerUI.SQL
             }
         }
 
+        // Returns a NEW opened connection per call. SqliteConnection is not
+        // thread-safe, so repositories must never share one - callers dispose
+        // via `using`. Microsoft.Data.Sqlite pools connections by default,
+        // so open/dispose is cheap.
         public static SqliteConnection GetConnection()
         {
             Load();
-            return _connection!;
-        }
-
-        public static void Close()
-        {
-            _connection!.Close();
-            _connection!.Dispose();
-            _connection = null;
+            var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            return connection;
         }
     }
 }

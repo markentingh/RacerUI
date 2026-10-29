@@ -1,3 +1,13 @@
-<div class="coming-soon scale-ui">
-    <p>History Coming Soon!</p>
+<div class="history-toolbar sub-menu scale-ui">
+    <nav>
+        <ul class="menu">
+            <li class="item-results" onclick="RacerUI.views.history.nav(event, 'results')"><a href="/dashboard/history/results">Results</a></li>
+            <li class="item-favorites" onclick="RacerUI.views.history.nav(event, 'favorites')"><a href="/dashboard/history/favorites">Favorites</a></li>
+            <li class="item-lap-times" onclick="RacerUI.views.history.nav(event, 'lap-times')"><a href="/dashboard/history/lap-times">Lap Times</a></li>
+            <li class="item-stats" onclick="RacerUI.views.history.nav(event, 'stats')"><a href="/dashboard/history/stats">Stats</a></li>
+            <li class="item-most-used" onclick="RacerUI.views.history.nav(event, 'most-used')"><a href="/dashboard/history/most-used">Most Used</a></li>
+            <li class="item-top-speed" onclick="RacerUI.views.history.nav(event, 'top-speed')"><a href="/dashboard/history/top-speed">Top Speed</a></li>
+        </ul>
+    </nav>
 </div>
+<div class="history-content"></div>

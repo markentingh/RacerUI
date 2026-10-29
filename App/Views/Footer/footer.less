@@ -6,25 +6,36 @@
     z-index: 100;
     height: 8em;
     border-top: 1px solid rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: height 0.4s ease;
+    transform-origin: bottom left;
 
     .footer-content {
         display: grid;
-        grid-template-columns: 15em 15em 1fr 15em;
+        grid-template-columns: 1fr 15em;
         gap: 1em;
-        padding: 1em;
+        padding: 1em 1em 1em 33em;
         align-items: center;
+        align-content: flex-start;
+        height: 100%;
         max-width: 100vw;
         box-sizing: border-box;
+        position: relative;
+        transition: padding 0.4s ease;
     }
 
     .footer-car-preview,
     .footer-track-preview {
+        position: absolute;
+        top: 1em;
+        left: 1em;
+        width: 15em;
         height: 6em;
         border-radius: 0.5em;
         overflow: hidden;
-        position: relative;
         background-size: cover;
         background-position: center;
+        transition: top 0.4s ease, left 0.4s ease, width 0.4s ease, height 0.4s ease;
 
         .preview-placeholder {
             width: 100%;
@@ -54,17 +65,98 @@
         }
     }
 
+    .footer-track-preview {
+        left: 17em;
+    }
+
+    .footer-track-outline {
+        position: absolute;
+        left: 1em;
+        top: calc(40vw / var(--scale-factor, 1) / var(--car-preview-ratio, 2.5) + 2em);
+        width: calc(40vw / var(--scale-factor, 1));
+        height: calc(40vw / var(--scale-factor, 1) / var(--track-preview-ratio, 2.5));
+        object-fit: contain;
+        object-position: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+    }
+
+    // Expanded geometry stays during collapse so non-animatable grid
+    // placements don't teleport while the bar is shrinking
+    &.expanded, &.collapsing {
+        .footer-content {
+            grid-template-rows: auto 1fr;
+        }
+
+        .footer-session-info {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            align-self: start;
+        }
+    }
+
+    &.expanded {
+        .footer-content {
+            padding-left: calc(40vw / var(--scale-factor, 1) + 2em);
+        }
+
+        .footer-car-preview {
+            width: calc(40vw / var(--scale-factor, 1));
+            height: calc(40vw / var(--scale-factor, 1) / var(--car-preview-ratio, 2.5));
+        }
+
+        .footer-track-preview {
+            top: calc(40vw / var(--scale-factor, 1) / var(--car-preview-ratio, 2.5) + 2em);
+            left: 1em;
+            width: calc(40vw / var(--scale-factor, 1));
+            height: calc(40vw / var(--scale-factor, 1) / var(--track-preview-ratio, 2.5));
+        }
+
+        .footer-track-outline {
+            opacity: 1;
+        }
+
+        .footer-session-info {
+            .session-text {
+                font-size: 1.8em;
+            }
+
+            .session-settings {
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0s, visibility 0s;
+            }
+        }
+
+        .footer-play-button .details-btn {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0s, visibility 0s;
+        }
+
+        .footer-play-button .hide-details-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    }
+
     .footer-session-info {
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        align-items: flex-start;
         justify-content: center;
+        gap: 0.4em;
         padding: 0 1em;
         line-height: 1.5;
+        min-width: 0;
 
         .session-text {
-            text-align: center;
+            text-align: left;
             font-size: 1.2em;
             font-weight: 500;
+            transition: font-size 0.4s ease;
 
             .no-selection {
                 opacity: 0.5;
@@ -75,12 +167,308 @@
                 font-weight: 600;
             }
         }
+
+        // Race settings summary - only visible while collapsed; disappears
+        // instantly on expand and fades back in after the shrink finishes
+        .session-settings {
+            font-size: 0.75em;
+            opacity: 0.7;
+            transition: opacity 0.4s ease 0.4s, visibility 0s;
+        }
     }
 
+    // Race settings panel - fills the second grid row when expanded, fades in
+    // like the track outline does
+    .footer-settings {
+        grid-column: 1;
+        grid-row: 2;
+        align-self: stretch;
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1.1em;
+        padding: 0.5em 1em 1em 1em;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.4s ease, visibility 0s;
+
+        .setting-label {
+            font-size: 0.95em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.7;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            gap: 1em;
+            min-width: 0;
+
+            .setting-label {
+                width: 9em;
+                flex-shrink: 0;
+            }
+
+            .setting-slider {
+                flex: 1;
+                min-width: 6em;
+                cursor: pointer;
+                // Strip the global input styling so the thumb reaches both ends
+                // (padding/background/border-radius from forms.less & colors.less)
+                padding: 0;
+                border: none;
+                border-radius: 0;
+                background: transparent;
+            }
+
+            // Time of day slider gradient lives in the shared .time-slider
+            // rule below (also used by the read-only favorites indicator)
+
+            .setting-value {
+                min-width: 4.5em;
+                font-variant-numeric: tabular-nums;
+            }
+
+            dropdown-list, .setting-input {
+                flex: 0 1 auto;
+                max-width: 16em;
+            }
+        }
+
+        // All inputs/dropdowns share the translucent themed styling
+        select,
+        .setting-input,
+        .dynamic-weather-settings input[type="text"],
+        .dynamic-weather-settings input[type="number"] {
+            border-style: solid;
+            border-width: 2px;
+            border-radius: 0.5em;
+        }
+
+        select {
+            padding: 0.55em 0.85em;
+        }
+
+        .setting-input,
+        .dynamic-weather-settings input[type="text"],
+        .dynamic-weather-settings input[type="number"] {
+            padding: 0.45em 0.7em;
+        }
+
+        .setting-time-input {
+            width: 4.5em;
+            flex-shrink: 0;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .setting-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6em;
+
+            > .setting-label {
+                width: auto;
+                padding-bottom: 0.5em;
+            }
+        }
+
+        .setting-dropdowns {
+            display: flex;
+            gap: 1.5em;
+            flex-wrap: wrap;
+
+            .setting-dropdown {
+                display: flex;
+                flex-direction: column;
+                gap: 0.25em;
+                min-width: 10em;
+
+                label {
+                    font-size: 0.8em;
+                    opacity: 0.6;
+                    padding: 0.4em 0 0.5em;
+                }
+
+                dropdown-list {
+                    min-width: 12em;
+                }
+            }
+        }
+
+        // Generic settings form for the selected dynamic controller (Pure etc.)
+        // 6-column grid: checkboxes span 2 (3 per row); text/select fields span 3
+        // (2 per row) with their label stacked above the control
+        .dynamic-weather-settings {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.75em 1em;
+            padding: 0.75em 1em;
+            border-radius: 0.5em;
+            max-width: 42em;
+
+            .dynamic-field {
+                grid-column: span 3;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.3em;
+                font-size: 0.9em;
+                line-height: 1.3;
+
+                > span {
+                    flex: 0 0 auto;
+                    min-width: 0;
+                    font-size: 0.9em;
+                    opacity: 0.6;
+                }
+
+                // Checkboxes hug the left edge with their label right beside them
+                // (override the global input { width: 100% } form style)
+                &.bool-field {
+                    grid-column: span 2;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: flex-start;
+
+                    > input[type="checkbox"] {
+                        width: auto;
+                        flex: 0 0 auto;
+                    }
+
+                    > span {
+                        flex: 0 0 auto;
+                        font-size: 1em;
+                        opacity: 1;
+                    }
+                }
+
+                dropdown-list, input[type="text"], input[type="number"] {
+                    flex: 0 0 auto;
+                    width: 100%;
+                    min-width: 0;
+                    box-sizing: border-box;
+                }
+            }
+        }
+
+        .wind-compass {
+            width: 4em;
+            height: 4em;
+            flex-shrink: 0;
+            cursor: pointer;
+            touch-action: none;
+
+            svg {
+                width: 100%;
+                height: 100%;
+                overflow: visible;
+            }
+
+            .compass-ring {
+                stroke-width: 4;
+            }
+
+            .compass-label {
+                font-size: 12px;
+                text-anchor: middle;
+                user-select: none;
+            }
+
+            .compass-needle {
+                stroke-width: 4;
+                stroke-linecap: round;
+            }
+        }
+
+        .setting-actions {
+            display: flex;
+            gap: 1em;
+            margin-top: 0.5em;
+
+            .add-fav-btn {
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+                padding: 0.55em 1.5em;
+                border: none;
+                border-radius: 0.5em;
+                cursor: pointer;
+                font-size: 1em;
+                font-weight: 400;
+                transition: all 0.2s ease;
+
+                svg {
+                    width: 1.2em;
+                    height: 1.2em;
+                }
+
+                &:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+            }
+        }
+    }
+
+    &.expanded .footer-settings {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transition: opacity 0.4s ease 0.2s, visibility 0s;
+    }
+
+    // Anchored to the container's bottom edge (fixed at the viewport bottom),
+    // centered in the collapsed bar height so it never moves during expand/collapse
     .footer-play-button {
+        position: absolute;
+        right: 1em;
+        bottom: 0;
+        height: 8em;
+        width: 15em;
         display: flex;
         align-items: center;
         justify-content: center;
+
+        // Details and Hide Details occupy the same fixed spot left of the
+        // play button and swap visibility on expand/collapse
+        .details-btn,
+        .hide-details-btn {
+            position: absolute;
+            right: 100%;
+            bottom: 2em; // align with the play button's bottom edge (centered in the 8em strip)
+            margin-right: 1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5em;
+            padding: 0.35em 1.25em;
+            border: none;
+            border-radius: 0.35em;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            white-space: nowrap;
+
+            svg {
+                width: 1em;
+                height: 1em;
+            }
+        }
+
+        .details-btn {
+            transition: all 0.2s ease, opacity 0.4s ease 0.4s, visibility 0s;
+        }
+
+        .hide-details-btn {
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease, opacity 0.4s ease;
+        }
 
         .play-btn {
             display: flex;
@@ -101,9 +489,158 @@
                 height: 1.5em;
             }
 
+            .play-spinner {
+                display: none;
+            }
+
+            &.launching,
+            &.running {
+                .play-icon {
+                    display: none;
+                }
+
+                .play-spinner {
+                    display: block;
+                    animation: play-spin 0.9s linear infinite;
+                }
+            }
+
             &:disabled {
                 opacity: 0.5;
                 cursor: not-allowed;
+            }
+
+            &.launching:disabled,
+            &.running:disabled {
+                opacity: 1;
+            }
+        }
+    }
+}
+
+@keyframes play-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+// Add To Favorites modal - appended to <body> alongside .footer-container so
+// position:fixed isn't trapped by the scale-ui transform
+// Time of day slider - 24h day/night gradient track + ring thumb.
+// Shared by the footer settings slider and the read-only favorites indicator.
+.time-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 1.5em;
+    // Strip the global input styling so the thumb reaches both ends
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+
+    @day-night-gradient: linear-gradient(to right,
+        #050b22 0%, #050b22 21%,
+        #ff7e45 25%, #ffd194 29%,
+        #57a8e8 36%, #57a8e8 64%,
+        #ff8a4a 71%, #c94b9e 76%,
+        #141238 82%, #050b22 88%, #050b22 100%);
+
+    &::-webkit-slider-runnable-track {
+        height: 0.6em;
+        border-radius: 0.3em;
+        background: @day-night-gradient;
+    }
+
+    &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 1.4em;
+        height: 1.4em;
+        margin-top: -0.4em;
+        border-radius: 50%;
+        background: transparent;
+        border: 0.3em solid #38a8ff;
+        box-sizing: border-box;
+        cursor: pointer;
+    }
+
+    &::-moz-range-track {
+        height: 0.6em;
+        border-radius: 0.3em;
+        background: @day-night-gradient;
+    }
+
+    &::-moz-range-thumb {
+        width: 0.8em;
+        height: 0.8em;
+        border-radius: 50%;
+        background: transparent;
+        border: 0.3em solid #38a8ff;
+        box-sizing: border-box;
+        cursor: pointer;
+    }
+}
+
+.fav-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: top left;
+
+    .fav-modal {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5em;
+        min-width: 34em;
+        max-width: 42em;
+        padding: 2em;
+        border-radius: 0.75em;
+
+        .fav-modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5em;
+
+            label {
+                font-size: 0.9em;
+                opacity: 0.7;
+            }
+
+            input {
+                padding: 0.55em 0.85em;
+                line-height: 1.3;
+                border-width: 2px;
+                border-style: solid;
+                border-radius: 0.5em;
+            }
+        }
+
+        .fav-modal-message {
+            padding: 1em 0;
+            text-align: center;
+            font-size: 1.15em;
+        }
+
+        .fav-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75em;
+
+            &.saved {
+                justify-content: center;
+            }
+
+            button {
+                padding: 0.55em 1.5em;
+                border: none;
+                border-radius: 0.5em;
+                cursor: pointer;
+                font-size: 1em;
+                font-weight: 400;
+                transition: all 0.2s ease;
             }
         }
     }

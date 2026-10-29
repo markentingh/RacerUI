@@ -83,6 +83,22 @@ namespace RacerUI.SQL
         }
 
         /// <summary>
+        /// Updates only the Rating field of a track
+        /// </summary>
+        /// <param name="id">The ID of the track to update</param>
+        /// <param name="rating">The new rating value</param>
+        /// <returns>True if the update was successful</returns>
+        public static bool UpdateRating(int id, int? rating)
+        {
+            const string sql = "UPDATE Tracks SET Rating = @Rating WHERE Id = @Id";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(sql, new { Id = id, Rating = rating }) > 0;
+            }
+        }
+
+        /// <summary>
         /// Gets a track by ID
         /// </summary>
         public static Track GetById(int id)
@@ -126,6 +142,22 @@ namespace RacerUI.SQL
             using (var connection = Connection.GetConnection())
             {
                 connection.Execute(sql, new { Id = id });
+            }
+        }
+
+        /// <summary>
+        /// Gets all layout (child) tracks for the given parent track IDs
+        /// </summary>
+        public static IEnumerable<Track> GetLayouts(IEnumerable<int> parentIds)
+        {
+            const string sql = @"
+                SELECT * FROM Tracks
+                WHERE ParentId IN @ParentIds
+                ORDER BY Name";
+
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Query<Track>(sql, new { ParentIds = parentIds });
             }
         }
 
@@ -216,9 +248,11 @@ namespace RacerUI.SQL
         public static IEnumerable<Track> Filter(TrackFilterModel filterModel)
         {
             var sql = new StringBuilder();
+            // NB: no DISTINCT - the TrackTypes join is 1:1, and DISTINCT would
+            // force a materialize+sort that defeats index-ordered ORDER BY
             sql.Append(@"
-                SELECT DISTINCT t.*, tt.Name as TypeName
-                FROM Tracks t 
+                SELECT t.*, tt.Name as TypeName
+                FROM Tracks t
                 LEFT JOIN TrackTypes tt ON t.TypeId = tt.Id ");
 
             var whereClauses = new List<string>();
@@ -257,7 +291,26 @@ namespace RacerUI.SQL
                 sql.Append("WHERE " + string.Join(" AND ", whereClauses) + " ");
             }
 
-            sql.Append("ORDER BY t.Name ");
+            // Sort (whitelisted - never interpolate raw input)
+            switch (filterModel.Sort)
+            {
+                case "country":
+                    sql.Append("ORDER BY CASE WHEN t.Country IS NULL OR t.Country = '' THEN 1 ELSE 0 END, t.Country, t.Name ");
+                    break;
+                case "distance":
+                    // Tracks.Length holds the track distance; Distance column is unused
+                    sql.Append("ORDER BY t.Length DESC, t.Name ");
+                    break;
+                case "year":
+                    sql.Append("ORDER BY t.Year DESC, t.Name ");
+                    break;
+                case "rating":
+                    sql.Append("ORDER BY t.Rating DESC, t.Name ");
+                    break;
+                default:
+                    sql.Append("ORDER BY t.Name ");
+                    break;
+            }
 
             // Pagination
             if (filterModel.Start.HasValue && filterModel.Length.HasValue)
@@ -269,7 +322,26 @@ namespace RacerUI.SQL
 
             using (var connection = Connection.GetConnection())
             {
-                return connection.Query<Track>(sql.ToString(), parameters);
+                var tracks = connection.Query<Track>(sql.ToString(), parameters).ToList();
+
+                // Attach layout (child) tracks so the UI can offer a layout dropdown
+                var parentIds = tracks.Select(t => t.Id).ToList();
+                if (parentIds.Count > 0)
+                {
+                    var layouts = GetLayouts(parentIds)
+                        .GroupBy(l => l.ParentId)
+                        .ToDictionary(g => g.Key, g => g.ToList());
+
+                    foreach (var track in tracks)
+                    {
+                        if (layouts.TryGetValue(track.Id, out var children))
+                        {
+                            track.Layouts = children;
+                        }
+                    }
+                }
+
+                return tracks;
             }
         }
     }

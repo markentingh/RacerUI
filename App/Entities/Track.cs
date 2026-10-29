@@ -30,5 +30,6 @@ namespace RacerUI.Entities
         
         // Navigation properties
         public string TypeName { get; set; }
+        public List<Track> Layouts { get; set; }
     }
 }

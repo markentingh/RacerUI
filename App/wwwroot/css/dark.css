@@ -1,37 +1,3 @@
-/* footer */
-.footer-container {
-  background: linear-gradient(to bottom, #121a47 0%, rgba(18, 26, 71, 0) 100%);
-  border-top-color: linear-gradient(to bottom, rgba(16, 16, 16, 0) 100%, rgba(16, 16, 16, 0) 100%);
-}
-.footer-container .footer-car-preview,
-.footer-container .footer-track-preview {
-  background-color: rgba(88, 88, 88, 0.38);
-}
-.footer-container .footer-car-preview .preview-placeholder,
-.footer-container .footer-track-preview .preview-placeholder {
-  color: #c5c5c5;
-}
-.footer-container .footer-car-preview .preview-placeholder svg use,
-.footer-container .footer-track-preview .preview-placeholder svg use {
-  color: #38a8ff;
-}
-.footer-container .footer-session-info {
-  color: #c5c5c5;
-}
-.footer-container .footer-play-button .play-btn {
-  background: #179c69;
-  color: #fff;
-}
-.footer-container .footer-play-button .play-btn svg use {
-  color: #fff;
-}
-.footer-container .footer-play-button .play-btn:hover:not(:disabled) {
-  background: #01ba57e8;
-  color: #fff;
-}
-.footer-container .footer-play-button .play-btn:hover:not(:disabled) svg use {
-  color: #fff;
-}
 /* inputs */
 /* links */
 /* buttons */
@@ -46,6 +12,8 @@
 /* submenu input */
 /* select list */
 /* cars/tracks views */
+/* footer details button */
+/* footer race settings inputs */
 body.dark-mode {
   background-color: #101010;
   color: #fafafa;
@@ -55,6 +23,7 @@ body.dark-mode {
   /* progress bar */
   /* select list */
   /* cars and tracks views */
+  /* footer */
 }
 body.dark-mode *::-webkit-scrollbar-track {
   background: #000000;
@@ -65,15 +34,44 @@ body.dark-mode *::-webkit-scrollbar-thumb {
 body.dark-mode *::-webkit-scrollbar-thumb:hover {
   background: #4a3690;
 }
-body.dark-mode input {
+body.dark-mode input,
+body.dark-mode select {
   background-color: #444;
   color: #fff;
   border-color: #2facad;
 }
-body.dark-mode input:focus {
+body.dark-mode input:focus,
+body.dark-mode select:focus {
   background-color: #444;
   color: #fff;
   border-color: #2facad;
+}
+body.dark-mode input.time-slider,
+body.dark-mode input.time-slider:focus {
+  background-color: transparent;
+  border-color: transparent;
+}
+body.dark-mode dropdown-list .ddl-toggle {
+  background-color: rgba(56, 168, 255, 0.05);
+  color: #fff;
+  border-color: rgba(56, 168, 255, 0.25);
+}
+body.dark-mode dropdown-list .ddl-toggle:hover {
+  background-color: rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .ddl-portal {
+  background-color: #182252;
+  border-color: rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .ddl-portal .ddl-item {
+  color: #fff;
+}
+body.dark-mode .ddl-portal .ddl-item:hover {
+  background-color: rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .ddl-portal .ddl-item.selected {
+  background: #148cfb;
+  color: #fff;
 }
 body.dark-mode .row.hover:hover {
   background-color: #335b64;
@@ -214,7 +212,9 @@ body.dark-mode .filter-class .class-category h3 {
   color: #9d7bb8;
 }
 body.dark-mode .cars-content .grid-view .car,
-body.dark-mode .tracks-content .grid-view .car,
+body.dark-mode .tracks-content .grid-view .car {
+  background-color: #000;
+}
 body.dark-mode .cars-content .grid-view .track,
 body.dark-mode .tracks-content .grid-view .track {
   background-color: rgba(128, 128, 128, 0.25);
@@ -260,6 +260,16 @@ body.dark-mode .tracks-content .grid-view .car .track-outline,
 body.dark-mode .cars-content .grid-view .track .track-outline,
 body.dark-mode .tracks-content .grid-view .track .track-outline {
   filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.75));
+}
+body.dark-mode .cars-content .grid-view .car rating-stars.rating-badge,
+body.dark-mode .tracks-content .grid-view .car rating-stars.rating-badge,
+body.dark-mode .cars-content .grid-view .track rating-stars.rating-badge,
+body.dark-mode .tracks-content .grid-view .track rating-stars.rating-badge {
+  background-color: transparent;
+}
+body.dark-mode .cars-content .grid-view .car .info h2,
+body.dark-mode .tracks-content .grid-view .car .info h2 {
+  color: #6a6470;
 }
 body.dark-mode .cars-content .grid-details .info .title,
 body.dark-mode .tracks-content .grid-details .info .title {
@@ -364,9 +374,206 @@ body.dark-mode .cars-content .grid-details .track-stats span,
 body.dark-mode .tracks-content .grid-details .track-stats span {
   background: rgba(60, 76, 136, 0.7);
 }
+body.dark-mode .cars-content .grid-details .car-stats rating-stars .rs-star,
+body.dark-mode .tracks-content .grid-details .car-stats rating-stars .rs-star,
+body.dark-mode .cars-content .grid-details .track-stats rating-stars .rs-star,
+body.dark-mode .tracks-content .grid-details .track-stats rating-stars .rs-star {
+  background: transparent;
+}
+body.dark-mode .cars-content .grid-details .car-graph .pt-axis,
+body.dark-mode .tracks-content .grid-details .car-graph .pt-axis {
+  stroke: rgba(255, 255, 255, 0.4);
+}
+body.dark-mode .cars-content .grid-details .car-graph .pt-grid,
+body.dark-mode .tracks-content .grid-details .car-graph .pt-grid {
+  stroke: rgba(255, 255, 255, 0.12);
+}
+body.dark-mode .cars-content .grid-details .car-graph .pt-label,
+body.dark-mode .tracks-content .grid-details .car-graph .pt-label {
+  fill: #c5c5c5;
+}
+body.dark-mode .cars-content .grid-details .car-graph .pt-tick-torque,
+body.dark-mode .tracks-content .grid-details .car-graph .pt-tick-torque,
+body.dark-mode .cars-content .grid-details .car-graph .pt-legend-torque,
+body.dark-mode .tracks-content .grid-details .car-graph .pt-legend-torque {
+  fill: #38a8ff;
+}
+body.dark-mode .cars-content .grid-details .car-graph .pt-tick-power,
+body.dark-mode .tracks-content .grid-details .car-graph .pt-tick-power,
+body.dark-mode .cars-content .grid-details .car-graph .pt-legend-power,
+body.dark-mode .tracks-content .grid-details .car-graph .pt-legend-power {
+  fill: #a45cf5;
+}
+body.dark-mode .cars-content .grid-details .car-graph .pt-line-torque,
+body.dark-mode .tracks-content .grid-details .car-graph .pt-line-torque {
+  stroke: #38a8ff;
+}
+body.dark-mode .cars-content .grid-details .car-graph .pt-line-power,
+body.dark-mode .tracks-content .grid-details .car-graph .pt-line-power {
+  stroke: #a45cf5;
+}
 body.dark-mode .cars-content .grid-details .car-info,
 body.dark-mode .tracks-content .grid-details .car-info,
 body.dark-mode .cars-content .grid-details .track-description,
 body.dark-mode .tracks-content .grid-details .track-description {
   background: rgba(88, 88, 88, 0.38);
+}
+body.dark-mode .footer-container {
+  background: linear-gradient(to bottom, #121a47 0%, rgba(18, 26, 71, 0) 100%);
+  border-top-color: linear-gradient(to bottom, rgba(16, 16, 16, 0) 100%, rgba(16, 16, 16, 0) 100%);
+}
+body.dark-mode .footer-container .footer-car-preview,
+body.dark-mode .footer-container .footer-track-preview {
+  background-color: rgba(88, 88, 88, 0.38);
+}
+body.dark-mode .footer-container .footer-car-preview .preview-placeholder,
+body.dark-mode .footer-container .footer-track-preview .preview-placeholder {
+  color: #c5c5c5;
+}
+body.dark-mode .footer-container .footer-car-preview .preview-placeholder svg use,
+body.dark-mode .footer-container .footer-track-preview .preview-placeholder svg use {
+  color: #38a8ff;
+}
+body.dark-mode .footer-container .footer-track-outline {
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.75));
+}
+body.dark-mode .footer-container .footer-session-info {
+  color: #c5c5c5;
+}
+body.dark-mode .footer-container .footer-settings {
+  color: #c5c5c5;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 168, 255, 0.25) transparent;
+}
+body.dark-mode .footer-container .footer-settings select,
+body.dark-mode .footer-container .footer-settings .setting-input,
+body.dark-mode .footer-container .footer-settings .dynamic-weather-settings input[type="text"],
+body.dark-mode .footer-container .footer-settings .dynamic-weather-settings input[type="number"] {
+  background-color: rgba(56, 168, 255, 0.05);
+  color: #fff;
+  border-color: rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .footer-container .footer-settings select:focus,
+body.dark-mode .footer-container .footer-settings .setting-input:focus,
+body.dark-mode .footer-container .footer-settings .dynamic-weather-settings input[type="text"]:focus,
+body.dark-mode .footer-container .footer-settings .dynamic-weather-settings input[type="number"]:focus {
+  background-color: rgba(56, 168, 255, 0.05);
+  color: #fff;
+  border-color: rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .footer-container .footer-settings select option {
+  background-color: #182252;
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-settings .dynamic-weather-settings {
+  background: #17225973;
+}
+body.dark-mode .footer-container .footer-settings .wind-compass .compass-ring {
+  fill: rgba(56, 168, 255, 0.05);
+  stroke: rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .footer-container .footer-settings .wind-compass .compass-label {
+  fill: #c5c5c5;
+}
+body.dark-mode .footer-container .footer-settings .wind-compass .compass-needle {
+  stroke: #179c69;
+}
+body.dark-mode .footer-container .footer-settings .wind-compass .compass-arrow {
+  fill: #179c69;
+}
+body.dark-mode .footer-container .footer-settings .wind-compass .compass-center {
+  fill: #179c69;
+}
+body.dark-mode .footer-container .details-btn,
+body.dark-mode .footer-container .hide-details-btn {
+  background: linear-gradient(to bottom, #8867ed 0%, #5836fa 50%, #148cfb 100%);
+  color: #fff;
+}
+body.dark-mode .footer-container .details-btn svg use,
+body.dark-mode .footer-container .hide-details-btn svg use {
+  color: #fff;
+}
+body.dark-mode .footer-container .details-btn:hover,
+body.dark-mode .footer-container .hide-details-btn:hover {
+  filter: brightness(1.15);
+}
+body.dark-mode .footer-container .footer-play-button .play-btn {
+  background: #179c69;
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-play-button .play-btn svg use {
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-play-button .play-btn:hover:not(:disabled) {
+  background: #01ba57e8;
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-play-button .play-btn:hover:not(:disabled) svg use {
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-play-button .play-btn.running {
+  background: #148cfb;
+}
+body.dark-mode .footer-container .setting-actions .add-fav-btn {
+  background: #148cfb;
+  color: #fff;
+}
+body.dark-mode .footer-container .setting-actions .add-fav-btn:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+body.dark-mode .fav-modal-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+body.dark-mode .fav-modal-backdrop .fav-modal {
+  background: #182252;
+  color: #fff;
+  border: 2px solid rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .fav-modal-backdrop .fav-modal .fav-modal-body input {
+  background-color: rgba(56, 168, 255, 0.05);
+  color: #fff;
+  border-color: rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .fav-modal-backdrop .fav-modal .fav-save-btn,
+body.dark-mode .fav-modal-backdrop .fav-modal .fav-ok-btn {
+  background: #179c69;
+  color: #fff;
+}
+body.dark-mode .fav-modal-backdrop .fav-modal .fav-save-btn:hover,
+body.dark-mode .fav-modal-backdrop .fav-modal .fav-ok-btn:hover {
+  background: #01ba57e8;
+  color: #fff;
+}
+body.dark-mode .fav-modal-backdrop .fav-modal .fav-cancel-btn {
+  background: rgba(128, 128, 128, 0.35);
+  color: #fff;
+}
+body.dark-mode .fav-modal-backdrop .fav-modal .fav-cancel-btn:hover {
+  background: rgba(128, 128, 128, 0.55);
+}
+body.dark-mode .content.history .favorite-item {
+  background-color: rgba(88, 88, 88, 0.38);
+}
+body.dark-mode .content.history .favorite-item .fav-play-btn {
+  background: #179c69;
+  color: #fff;
+}
+body.dark-mode .content.history .favorite-item .fav-play-btn:hover {
+  background: #01ba57e8;
+  color: #fff;
+}
+body.dark-mode .content.history .favorite-item .fav-delete-btn {
+  background: rgba(128, 128, 128, 0.25);
+  color: #fff;
+}
+body.dark-mode .content.history .favorite-item .fav-delete-btn:hover {
+  background: #d32f2f;
+  color: #fff;
+}
+body.dark-mode .fav-delete-modal .fav-delete-confirm-btn {
+  background: #d32f2f;
+  color: #fff;
+}
+body.dark-mode .fav-delete-modal .fav-delete-confirm-btn:hover {
+  filter: brightness(1.15);
 }

@@ -16,18 +16,118 @@
                 <span>Select a track</span>
             </div>
         </div>
+        <img class="footer-track-outline" onerror="this.style.display='none'" alt="track outline" />
         <div class="footer-session-info">
             <div class="session-text">
                 <span class="no-selection">Select a car and track to play</span>
             </div>
+            <div class="session-settings"></div>
+        </div>
+        <div class="footer-settings">
+            <div class="setting-row">
+                <label class="setting-label" for="ftr-time-input">Time of Day</label>
+                <input type="text" id="ftr-time-input" class="setting-input setting-time-input" maxlength="5" />
+                <input type="range" id="ftr-time-slider" class="setting-slider time-slider" min="0" max="1439" step="1" />
+            </div>
+            <div class="setting-section">
+                <div class="setting-label">Weather System</div>
+                <div class="setting-dropdowns">
+                    <div class="setting-dropdown">
+                        <label for="ftr-weather-mode">Type</label>
+                        <dropdown-list id="ftr-weather-mode">
+                            <option value="static">Static</option>
+                        </dropdown-list>
+                    </div>
+                    <div class="setting-dropdown">
+                        <label for="ftr-weather-controller">Controller</label>
+                        <dropdown-list id="ftr-weather-controller"></dropdown-list>
+                    </div>
+                    <div class="setting-dropdown" id="ftr-static-weather-group">
+                        <label for="ftr-static-weather">Static Weather</label>
+                        <dropdown-list id="ftr-static-weather"></dropdown-list>
+                    </div>
+                </div>
+                <div class="dynamic-weather-settings" id="ftr-dynamic-weather" style="display:none"></div>
+            </div>
+            <div class="setting-row">
+                <label class="setting-label" for="ftr-temp-slider">Temperature</label>
+                <input type="range" id="ftr-temp-slider" class="setting-slider" min="-10" max="45" step="1" />
+                <span class="setting-value" id="ftr-temp-value"></span>
+            </div>
+            <div class="setting-row">
+                <label class="setting-label" for="ftr-wind-slider">Wind</label>
+                <input type="range" id="ftr-wind-slider" class="setting-slider" min="0" max="35" step="1" />
+                <span class="setting-value" id="ftr-wind-value"></span>
+                <div class="wind-compass" id="ftr-wind-compass">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="compass-ring" cx="50" cy="50" r="44"></circle>
+                        <text class="compass-label" x="50" y="26" text-anchor="middle">N</text>
+                        <text class="compass-label" x="74" y="54" text-anchor="middle">E</text>
+                        <text class="compass-label" x="50" y="84" text-anchor="middle">S</text>
+                        <text class="compass-label" x="26" y="54" text-anchor="middle">W</text>
+                        <g id="ftr-wind-needle">
+                            <line class="compass-needle" x1="50" y1="50" x2="50" y2="22"></line>
+                            <polygon class="compass-arrow" points="50,10 44,24 56,24"></polygon>
+                            <circle class="compass-center" cx="50" cy="50" r="4"></circle>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+            <div class="setting-row">
+                <label class="setting-label" for="ftr-track-state">Track State</label>
+                <dropdown-list id="ftr-track-state">
+                    <option value="-1">Auto</option>
+                    <option value="0">Dusty</option>
+                    <option value="1">Old</option>
+                    <option value="3">Green</option>
+                    <option value="2">Slow</option>
+                    <option value="4">Fast</option>
+                    <option value="5">Optimum</option>
+                </dropdown-list>
+            </div>
+            <div class="setting-actions">
+                <button class="add-fav-btn" id="ftr-add-favorite" disabled>
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-add" x="0" y="0" width="64" height="64"></use>
+                    </svg>
+                    <span>Add To Favorites</span>
+                </button>
+            </div>
         </div>
         <div class="footer-play-button">
-            <button class="play-btn" disabled>
+            <button class="details-btn">
+                <span>Details</span>
+            </button>
+            <button class="hide-details-btn">
                 <svg viewBox="0 0 64 64" class="dark">
+                    <use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use>
+                </svg>
+                <span>Hide Details</span>
+            </button>
+            <button class="play-btn" disabled>
+                <svg viewBox="0 0 64 64" class="dark play-icon">
                     <use xlink:href="#icon-play" x="0" y="0" width="64" height="64"></use>
+                </svg>
+                <svg viewBox="0 0 24 24" class="play-spinner">
+                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor"
+                            stroke-width="3" stroke-linecap="round" stroke-dasharray="42" stroke-dashoffset="14"></circle>
                 </svg>
                 <span>Start Race</span>
             </button>
+        </div>
+    </div>
+</div>
+<div class="fav-modal-backdrop scale-ui" id="ftr-fav-modal" style="display: none;">
+    <div class="fav-modal">
+        <div class="fav-modal-body" id="ftr-fav-form">
+            <label for="ftr-fav-name">Racing Configuration Name</label>
+            <input type="text" id="ftr-fav-name" maxlength="120" />
+        </div>
+        <div class="fav-modal-message" id="ftr-fav-message" style="display: none;">Saved to favorites!</div>
+        <div class="fav-modal-actions">
+            <button class="fav-cancel-btn" id="ftr-fav-cancel">Cancel</button>
+            <button class="fav-save-btn" id="ftr-fav-save">Save To Favorites</button>
+            <button class="fav-ok-btn" id="ftr-fav-ok" style="display: none;">OK</button>
         </div>
     </div>
 </div>

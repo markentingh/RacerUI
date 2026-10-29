@@ -3,11 +3,23 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using RacerUI.Helpers;
 using RacerUI.Entities;
+using RacerUI.Models;
 
 namespace RacerUI.SignalR
 {
     public class DashboardHub : Hub
     {
+        public DashboardHub(IHubContext<DashboardHub> hubContext)
+        {
+            GameProcessMonitor.Start(hubContext);
+        }
+
+        /// <summary>Current acs.exe state for clients that (re)load mid-session</summary>
+        public bool GetGameState()
+        {
+            return GameProcessMonitor.IsRunning;
+        }
+
         public async Task Handshake()
         {
             await Clients.Caller.SendAsync("handshake");
@@ -458,6 +470,7 @@ namespace RacerUI.SignalR
                         var totalTracks = trackFolders.Count;
                         var tracksProcessed = 0;
                         lastProgress = 0;
+                        var knownTracks = SQL.TracksRepository.GetAll().ToList();
 
                         await Clients.Caller.SendAsync("update", $"Found {totalTracks} track folders");
 
@@ -479,20 +492,33 @@ namespace RacerUI.SignalR
                                     continue;
                                 }
 
-                                // Check if ui_track.json exists directly in ui folder (single track)
-                                var directJsonPath = Path.Combine(uiFolder, "ui_track.json");
-                                if (File.Exists(directJsonPath))
+                                // ACTools-style layout discovery: a track may have a root
+                                // ui_track.json and/or layout subfolders under ui/
+                                var hasRootJson = File.Exists(Path.Combine(uiFolder, "ui_track.json"));
+                                var layoutFolders = Directory.GetDirectories(uiFolder)
+                                    .Where(folder => File.Exists(Path.Combine(folder, "ui_track.json")))
+                                    .OrderBy(folder => folder, StringComparer.OrdinalIgnoreCase)
+                                    .ToList();
+
+                                if (!hasRootJson && layoutFolders.Count == 0)
                                 {
-                                    // Single track - no subfolders
-                                    var existingTrack = SQL.TracksRepository.GetAll()
-                                        .FirstOrDefault(t => t.Path == trackPath && t.SubPath == null && t.GameId == gameInfo.Id);
+                                    continue;
+                                }
+
+                                if ((!hasRootJson && layoutFolders.Count == 1) || (hasRootJson && layoutFolders.Count == 0))
+                                {
+                                    // Single-layout track (root json, or exactly one layout subfolder)
+                                    var singleSubPath = hasRootJson ? null : Path.GetFileName(layoutFolders[0]);
+                                    var existingTrack = knownTracks
+                                        .FirstOrDefault(t => t.Path == trackPath && t.SubPath == singleSubPath && t.GameId == gameInfo.Id);
 
                                     if (existingTrack == null)
                                     {
-                                        var track = AssettoCorsaHelper.GetTrackFromJson(trackFolder, gameInfo.Id);
+                                        var track = AssettoCorsaHelper.GetTrackFromJson(trackFolder, gameInfo.Id, singleSubPath);
                                         if (track != null)
                                         {
-                                            var trackId = SQL.TracksRepository.Add(track);
+                                            track.Id = SQL.TracksRepository.Add(track);
+                                            knownTracks.Add(track);
                                             await Clients.Caller.SendAsync("update", $"Added new track: {track.Name}");
                                         }
                                     }
@@ -504,58 +530,85 @@ namespace RacerUI.SignalR
                                 }
                                 else
                                 {
-                                    // Multiple tracks - check subfolders
-                                    var subFolders = Directory.GetDirectories(uiFolder);
-                                    if (subFolders.Length > 0)
+                                    // Multi-layout track - the "main" layout becomes the parent row
+                                    // (named after the track), the rest become child layout rows
+                                    var mainSubPath = hasRootJson
+                                        ? null
+                                        : AssettoCorsaHelper.GetMainLayoutSubPath(trackPath, layoutFolders);
+
+                                    var subPaths = new List<string>();
+                                    if (hasRootJson)
                                     {
-                                        int? parentTrackId = null;
+                                        subPaths.Add(null);
+                                    }
+                                    subPaths.AddRange(layoutFolders.Select(folder => Path.GetFileName(folder)));
 
-                                        for (i = 0; i < subFolders.Length; i++)
+                                    int? parentTrackId = null;
+                                    var layoutNames = new List<string>();
+                                    foreach (var subPath in subPaths.OrderBy(s => s != mainSubPath))
+                                    {
+                                        var isMain = subPath == mainSubPath;
+                                        var existingTrack = knownTracks
+                                            .FirstOrDefault(t => t.Path == trackPath && t.SubPath == subPath && t.GameId == gameInfo.Id);
+
+                                        if (existingTrack == null)
                                         {
-                                            var subFolderName = Path.GetFileName(subFolders[i]);
-                                            var subJsonPath = Path.Combine(subFolders[i], "ui_track.json");
+                                            var track = AssettoCorsaHelper.GetTrackFromJson(trackFolder, gameInfo.Id, subPath);
+                                            if (track == null) continue;
 
-                                            if (File.Exists(subJsonPath))
+                                            track.ParentId = isMain ? null : parentTrackId;
+                                            track.Id = SQL.TracksRepository.Add(track);
+                                            knownTracks.Add(track);
+                                            layoutNames.Add(track.Name);
+
+                                            if (isMain || parentTrackId == null)
                                             {
-                                                var existingTrack = SQL.TracksRepository.GetAll()
-                                                    .FirstOrDefault(t => t.Path == trackPath && t.SubPath == subFolderName && t.GameId == gameInfo.Id);
-
-                                                if (existingTrack == null)
-                                                {
-                                                    var track = AssettoCorsaHelper.GetTrackFromJson(trackFolder, gameInfo.Id, subFolderName);
-                                                    if (track != null)
-                                                    {
-                                                        // First track becomes the parent
-                                                        if (i == 0)
-                                                        {
-                                                            track.ParentId = null;
-                                                            parentTrackId = SQL.TracksRepository.Add(track);
-                                                            await Clients.Caller.SendAsync("update", $"Added parent track: {track.Name} ({subFolderName})");
-                                                        }
-                                                        else
-                                                        {
-                                                            // Subsequent tracks are children
-                                                            track.ParentId = parentTrackId;
-                                                            SQL.TracksRepository.Add(track);
-                                                            await Clients.Caller.SendAsync("update", $"Added child track: {track.Name} ({subFolderName})");
-                                                        }
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    // Track exists - set parentTrackId if this is the first one
-                                                    if (i == 0 && existingTrack.ParentId == null)
-                                                    {
-                                                        parentTrackId = existingTrack.Id;
-                                                    }
-
-                                                    if (existingTrack.IsNew)
-                                                    {
-                                                        existingTrack.IsNew = false;
-                                                        SQL.TracksRepository.Update(existingTrack);
-                                                    }
-                                                }
+                                                parentTrackId = track.Id;
                                             }
+
+                                            await Clients.Caller.SendAsync("update", isMain
+                                                ? $"Added track: {track.Name}"
+                                                : $"Added layout: {track.Name} ({subPath})");
+                                        }
+                                        else
+                                        {
+                                            // Refresh the name from ui_track.json - mods can rename
+                                            // layouts between versions and leave stale names behind
+                                            var layoutDir = subPath == null ? uiFolder : Path.Combine(uiFolder, subPath);
+                                            var freshName = AssettoCorsaHelper.GetLayoutData(layoutDir)?.Name;
+                                            var nameChanged = !string.IsNullOrEmpty(freshName) && existingTrack.Name != freshName;
+                                            if (nameChanged)
+                                            {
+                                                existingTrack.Name = freshName;
+                                            }
+                                            layoutNames.Add(existingTrack.Name);
+
+                                            if (isMain || parentTrackId == null)
+                                            {
+                                                parentTrackId = existingTrack.Id;
+                                            }
+
+                                            // Repair parent/child linkage left by earlier scans
+                                            var desiredParentId = isMain ? (int?)null : parentTrackId;
+                                            if (existingTrack.ParentId != desiredParentId || existingTrack.IsNew || nameChanged)
+                                            {
+                                                existingTrack.ParentId = desiredParentId;
+                                                existingTrack.IsNew = false;
+                                                SQL.TracksRepository.Update(existingTrack);
+                                            }
+                                        }
+                                    }
+
+                                    // Earlier scans could leave the parent named after a layout;
+                                    // the track name is the common prefix all layout names share
+                                    if (parentTrackId != null && layoutNames.Count > 1)
+                                    {
+                                        var commonName = AssettoCorsaHelper.GetCommonTrackName(layoutNames);
+                                        var parentTrack = knownTracks.FirstOrDefault(t => t.Id == parentTrackId.Value);
+                                        if (!string.IsNullOrEmpty(commonName) && parentTrack != null && parentTrack.Name != commonName)
+                                        {
+                                            parentTrack.Name = commonName;
+                                            SQL.TracksRepository.Update(parentTrack);
                                         }
                                     }
                                 }
@@ -735,18 +788,38 @@ namespace RacerUI.SignalR
             int trackGripRandomness = 1,
             int trackGripLapGain = 1,
             int trackGripTransfer = 90,
-            int launcherType = 2)
+            int launcherType = 2,
+            string settingsJson = null)
         {
             try
             {
                 await Clients.Caller.SendAsync("update", $"Launching {game}...");
-                
+
                 // Get game info from database
                 var gameInfo = SQL.GamesRepository.GetByName(game);
                 if (gameInfo == null || string.IsNullOrEmpty(gameInfo.Path))
                 {
                     await Clients.Caller.SendAsync("update", $"Game path not found for {game}");
                     return false;
+                }
+
+                // Parse extra launch settings (weather system, wind, track state)
+                RaceLaunchSettings launch = null;
+                if (!string.IsNullOrEmpty(settingsJson))
+                {
+                    launch = JsonSerializer.Deserialize<RaceLaunchSettings>(settingsJson,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+
+                // Track state preset overrides the grip parameters; -1 (Auto)
+                // falls through to the weather-defined default values
+                if (launch?.TrackPreset != null)
+                {
+                    var preset = AssettoCorsaHelper.GetTrackStatePreset(launch.TrackPreset.Value);
+                    trackGripStart = preset.SessionStart;
+                    trackGripRandomness = preset.Randomness;
+                    trackGripLapGain = preset.LapGain;
+                    trackGripTransfer = preset.SessionTransfer;
                 }
 
                 // Handle Assetto Corsa
@@ -788,7 +861,8 @@ namespace RacerUI.SignalR
                         trackGripRandomness,
                         trackGripLapGain,
                         trackGripTransfer,
-                        launcherType);
+                        launcherType,
+                        launch);
                     
                     if (success)
                     {

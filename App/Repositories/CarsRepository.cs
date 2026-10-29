@@ -593,11 +593,13 @@ namespace RacerUI.SQL
         /// <param name="typeIds">Array of car type IDs to filter by. Pass null or empty to skip this filter.</param>
         /// <param name="styleIds">Array of car styling IDs to filter by. Pass null or empty to skip this filter.</param>
         /// <param name="specializationIds">Array of racing specialization IDs to filter by. Pass null or empty to skip this filter.</param>
+        /// <param name="modelIds">Array of car model IDs to filter by. Pass null or empty to skip this filter.</param>
         /// <param name="searchText">Plain text search to filter by car name. Pass null or empty to skip this filter.</param>
         /// <returns>The count of cars matching all specified filter criteria.</returns>
         public static int FilterCount(
             IEnumerable<string> countryCodes = null,
             IEnumerable<int> makeIds = null,
+            IEnumerable<int> modelIds = null,
             IEnumerable<int> years = null,
             IEnumerable<string> classes = null,
             IEnumerable<int> typeIds = null,
@@ -654,6 +656,13 @@ namespace RacerUI.SQL
                 parameters.Add("MakeIds", makeIds.ToList());
             }
 
+            // Model filter
+            if (modelIds != null && modelIds.Any())
+            {
+                whereClauses.Add("c.ModelId IN @ModelIds");
+                parameters.Add("ModelIds", modelIds.ToList());
+            }
+
             // Year filter
             if (years != null && years.Any())
             {
@@ -700,12 +709,14 @@ namespace RacerUI.SQL
         /// <param name="styleIds">Array of car styling IDs to filter by. Pass null or empty to skip this filter.</param>
         /// <param name="specializationIds">Array of racing specialization IDs to filter by. Pass null or empty to skip this filter.</param>
         /// <param name="searchText">Plain text search to filter by car name. Pass null or empty to skip this filter.</param>
+        /// <param name="modelIds">Array of car model IDs to filter by. Pass null or empty to skip this filter.</param>
         /// <param name="start">Starting index for pagination. Pass null to skip pagination.</param>
         /// <param name="length">Number of records to return for pagination. Pass null to skip pagination.</param>
         /// <returns>A list of cars matching all specified filter criteria.</returns>
         public static IEnumerable<Car> Filter(
             IEnumerable<string> countryCodes = null,
             IEnumerable<int> makeIds = null,
+            IEnumerable<int> modelIds = null,
             IEnumerable<int> years = null,
             IEnumerable<string> classes = null,
             IEnumerable<int> typeIds = null,
@@ -713,15 +724,18 @@ namespace RacerUI.SQL
             IEnumerable<int> specializationIds = null,
             string searchText = null,
             int? start = null,
-            int? length = null)
+            int? length = null,
+            string sort = null)
         {
             var sql = "SELECT c.*, m.Name as MakeName FROM Cars c";
             var parameters = new DynamicParameters();
             var whereClauses = new List<string>();
             var joins = new List<string>();
             
-            // Always LEFT JOIN CarMakes to get make name
+            // Always LEFT JOIN CarMakes to get make name; CarModels feeds
+            // manufacturer/model secondary ordering for most sorts
             joins.Add("LEFT JOIN CarMakes m ON c.MakeId = m.Id");
+            joins.Add("LEFT JOIN CarModels mo ON c.ModelId = mo.Id");
 
             // Type filter (requires join to Cars_Types)
             if (typeIds != null && typeIds.Any())
@@ -767,6 +781,13 @@ namespace RacerUI.SQL
                 parameters.Add("MakeIds", makeIds.ToList());
             }
 
+            // Model filter
+            if (modelIds != null && modelIds.Any())
+            {
+                whereClauses.Add("c.ModelId IN @ModelIds");
+                parameters.Add("ModelIds", modelIds.ToList());
+            }
+
             // Year filter
             if (years != null && years.Any())
             {
@@ -796,7 +817,50 @@ namespace RacerUI.SQL
             // Add WHERE clause (always has at least the validation clauses)
             sql += " WHERE " + string.Join(" AND ", whereClauses);
 
-            sql += " ORDER BY c.Name";
+            // Sort (whitelisted - never interpolate raw input)
+            // Secondary chains: manufacturer name, then model name
+            switch (sort)
+            {
+                case "country":
+                    sql += " ORDER BY CASE WHEN c.Country IS NULL OR c.Country = '' THEN 1 ELSE 0 END, c.Country, m.Name, mo.Name";
+                    break;
+                case "manufacturer":
+                    sql += " ORDER BY CASE WHEN m.Name IS NULL THEN 1 ELSE 0 END, m.Name, mo.Name";
+                    break;
+                case "model":
+                    sql += " ORDER BY CASE WHEN mo.Name IS NULL THEN 1 ELSE 0 END, mo.Name, c.Name";
+                    break;
+                case "year":
+                    sql += " ORDER BY c.Year DESC, m.Name, mo.Name";
+                    break;
+                case "yearasc":
+                    sql += " ORDER BY c.Year, m.Name, mo.Name";
+                    break;
+                case "class":
+                    sql += " ORDER BY CASE WHEN c.Class IS NULL OR c.Class = '' THEN 1 ELSE 0 END, c.Class, m.Name, mo.Name";
+                    break;
+                case "type":
+                    sql += @" ORDER BY (SELECT MIN(t2.Name) FROM Cars_Types ct2 JOIN CarTypes t2 ON ct2.TypeId = t2.Id WHERE ct2.CarId = c.Id) IS NULL,
+                              (SELECT MIN(t2.Name) FROM Cars_Types ct2 JOIN CarTypes t2 ON ct2.TypeId = t2.Id WHERE ct2.CarId = c.Id), m.Name, mo.Name";
+                    break;
+                case "style":
+                    sql += @" ORDER BY (SELECT MIN(s2.Name) FROM Cars_Styling cs2 JOIN CarStyling s2 ON cs2.StylingId = s2.Id WHERE cs2.CarId = c.Id) IS NULL,
+                              (SELECT MIN(s2.Name) FROM Cars_Styling cs2 JOIN CarStyling s2 ON cs2.StylingId = s2.Id WHERE cs2.CarId = c.Id), m.Name, mo.Name";
+                    break;
+                case "specialization":
+                    sql += @" ORDER BY (SELECT MIN(sp2.Name) FROM Cars_Specializations csp2 JOIN RacingSpecializations sp2 ON csp2.SpecializationId = sp2.Id WHERE csp2.CarId = c.Id) IS NULL,
+                              (SELECT MIN(sp2.Name) FROM Cars_Specializations csp2 JOIN RacingSpecializations sp2 ON csp2.SpecializationId = sp2.Id WHERE csp2.CarId = c.Id), m.Name, mo.Name";
+                    break;
+                case "rating":
+                    sql += " ORDER BY c.Rating DESC, c.Name";
+                    break;
+                case "maxspeed":
+                    sql += " ORDER BY c.MaxSpeed DESC, c.Name";
+                    break;
+                default:
+                    sql += " ORDER BY c.Name";
+                    break;
+            }
 
             // Add pagination if both start and length are provided
             if (start.HasValue && length.HasValue)

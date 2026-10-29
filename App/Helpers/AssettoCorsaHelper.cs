@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Globalization;
@@ -34,7 +35,8 @@ namespace RacerUI.Helpers
             int trackGripRandomness = 1,
             int trackGripLapGain = 1,
             int trackGripTransfer = 90,
-            int launcherType = 2)
+            int launcherType = 2,
+            RaceLaunchSettings launch = null)
         {
             try
             {
@@ -84,7 +86,13 @@ namespace RacerUI.Helpers
                     driverName, sessionType, sessionName, spawnSet, sunAngle,
                     ambientTemp, roadTemp, weatherName, aiLevel, raceLaps, cars,
                     sessionDuration, sessionLaps, timeMultiplier, trackGripStart,
-                    trackGripRandomness, trackGripLapGain, trackGripTransfer, launcherType);
+                    trackGripRandomness, trackGripLapGain, trackGripTransfer, launcherType, launch);
+
+                // Publish selected weather controller settings for CSP to read at race start
+                if (launch?.WeatherController != null)
+                {
+                    PublishControllerSettings(launch.WeatherController, launch.ControllerSettings);
+                }
 
                 string exePath;
                 string launcherName;
@@ -127,9 +135,10 @@ namespace RacerUI.Helpers
                 // For now, direct launch to acs.exe with Steam overlay should work if Steam is running
 
                 var process = Process.Start(processStartInfo);
-                
+
                 if (process != null)
                 {
+                    SignalR.GameProcessMonitor.NotifyLaunched(process);
                     Console.WriteLine($"Assetto Corsa launched successfully via {launcherName}. Configuration written to: {raceIniPath}");
                     return true;
                 }
@@ -212,7 +221,8 @@ namespace RacerUI.Helpers
             int trackGripRandomness,
             int trackGripLapGain,
             int trackGripTransfer,
-            int launcherType)
+            int launcherType,
+            RaceLaunchSettings launch = null)
         {
             var ini = new StringBuilder();
 
@@ -250,6 +260,15 @@ namespace RacerUI.Helpers
             ini.AppendLine($"SUN_ANGLE={sunAngle}");
             ini.AppendLine($"TIME_MULT={timeMultiplier.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)}");
             ini.AppendLine("CLOUD_SPEED=0.200");
+            // CSP WeatherFX picks the weather via these keys (same as Content Manager writes)
+            if (launch != null)
+            {
+                ini.AppendLine($"__CM_WEATHER_TYPE={(launch.WeatherType ?? -1)}");
+                if (!string.IsNullOrEmpty(launch.WeatherController))
+                {
+                    ini.AppendLine($"__CM_WEATHER_CONTROLLER={launch.WeatherController}");
+                }
+            }
             ini.AppendLine();
 
             // [TEMPERATURE] section - Weather conditions
@@ -262,6 +281,17 @@ namespace RacerUI.Helpers
             ini.AppendLine("[WEATHER]");
             ini.AppendLine($"NAME={weatherName}");
             ini.AppendLine();
+
+            // [WIND] section - speed in km/h, direction in degrees
+            if (launch?.WindSpeedKmh != null)
+            {
+                var windSpeed = launch.WindSpeedKmh.Value;
+                ini.AppendLine("[WIND]");
+                ini.AppendLine($"SPEED_KMH_MIN={windSpeed.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)}");
+                ini.AppendLine($"SPEED_KMH_MAX={windSpeed.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)}");
+                ini.AppendLine($"DIRECTION_DEG={launch.WindDirectionDeg ?? 0}");
+                ini.AppendLine();
+            }
 
             // [HEADER] section
             ini.AppendLine("[HEADER]");
@@ -334,12 +364,16 @@ namespace RacerUI.Helpers
             ini.AppendLine($"SPAWN_SET={spawnSet}");
             ini.AppendLine();
 
-            // [WIND] section
-            ini.AppendLine("[WIND]");
-            ini.AppendLine("SPEED_KMH_MIN=10");
-            ini.AppendLine("SPEED_KMH_MAX=10");
-            ini.AppendLine("DIRECTION_DEG=0");
-            ini.AppendLine();
+            // [WIND] fallback - only written when the launch settings didn't
+            // already emit a [WIND] section (duplicate sections would override it)
+            if (launch?.WindSpeedKmh == null)
+            {
+                ini.AppendLine("[WIND]");
+                ini.AppendLine("SPEED_KMH_MIN=10");
+                ini.AppendLine("SPEED_KMH_MAX=10");
+                ini.AppendLine("DIRECTION_DEG=0");
+                ini.AppendLine();
+            }
 
             // [AUTOSPAWN] section - For official launcher auto-start
             if (launcherType == 1)
@@ -454,6 +488,64 @@ namespace RacerUI.Helpers
         {
             var uiCarJson = File.ReadAllText(folder);
             return JsonSerializer.Deserialize<UICar>(JsonHelper.CleanRawJson(uiCarJson));
+        }
+
+        /// <summary>
+        /// Reads the torque curve lookup table (engine.ini TORQUE_CURVE, usually
+        /// power.lut) from a car's data.acd or extracted data folder.
+        /// Each line is "rpm|torqueNm".
+        /// </summary>
+        /// <param name="carFolderPath">Full path to the car folder under content\cars</param>
+        /// <returns>Sorted list of (rpm, torqueNm) points, empty when unavailable</returns>
+        public static List<(double rpm, double nm)> GetPowerCurve(string carFolderPath)
+        {
+            var points = new List<(double rpm, double nm)>();
+
+            try
+            {
+                var acdWorker = new ACDBackend.ACDWorker();
+                var files = acdWorker.getEntries(carFolderPath);
+                if (files == null) return points;
+
+                // engine.ini may name a different torque curve file than power.lut
+                var lutName = "power.lut";
+                var engineIni = files.FirstOrDefault(f => f.name.Equals("engine.ini", StringComparison.OrdinalIgnoreCase));
+                if (engineIni != null)
+                {
+                    var match = Regex.Match(engineIni.fileData, @"^\s*TORQUE_CURVE\s*=\s*(\S+)", RegexOptions.Multiline);
+                    if (match.Success)
+                    {
+                        lutName = match.Groups[1].Value.Trim();
+                    }
+                }
+
+                var lut = files.FirstOrDefault(f => f.name.Equals(lutName, StringComparison.OrdinalIgnoreCase))
+                    ?? files.FirstOrDefault(f => f.name.Equals("power.lut", StringComparison.OrdinalIgnoreCase));
+                if (lut == null) return points;
+
+                using (var reader = new StringReader(lut.fileData))
+                {
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        var parts = line.Split('|');
+                        if (parts.Length < 2) continue;
+                        if (double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var rpm)
+                            && double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var nm))
+                        {
+                            points.Add((rpm, nm));
+                        }
+                    }
+                }
+
+                points.Sort((a, b) => a.rpm.CompareTo(b.rpm));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
+
+            return points;
         }
 
         public static void GetCarSpecs(Car car, UICar uiCar, string folder)
@@ -1226,6 +1318,379 @@ namespace RacerUI.Helpers
             }
 
             return trackFolders;
+        }
+
+        // Layout name patterns ported from ACTools' TrackObject.GetPreferredMainLayout
+        private static readonly Regex NonDefaultLayoutRegex = new Regex(
+            "downhill|drift|fall|freeroam|grid|mini|no ?chicane|osrw|oval|pursuit|rev(?:\\b|erse)?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex PreferredLayoutRegex = new Regex(
+            "circuit|international|full|gp|grand?|hill ?climb|main|normal|standar[dt]?|uphill",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static int GetLayoutMatchWeight(Match match)
+        {
+            var value = match.Value.ToLowerInvariant();
+            if (value == "full" || value == "drift" || value == "normal" || value == "pursuit") return 10;
+            if (value == "international" || value == "circuit") return 2;
+            return value.Length;
+        }
+
+        /// <summary>
+        /// Minimal ini parser: returns sections mapped to key/value dictionaries
+        /// </summary>
+        public static Dictionary<string, Dictionary<string, string>> ParseIniFile(string iniPath)
+        {
+            var sections = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+            if (!File.Exists(iniPath))
+            {
+                return sections;
+            }
+
+            var current = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            sections[""] = current;
+
+            foreach (var line in File.ReadAllLines(iniPath))
+            {
+                var trimmed = line.Trim();
+                if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
+                {
+                    current = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    sections[trimmed.Substring(1, trimmed.Length - 2).Trim()] = current;
+                }
+                else
+                {
+                    var eq = trimmed.IndexOf('=');
+                    if (eq > 0)
+                    {
+                        var key = trimmed.Substring(0, eq).Trim();
+                        var value = trimmed.Substring(eq + 1);
+                        var comment = value.IndexOf(';');
+                        if (comment >= 0)
+                        {
+                            value = value.Substring(0, comment);
+                        }
+                        current[key] = value.Trim();
+                    }
+                }
+            }
+
+            return sections;
+        }
+
+        /// <summary>
+        /// Enumerates CSP weather controllers from extension/weather-controllers
+        /// (folders containing controller.lua), reading manifest.ini for display info
+        /// </summary>
+        public static List<object> GetWeatherControllers(string gamePath)
+        {
+            var result = new List<object>();
+            var dir = Path.Combine(gamePath, "extension", "weather-controllers");
+            if (!Directory.Exists(dir))
+            {
+                return result;
+            }
+
+            foreach (var controllerDir in Directory.GetDirectories(dir))
+            {
+                if (!File.Exists(Path.Combine(controllerDir, "controller.lua")))
+                {
+                    continue;
+                }
+
+                var manifest = ParseIniFile(Path.Combine(controllerDir, "manifest.ini"));
+                manifest.TryGetValue("ABOUT", out var about);
+
+                result.Add(new
+                {
+                    id = Path.GetFileName(controllerDir),
+                    name = about != null && about.TryGetValue("NAME", out var name) && !string.IsNullOrEmpty(name)
+                        ? name
+                        : Path.GetFileName(controllerDir),
+                    followsWeather = !(about != null && about.TryGetValue("FOLLOWS_SELECTED_WEATHER", out var fw) && fw == "0"),
+                    hasSettings = File.Exists(Path.Combine(controllerDir, "settings.ini"))
+                });
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Parses a weather controller's settings.ini into a list of UI field descriptors.
+        /// Specs are declared via ini commentary, the same conventions Content Manager uses:
+        ///   KEY=default ; label ; 1 or 0                -> bool
+        ///   KEY=default ; label ; "A" is 1, "B" is 2    -> select
+        ///   KEY=default ; label ; from X to Y           -> number range
+        ///   otherwise                                   -> text
+        /// </summary>
+        public static List<object> GetControllerSettingsFields(string gamePath, string controllerId)
+        {
+            var fields = new List<object>();
+            var iniPath = Path.Combine(gamePath, "extension", "weather-controllers", controllerId, "settings.ini");
+            if (!File.Exists(iniPath))
+            {
+                return fields;
+            }
+
+            var section = "";
+            foreach (var rawLine in File.ReadAllLines(iniPath))
+            {
+                var line = rawLine.Trim();
+                if (line.StartsWith("[") && line.EndsWith("]"))
+                {
+                    section = line.Substring(1, line.Length - 2).Trim();
+                    continue;
+                }
+
+                var eq = line.IndexOf('=');
+                if (eq <= 0)
+                {
+                    continue;
+                }
+
+                var key = line.Substring(0, eq).Trim();
+                var parts = line.Substring(eq + 1).Split(';');
+                var defaultValue = parts[0].Trim();
+                var label = parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]) ? parts[1].Trim() : key;
+                var spec = parts.Length > 2 ? parts[2].Trim() : "";
+
+                // Long commentary is a description, not a label - move it to a
+                // tooltip hint and use the prettified key as the visible label
+                string hint = null;
+                if (label.Length > 30)
+                {
+                    hint = label;
+                    label = PrettifyKey(key);
+                }
+
+                if (Regex.IsMatch(spec, @"^[01]\s+or\s+[01]$"))
+                {
+                    fields.Add(new { section, key, label, hint, type = "bool", value = defaultValue, options = (object)null, min = 0.0, max = 0.0 });
+                }
+                else if (spec.Contains("\" is "))
+                {
+                    var options = Regex.Matches(spec, @"""([^""]+)""\s+is\s+(\S+)")
+                        .Cast<Match>()
+                        .Select(m => new { label = m.Groups[1].Value, value = m.Groups[2].Value })
+                        .ToList();
+                    if (options.Count > 0)
+                    {
+                        fields.Add(new { section, key, label, hint, type = "select", value = defaultValue, options = (object)options, min = 0.0, max = 0.0 });
+                    }
+                }
+                else
+                {
+                    var range = Regex.Match(spec, @"from\s+(-?[\d.]+)\s+to\s+(-?[\d.]+)");
+                    if (range.Success)
+                    {
+                        fields.Add(new { section, key, label, hint, type = "number", value = defaultValue, options = (object)null,
+                            min = double.Parse(range.Groups[1].Value), max = double.Parse(range.Groups[2].Value) });
+                    }
+                    else
+                    {
+                        fields.Add(new { section, key, label, hint, type = "text", value = defaultValue, options = (object)null, min = 0.0, max = 0.0 });
+                    }
+                }
+            }
+
+            return fields;
+        }
+
+        /// <summary>
+        /// "CM_WEATHER" -> "Cm Weather", "START_WETNESS" -> "Start Wetness"
+        /// </summary>
+        private static string PrettifyKey(string key)
+        {
+            var words = key.Split('_')
+                .Where(w => !string.IsNullOrEmpty(w))
+                .Select(w => char.ToUpper(w[0]) + w.Substring(1).ToLower());
+            return string.Join(" ", words);
+        }
+
+        /// <summary>
+        /// Track condition presets (from ACTools' Game.DefaultTrackPropertiesPresets):
+        /// returns SESSION_START, RANDOMNESS, LAP_GAIN, SESSION_TRANSFER for race.ini [DYNAMIC_TRACK]
+        /// </summary>
+        public static (int SessionStart, int Randomness, int LapGain, int SessionTransfer) GetTrackStatePreset(int preset)
+        {
+            switch (preset)
+            {
+                case 0: return (86, 1, 30, 50);    // Dusty
+                case 1: return (89, 3, 50, 80);    // Old
+                case 2: return (96, 1, 300, 80);   // Slow
+                case 3: return (95, 2, 132, 90);   // Green
+                case 4: return (98, 2, 700, 80);   // Fast
+                case 5: return (100, 0, 1, 100);   // Optimum
+                default: return (95, 2, 132, 90);  // Auto (weather-defined approximation)
+            }
+        }
+
+        /// <summary>
+        /// Writes a weather controller's user settings to
+        /// Documents/Assetto Corsa/cfg/extension/state/lua/wfx_controller/&lt;id&gt;__settings.ini
+        /// (where CSP reads them at race start), grouped by ini section
+        /// </summary>
+        public static void PublishControllerSettings(string controllerId, Dictionary<string, Dictionary<string, string>> settings)
+        {
+            if (settings == null || settings.Count == 0)
+            {
+                return;
+            }
+
+            var dir = Path.Combine(
+                System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments),
+                "Assetto Corsa", "cfg", "extension", "state", "lua", "wfx_controller");
+            Directory.CreateDirectory(dir);
+
+            var ini = new StringBuilder();
+            foreach (var section in settings)
+            {
+                ini.AppendLine($"[{section.Key}]");
+                foreach (var kv in section.Value)
+                {
+                    ini.AppendLine($"{kv.Key}={kv.Value}");
+                }
+                ini.AppendLine();
+            }
+
+            File.WriteAllText(Path.Combine(dir, $"{controllerId}__settings.ini"), ini.ToString());
+        }
+
+        /// <summary>
+        /// Parses a layout folder's ui_track.json for name/priority (used by main-layout selection)
+        /// </summary>
+        public static UITrack GetLayoutData(string layoutFolder)
+        {
+            var jsonPath = Path.Combine(layoutFolder, "ui_track.json");
+            if (!File.Exists(jsonPath))
+            {
+                return null;
+            }
+
+            try
+            {
+                var content = JsonHelper.RepairMalformedJson(File.ReadAllText(jsonPath));
+                return JsonSerializer.Deserialize<UITrack>(JsonHelper.CleanRawJson(content), new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    NumberHandling = JsonNumberHandling.AllowReadingFromString,
+                    AllowTrailingCommas = true,
+                    ReadCommentHandling = JsonCommentHandling.Skip
+                });
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Picks the main layout of a multi-layout track the way ACTools does: the layout whose
+        /// ui_track.json name is closest to the track folder name, weighted by preferred /
+        /// non-default layout name patterns and the optional "priority" field in ui_track.json
+        /// </summary>
+        public static string GetMainLayoutSubPath(string trackFolderName, List<string> layoutFolders)
+        {
+            if (layoutFolders == null || layoutFolders.Count == 0)
+            {
+                return null;
+            }
+            if (layoutFolders.Count == 1)
+            {
+                return Path.GetFileName(layoutFolders[0]);
+            }
+
+            var trackId = trackFolderName.ToLowerInvariant();
+            string preferred = null;
+            var preferredPriority = double.MinValue;
+
+            foreach (var folder in layoutFolders)
+            {
+                var layoutId = Path.GetFileName(folder);
+                if (string.IsNullOrEmpty(layoutId))
+                {
+                    continue;
+                }
+                layoutId = layoutId.ToLowerInvariant();
+
+                var data = GetLayoutData(folder);
+                var name = !string.IsNullOrEmpty(data?.Name) ? data.Name.ToLowerInvariant() : layoutId;
+                var distance = LevenshteinDistance(trackId, name);
+                double priority = Math.Clamp(100 - distance * 10, 0, 100) - name.Length;
+
+                priority -= NonDefaultLayoutRegex.Matches(layoutId).Cast<Match>().Sum(GetLayoutMatchWeight) * 10;
+                priority += PreferredLayoutRegex.Matches(layoutId).Cast<Match>().Sum(GetLayoutMatchWeight) * 10;
+                priority -= NonDefaultLayoutRegex.Matches(name).Cast<Match>().Sum(GetLayoutMatchWeight) * 100;
+                priority += PreferredLayoutRegex.Matches(name).Cast<Match>().Sum(GetLayoutMatchWeight) * 100;
+                priority += (data?.Priority ?? 0) * 1e8;
+
+                if (priority > preferredPriority)
+                {
+                    preferredPriority = priority;
+                    preferred = layoutId;
+                }
+            }
+
+            return preferred ?? Path.GetFileName(layoutFolders[0]);
+        }
+
+        /// <summary>
+        /// Finds the common track name shared by all of a multi-layout track's layout
+        /// names (ported from ACTools' FindNameForMultiLayoutMode): the longest common
+        /// prefix, trimmed and with a trailing separator removed. Null when the layout
+        /// names share no meaningful prefix.
+        /// </summary>
+        public static string GetCommonTrackName(IReadOnlyList<string> names)
+        {
+            var baseName = names?.FirstOrDefault();
+            if (baseName == null)
+            {
+                return null;
+            }
+
+            var minLength = names.Where(n => n != null).Select(n => n.Length).Min();
+            for (var i = minLength; i > 2; i--)
+            {
+                var result = baseName.Substring(0, i);
+                if (names.Skip(1).Any(n => n?.Substring(0, i) != result))
+                {
+                    continue;
+                }
+
+                result = result.Trim();
+                if (result.Length > 2 && (result.EndsWith("-") || result.EndsWith("—") || result.EndsWith("/") || result.EndsWith("(")))
+                {
+                    result = result.Substring(0, result.Length - 1).Trim();
+                }
+                return result;
+            }
+
+            return null;
+        }
+
+        private static int LevenshteinDistance(string a, string b)
+        {
+            if (string.IsNullOrEmpty(a)) return string.IsNullOrEmpty(b) ? 0 : b.Length;
+            if (string.IsNullOrEmpty(b)) return a.Length;
+
+            var previous = new int[b.Length + 1];
+            var current = new int[b.Length + 1];
+            for (var j = 0; j <= b.Length; j++) previous[j] = j;
+
+            for (var i = 1; i <= a.Length; i++)
+            {
+                current[0] = i;
+                for (var j = 1; j <= b.Length; j++)
+                {
+                    var cost = a[i - 1] == b[j - 1] ? 0 : 1;
+                    current[j] = Math.Min(
+                        Math.Min(current[j - 1] + 1, previous[j] + 1),
+                        previous[j - 1] + cost);
+                }
+                (previous, current) = (current, previous);
+            }
+
+            return previous[b.Length];
         }
 
         /// <summary>
