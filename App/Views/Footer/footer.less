@@ -118,13 +118,20 @@
         }
 
         .footer-session-info {
+            // Collapse rows 2-3 fully - the hidden rows must not leave their
+            // height or the column gaps behind
+            gap: 0;
+
             .session-text {
                 font-size: 1.8em;
             }
 
-            .session-settings {
+            .session-settings,
+            .session-mode {
                 opacity: 0;
                 visibility: hidden;
+                height: 0;
+                line-height: 0;
                 transition: opacity 0s, visibility 0s;
             }
         }
@@ -170,10 +177,17 @@
 
         // Race settings summary - only visible while collapsed; disappears
         // instantly on expand and fades back in after the shrink finishes
-        .session-settings {
+        .session-settings,
+        .session-mode {
             font-size: 0.75em;
             opacity: 0.7;
             transition: opacity 0.4s ease 0.4s, visibility 0s;
+        }
+
+        // Mode row reads more prominently than the environment summary
+        .session-mode {
+            font-size: 0.9em;
+            opacity: 1;
         }
     }
 
@@ -209,7 +223,6 @@
             min-width: 0;
 
             .setting-label {
-                width: 9em;
                 flex-shrink: 0;
             }
 
@@ -385,10 +398,270 @@
             }
         }
 
+        // Tab header + scrollable panel area. The settings column itself stays
+        // fixed; only .settings-panels scrolls so the tabs and the Add To
+        // Favorites row are always visible
+        .settings-tabs {
+            display: flex;
+            gap: 1.5em;
+            flex-shrink: 0;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+
+            .settings-tab {
+                background: none;
+                border: none;
+                border-bottom: 3px solid transparent;
+                border-radius: 0;
+                padding: 0.25em 0.1em 0.45em;
+                margin-bottom: -1px;
+                cursor: pointer;
+                font-size: 0.95em;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+        }
+
+        .settings-panels {
+            flex: 1;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        .tab-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.1em;
+            padding: 0.75em 0 0.25em;
+        }
+
+        // Race mode toggle row - the active mode gets a 3px underline, and
+        // the More dropdown (a <dropdown-list> with a placeholder) shows the
+        // underline too once one of its modes is picked
+        .mode-toggles {
+            display: flex;
+            align-items: stretch;
+            gap: 1.5em;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+
+            .mode-toggle {
+                display: inline-flex;
+                align-items: center;
+                background: none;
+                border: none;
+                border-bottom: 3px solid transparent;
+                border-radius: 0;
+                padding: 0.25em 0.1em 0.45em;
+                cursor: pointer;
+                font-size: 0.95em;
+                font-weight: 600;
+            }
+
+            dropdown-list.mode-toggle {
+                min-width: 8em;
+
+                .ddl-toggle {
+                    border: none;
+                    background: transparent;
+                    border-radius: 0;
+                    padding: 0.25em 0.1em 0.45em;
+                    font-weight: 600;
+                }
+
+                .ddl-toggle.ddl-placeholder .ddl-label {
+                    opacity: 0.7;
+                }
+            }
+        }
+
+        .mode-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.1em;
+
+            // Long labels (e.g. "Jump Start Penalty") get their natural width
+            // on one line instead of wrapping inside the fixed 9em label slot
+            .setting-row .setting-label {
+                width: auto;
+                white-space: nowrap;
+            }
+        }
+
+        // Mode form fields: sliders two per row, checkboxes three per row
+        .slider-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.9em 1.5em;
+
+            .slider-cell {
+                display: flex;
+                flex-direction: column;
+                gap: 0.35em;
+                min-width: 0;
+
+                .slider-label {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    gap: 0.75em;
+                    font-size: 0.9em;
+
+                    .slider-value {
+                        font-variant-numeric: tabular-nums;
+                    }
+                }
+
+                input[type="range"] {
+                    width: 100%;
+                    padding: 0;
+                    border: none;
+                    border-radius: 0;
+                    background: transparent;
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.6em 1em;
+
+            .check-field {
+                white-space: nowrap;
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+                cursor: pointer;
+                font-size: 0.95em;
+                min-width: 0;
+
+                input[type="checkbox"] {
+                    width: auto;
+                    flex: 0 0 auto;
+                    margin: 0;
+                }
+
+                span {
+                    min-width: 0;
+                }
+            }
+        }
+
+        // Check-fields inside a setting-row (e.g. Penalties beside the jump
+        // start dropdown) need the same flex layout - the row's generic
+        // input rule would otherwise stretch the checkbox to 100% width
+        .setting-row .check-field {
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5em;
+            width: auto;
+            cursor: pointer;
+            font-size: 0.95em;
+
+            input[type="checkbox"] {
+                width: auto;
+                flex: 0 0 auto;
+                margin: 0;
+            }
+        }
+
+        // Candidates section - sits below the mode fields for opponent modes;
+        // the + button hugs the far right of the title row
+        .candidates-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5em;
+
+            .candidates-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1em;
+
+                .candidates-add-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 1.75em;
+                    height: 1.75em;
+                    padding: 0;
+                    border: none;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    flex-shrink: 0;
+
+                    svg {
+                        width: 1em;
+                        height: 1em;
+                    }
+                }
+            }
+
+            .candidates-list {
+                display: flex;
+                flex-direction: column;
+                gap: 0.25em;
+                overflow-y: auto;
+                scrollbar-width: thin;
+
+                .candidate-item {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 0.75em;
+                    padding: 0.35em 0.6em;
+                    border-radius: 0.35em;
+                    font-size: 0.9em;
+
+                    .candidate-name {
+                        min-width: 0;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        // The strut keeps the row at text height even when the
+                        // name ends up empty
+                        line-height: 1.2;
+                    }
+
+                    .candidate-remove {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 1.4em;
+                        height: 1.4em;
+                        padding: 0;
+                        border: none;
+                        border-radius: 50%;
+                        background: none;
+                        cursor: pointer;
+                        flex-shrink: 0;
+                        opacity: 0.5;
+                        transition: opacity 0.15s ease;
+
+                        svg {
+                            width: 0.8em;
+                            height: 0.8em;
+                        }
+                    }
+
+                    &:hover .candidate-remove {
+                        opacity: 1;
+                    }
+                }
+            }
+        }
+
         .setting-actions {
             display: flex;
             gap: 1em;
             margin-top: 0.5em;
+            flex-shrink: 0;
 
             .add-fav-btn {
                 display: flex;
@@ -424,6 +697,45 @@
 
     // Anchored to the container's bottom edge (fixed at the viewport bottom),
     // centered in the collapsed bar height so it never moves during expand/collapse
+    // Fades out while collapsing after a favorite edit - must repeat the
+    // height transition, the base transition list isn't additive
+    &.fav-edit-closing {
+        opacity: 0;
+        transition: height 0.4s ease, opacity 0.4s ease;
+    }
+
+    // Favorite-edit mode - swap the normal actions for Update/Cancel
+    &.editing-fav {
+        .setting-actions,
+        .details-btn,
+        .hide-details-btn,
+        .play-btn {
+            display: none !important;
+        }
+
+        .fav-edit-actions {
+            display: flex;
+        }
+    }
+
+    .fav-edit-actions {
+        display: none;
+        align-items: center;
+        gap: 0.75em;
+        margin-right: auto;
+        padding-right: 2em;
+
+        button {
+            padding: 0.5em 1.5em;
+            border: none;
+            border-radius: 0.35em;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+    }
+
     .footer-play-button {
         position: absolute;
         right: 1em;
@@ -641,6 +953,198 @@
                 font-size: 1em;
                 font-weight: 400;
                 transition: all 0.2s ease;
+            }
+        }
+    }
+}
+
+// Candidate car-picker modal - full window minus a 2em margin on every edge,
+// drop shadow, 50% black overlay behind it. Holds a mounted copy of the cars
+// view (toolbar, filter, grid + details)
+.car-picker-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    transform-origin: top left;
+
+    .car-picker-modal {
+        position: absolute;
+        inset: 2em;
+        border-radius: 0.75em;
+        box-shadow: 0 1em 4em rgba(0, 0, 0, 0.55);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+
+        .car-picker-header {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1em;
+            padding: 1em 1.2em;
+
+            .car-picker-title {
+                font-size: 1.15em;
+                font-weight: 600;
+            }
+
+            .car-picker-close {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 2em;
+                height: 2em;
+                padding: 0;
+                border: none;
+                border-radius: 50%;
+                cursor: pointer;
+                flex-shrink: 0;
+
+                svg {
+                    width: 1em;
+                    height: 1em;
+                }
+            }
+        }
+
+        .car-picker-body {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+
+            // The toolbar's sizing/menu styles come from .dash .sub-menu and
+            // body.footer-expanded hides it - restore both for the modal copy.
+            // z-index keeps it painted above .cars-content (positioned, z:1)
+            .cars-toolbar.sub-menu {
+                font-size: 0.8em;
+                height: 48px;
+                margin-bottom: calc(48px * (var(--scale-factor, 1) - 1));
+                opacity: 1;
+                pointer-events: auto;
+                flex-shrink: 0;
+                position: relative;
+                z-index: 2;
+
+                nav {
+                    background-image: url("/images/submenu-bg.png");
+                    background-repeat: no-repeat;
+                    background-size: 100%;
+                    margin: 0;
+                    padding: 0 1em;
+                    box-sizing: border-box;
+                    height: 3.7em;
+                    line-height: 1.35;
+                    position: relative;
+                    display: flex;
+                    align-items: flex-end;
+
+                    ul.menu {
+                        list-style: none;
+                        font-size: 1.6em;
+                        padding: 0 2em;
+                        margin: 0;
+                        vertical-align: top;
+
+                        li {
+                            display: inline-block;
+                            // Bottom-align on the line box - the taller search
+                            // li would otherwise pull the baseline up and the
+                            // menu items' hover gradient stops short of the
+                            // toolbar's bottom edge
+                            vertical-align: bottom;
+                            padding: 0.5em 1em;
+                            cursor: pointer;
+                            white-space: nowrap;
+                            transition: all 0.25s ease-in-out;
+                            transform: skewX(-10deg);
+
+                            svg {
+                                width: 1em;
+                                margin-right: 0.5em;
+                                vertical-align: middle;
+                            }
+
+                            a {
+                                text-decoration: none;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // .cars-filter is position:absolute - inside a flex column its
+            // static position lands at the container's start (overlaying the
+            // toolbar), so anchor it to the toolbar's bottom edge instead
+            .cars-filter {
+                top: calc(48px * var(--scale-factor, 1));
+                // body.footer-expanded hides it - restore it inside the modal
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            // Same responsive tweaks the page toolbar gets (copied from
+            // cars.less - at <=1920px the items shrink so 4K doesn't
+            // render them huge)
+            @media screen and (max-width: 1300px) {
+                .cars-toolbar nav {
+                    height: 7.4em !important;
+                }
+
+                .cars-toolbar.sub-menu {
+                    height: calc(7.4em * var(--scale-factor)) !important;
+                }
+
+                .cars-filter {
+                    top: calc(7.4em * var(--scale-factor, 1));
+                }
+            }
+
+            @media screen and (max-width: 1920px) {
+                .cars-toolbar nav > ul.menu li {
+                    font-size: 0.8em;
+                    margin-top: 0.15em;
+                }
+
+                .cars-toolbar nav > ul.menu li:not(.search-input) {
+                    margin-top: 0.2em;
+                }
+            }
+
+            // Filter section lists also take their structure from .dash
+            ul.select-list {
+                list-style-type: none;
+                padding: 0 2em 2em 2em;
+
+                li {
+                    display: inline-block;
+                    padding: 1em 3em;
+                    margin: 0.25em;
+                    border-radius: 1em;
+                    cursor: pointer;
+
+                    a {
+                        text-decoration: none;
+                    }
+                }
+            }
+
+            // The cars view sizes its grid against the viewport (100vw) - the
+            // modal is narrower than the window so cells bleed off the right
+            // edge without this
+            .cars-content {
+                height: auto;
+                max-height: none;
+                flex: 1;
+                min-height: 0;
+                width: 100%;
+
+                .grid-view {
+                    width: 100%;
+                }
             }
         }
     }

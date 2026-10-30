@@ -7,6 +7,7 @@
         <h4>{{title}}</h4>
         <div class="fav-names">{{carName}}<span class="fav-at"> at </span>{{trackName}}{{has-layout}} ({{layoutName}}){{/has-layout}}</div>
         <div class="fav-settings">{{settingsSummary}}</div>
+        <div class="fav-mode">{{modeSummary}}</div>
         <input type="range" class="time-slider fav-time-slider" min="0" max="1439" step="1" value="{{timeMinutes}}" disabled />
     </div>
     <div class="fav-actions">
@@ -15,6 +16,11 @@
                 <use xlink:href="#icon-play" x="0" y="0" width="64" height="64"></use>
             </svg>
             <span>Start Race</span>
+        </button>
+        <button class="fav-edit-btn" title="Edit favorite" onclick="RacerUI.views.history.editFavorite(this)">
+            <svg viewBox="0 0 64 64" class="dark">
+                <use xlink:href="#icon-pencil" x="0" y="0" width="64" height="64"></use>
+            </svg>
         </button>
         <button class="fav-delete-btn" title="Delete favorite" onclick="RacerUI.views.history.confirmDelete(this)">
             <svg viewBox="0 0 64 64" class="dark">

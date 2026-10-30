@@ -94,6 +94,20 @@ namespace RacerUI.SQL
         }
 
         /// <summary>
+        /// Updates a favorite's ConfigJson
+        /// </summary>
+        public static bool Update(int id, string configJson)
+        {
+            EnsureTable();
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(
+                    "UPDATE Favorites SET ConfigJson = @ConfigJson WHERE Id = @Id",
+                    new { ConfigJson = configJson, Id = id }) > 0;
+            }
+        }
+
+        /// <summary>
         /// Resolves a Cars_Skins id from a car id + skin folder path/name
         /// </summary>
         public static int? GetSkinId(int carId, string skin)

@@ -53,10 +53,17 @@ class DropdownList extends HTMLElement {
         return Array.from(this.children).filter((c) => c.tagName === 'OPTION');
     }
 
+    // A `placeholder` attribute makes the control start unselected and show the
+    // placeholder text until an option is picked (e.g. the "More" race-mode
+    // menu, where "More" itself is not a selectable item)
+    get placeholder() {
+        return this.getAttribute('placeholder');
+    }
+
     get value() {
         const opt = this.options.find((o) => o.value === this._selectedValue)
             || this.options.find((o) => o.hasAttribute('selected'))
-            || this.options[0];
+            || (this.placeholder == null ? this.options[0] : null);
         return opt ? opt.value : '';
     }
 
@@ -79,6 +86,7 @@ class DropdownList extends HTMLElement {
         });
         if (this._toggle) {
             this._toggle.querySelector('.ddl-label').textContent = opt.textContent;
+            this._toggle.classList.remove('ddl-placeholder');
         }
         if (this._portal) {
             this._portal.querySelectorAll('.ddl-item').forEach((item) => {
@@ -110,17 +118,48 @@ class DropdownList extends HTMLElement {
             this.options.find((o) => o.value === this._selectedValue)
             || this.options.find((o) => o.value === pending)
             || this.options.find((o) => o.hasAttribute('selected'))
-            || this.options[0];
+            || (this.placeholder == null ? this.options[0] : null);
 
         if (selected) {
             this._select(selected, false);
         } else if (this._toggle) {
-            this._toggle.querySelector('.ddl-label').textContent = '';
+            this._showPlaceholder();
         }
 
         // Keep the open list in sync if options change while open
         if (this._portal) {
             this._buildItems();
+        }
+    }
+
+    _showPlaceholder() {
+        const label = this._toggle.querySelector('.ddl-label');
+        label.textContent = this.placeholder || '';
+        this._toggle.classList.toggle('ddl-placeholder', this.placeholder != null);
+    }
+
+    // Returns the control to its unselected state: the placeholder text when
+    // one is set, otherwise the first option (matching initial render)
+    clear() {
+        this._selectedValue = undefined;
+        this._pendingValue = undefined;
+        this.options.forEach((o) => {
+            o.removeAttribute('selected');
+            o.selected = false;
+        });
+        if (this._portal) {
+            this._portal.querySelectorAll('.ddl-item').forEach((item) => {
+                item.classList.remove('selected');
+            });
+        }
+        if (this._toggle) {
+            if (this.placeholder != null) {
+                this._showPlaceholder();
+            } else if (this.options.length) {
+                this._select(this.options[0], false);
+            } else {
+                this._toggle.querySelector('.ddl-label').textContent = '';
+            }
         }
     }
 

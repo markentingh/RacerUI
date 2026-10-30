@@ -226,20 +226,54 @@ namespace RacerUI.Helpers
         {
             var ini = new StringBuilder();
 
+            // Quick-drive mode from the footer's Race tab. When set, it fully
+            // describes the session layout (ACTools' Game.*Properties mapping);
+            // otherwise the positional parameters produce a single session.
+            var mode = launch?.Mode;
+            var carsCount = cars;
+            var aiLevelValue = aiLevel;
+            var raceLapsValue = raceLaps;
+            var penalties = 0;
+            var jumpStartPenalty = 0;
+            var opponents = 0;
+            if (mode != null)
+            {
+                penalties = (launch.Penalties ?? true) ? 1 : 0;
+                if (mode == "race" || mode == "trackday" || mode == "weekend")
+                {
+                    opponents = Math.Max(0, launch.Opponents ?? 0);
+                    carsCount = opponents + 1;
+                    aiLevelValue = launch.AiLevel ?? aiLevel;
+                    raceLapsValue = launch.RaceLaps ?? raceLaps;
+                    jumpStartPenalty = launch.JumpStartPenalty ?? 0;
+                }
+                else if (mode == "drag")
+                {
+                    opponents = 1;
+                    carsCount = 2;
+                    aiLevelValue = launch.AiLevel ?? 100;
+                }
+            }
+            var ballast = launch?.BallastKg ?? 0;
+            var restrictor = launch?.RestrictorPct ?? 0;
+
             // [RACE] section - Car and track selection
             ini.AppendLine("[RACE]");
             ini.AppendLine($"MODEL={carPath}");
             ini.AppendLine($"SKIN={skinPath}");
             ini.AppendLine($"TRACK={trackPath}");
             ini.AppendLine($"CONFIG_TRACK={trackConfig}");
-            ini.AppendLine($"CARS={cars}");
-            ini.AppendLine($"AI_LEVEL={aiLevel}");
-            ini.AppendLine($"RACE_LAPS={raceLaps}");
+            ini.AppendLine($"CARS={carsCount}");
+            ini.AppendLine($"AI_LEVEL={aiLevelValue}");
+            if (mode == null || mode == "race" || mode == "trackday" || mode == "weekend")
+            {
+                ini.AppendLine($"RACE_LAPS={raceLapsValue}");
+            }
             ini.AppendLine("MODEL_CONFIG=");
             ini.AppendLine("DRIFT_MODE=0");
             ini.AppendLine("FIXED_SETUP=0");
-            ini.AppendLine("PENALTIES=0");
-            ini.AppendLine("JUMP_START_PENALTY=0");
+            ini.AppendLine($"PENALTIES={penalties}");
+            ini.AppendLine($"JUMP_START_PENALTY={jumpStartPenalty}");
             ini.AppendLine();
 
             // [CAR_0] section - Player car details
@@ -248,12 +282,37 @@ namespace RacerUI.Helpers
             ini.AppendLine($"SKIN={skinPath}");
             ini.AppendLine("MODEL=-");
             ini.AppendLine("MODEL_CONFIG=");
-            ini.AppendLine("BALLAST=0");
-            ini.AppendLine("RESTRICTOR=0");
+            ini.AppendLine($"BALLAST={ballast.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}");
+            ini.AppendLine($"RESTRICTOR={restrictor.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}");
             ini.AppendLine($"DRIVER_NAME={driverName}");
             ini.AppendLine("NATIONALITY=");
             ini.AppendLine("NATION_CODE=");
             ini.AppendLine();
+
+            // [CAR_1..N] bot grid - opponents are filled from the candidate
+            // list (cycling when there are more opponents than candidates),
+            // falling back to the player's car; AI level/aggression come from
+            // the mode settings (ACTools SetBots)
+            var candidates = launch?.Candidates;
+            for (var i = 0; i < opponents; i++)
+            {
+                var candidate = (candidates != null && candidates.Count > 0)
+                    ? candidates[i % candidates.Count]
+                    : null;
+                ini.AppendLine($"[CAR_{i + 1}]");
+                ini.AppendLine("SETUP=");
+                ini.AppendLine($"SKIN={(candidate?.SkinPath ?? skinPath)}");
+                ini.AppendLine($"MODEL={(candidate?.CarPath ?? carPath)}");
+                ini.AppendLine("MODEL_CONFIG=");
+                ini.AppendLine($"AI_LEVEL={aiLevelValue}");
+                ini.AppendLine($"AI_AGGRESSION={launch?.AiAggression ?? 0}");
+                ini.AppendLine("DRIVER_NAME=Bot");
+                ini.AppendLine("BALLAST=0");
+                ini.AppendLine("RESTRICTOR=0");
+                ini.AppendLine("NATION_CODE=");
+                ini.AppendLine("NATIONALITY=");
+                ini.AppendLine();
+            }
 
             // [LIGHTING] section - Time of day
             ini.AppendLine("[LIGHTING]");
@@ -340,29 +399,112 @@ namespace RacerUI.Helpers
             ini.AppendLine("ALLOWED_TYRES_OUT=-1");
             ini.AppendLine();
 
-            // [GHOST_CAR] section
+            // [GHOST_CAR] section - only the hotlap mode drives the ghost car
+            var ghostPlaying = mode == "hotlap" && (launch?.GhostCar ?? true);
+            var ghostRecording = mode == "hotlap" && (launch?.RecordGhostCar ?? ghostPlaying);
             ini.AppendLine("[GHOST_CAR]");
-            ini.AppendLine("RECORDING=0");
-            ini.AppendLine("PLAYING=0");
-            ini.AppendLine("LOAD=0");
+            ini.AppendLine($"RECORDING={(ghostRecording ? 1 : 0)}");
+            ini.AppendLine($"PLAYING={(ghostPlaying ? 1 : 0)}");
+            ini.AppendLine($"SECONDS_ADVANTAGE={(launch?.GhostCarAdvantage ?? 0).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}");
+            ini.AppendLine($"LOAD={(ghostPlaying || ghostRecording ? 1 : 0)}");
             ini.AppendLine("FILE=");
             ini.AppendLine("ENABLED=0");
             ini.AppendLine();
 
-            // [GROOVE] section
+            // [GROOVE] section - ACTools grooves practice/race-style sessions
+            // harder than the time-attack style modes
+            var grooveRaceStyle = mode == null || mode == "practice" || mode == "race" || mode == "trackday" || mode == "weekend";
             ini.AppendLine("[GROOVE]");
             ini.AppendLine("VIRTUAL_LAPS=10");
-            ini.AppendLine("MAX_LAPS=30");
-            ini.AppendLine("STARTING_LAPS=0");
+            ini.AppendLine($"MAX_LAPS={(grooveRaceStyle ? 30 : 1)}");
+            ini.AppendLine($"STARTING_LAPS={(grooveRaceStyle ? 0 : 1)}");
             ini.AppendLine();
 
-            // [SESSION_0] section - Session configuration
-            ini.AppendLine("[SESSION_0]");
-            ini.AppendLine($"NAME={sessionName}");
-            ini.AppendLine($"TYPE={sessionType}");
-            ini.AppendLine($"DURATION_MINUTES={sessionDuration}");
-            ini.AppendLine($"SPAWN_SET={spawnSet}");
-            ini.AppendLine();
+            // [SESSION_*] sections - per-mode layout (ACTools Game.*Properties)
+            if (mode == null)
+            {
+                ini.AppendLine("[SESSION_0]");
+                ini.AppendLine($"NAME={sessionName}");
+                ini.AppendLine($"TYPE={sessionType}");
+                ini.AppendLine($"DURATION_MINUTES={sessionDuration}");
+                ini.AppendLine($"SPAWN_SET={spawnSet}");
+                ini.AppendLine();
+            }
+            else if (mode == "weekend")
+            {
+                var sessionIndex = 0;
+                var practiceDuration = launch?.PracticeDurationMinutes ?? 15;
+                var qualificationDuration = launch?.QualificationDurationMinutes ?? 30;
+                if (practiceDuration > 0)
+                {
+                    ini.AppendLine($"[SESSION_{sessionIndex++}]");
+                    ini.AppendLine("NAME=Practice");
+                    ini.AppendLine("TYPE=1");
+                    ini.AppendLine($"DURATION_MINUTES={practiceDuration}");
+                    ini.AppendLine("SPAWN_SET=PIT");
+                    ini.AppendLine();
+                }
+                if (qualificationDuration > 0)
+                {
+                    ini.AppendLine($"[SESSION_{sessionIndex++}]");
+                    ini.AppendLine("NAME=Qualifying");
+                    ini.AppendLine("TYPE=2");
+                    ini.AppendLine($"DURATION_MINUTES={qualificationDuration}");
+                    ini.AppendLine("SPAWN_SET=PIT");
+                    ini.AppendLine();
+                }
+                ini.AppendLine($"[SESSION_{sessionIndex}]");
+                ini.AppendLine("NAME=Race");
+                ini.AppendLine("TYPE=3");
+                ini.AppendLine("DURATION_MINUTES=0");
+                ini.AppendLine("SPAWN_SET=START");
+                ini.AppendLine($"LAPS={raceLapsValue}");
+                ini.AppendLine();
+            }
+            else
+            {
+                string modeName, modeSpawn;
+                int modeType, modeDuration = 0;
+                switch (mode)
+                {
+                    case "practice":
+                        modeName = "Practice"; modeType = 1; modeSpawn = launch?.StartType ?? "PIT"; break;
+                    case "race":
+                        modeName = "Quick Race"; modeType = 3; modeSpawn = "START"; break;
+                    case "trackday":
+                        modeName = "Track Day"; modeType = 2; modeSpawn = "PIT"; modeDuration = 720; break;
+                    case "drift":
+                        modeName = "Drift Session"; modeType = 6; modeSpawn = launch?.StartType ?? "PIT"; break;
+                    case "timeattack":
+                        modeName = "Time Attack"; modeType = 5; modeSpawn = "START"; break;
+                    case "drag":
+                        modeName = "Drag Race"; modeType = 7; modeSpawn = "START"; break;
+                    default:
+                        modeName = "Hotlap"; modeType = 4; modeSpawn = "HOTLAP_START"; break;
+                }
+                ini.AppendLine("[SESSION_0]");
+                ini.AppendLine($"NAME={modeName}");
+                ini.AppendLine($"TYPE={modeType}");
+                if (mode != "drag")
+                {
+                    ini.AppendLine($"DURATION_MINUTES={modeDuration}");
+                }
+                ini.AppendLine($"SPAWN_SET={modeSpawn}");
+                if (mode == "race")
+                {
+                    ini.AppendLine($"LAPS={raceLapsValue}");
+                    ini.AppendLine($"STARTING_POSITION={launch?.StartingPosition ?? 0}");
+                }
+                else if (mode == "trackday")
+                {
+                    ini.AppendLine($"__SPEED_LIMIT={(launch?.SpeedLimitKmh ?? 0).ToString("F0", System.Globalization.CultureInfo.InvariantCulture)}");
+                }
+                else if (mode == "drag")
+                {
+                    ini.AppendLine($"MATCHES={launch?.MatchesCount ?? 10}");
+                }
+                ini.AppendLine();
+            }
 
             // [WIND] fallback - only written when the launch settings didn't
             // already emit a [WIND] section (duplicate sections would override it)

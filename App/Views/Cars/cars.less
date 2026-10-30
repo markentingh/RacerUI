@@ -1,3 +1,9 @@
+body.footer-expanded .cars-filter {
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0s;
+}
+
 body.footer-expanded .cars-toolbar {
     opacity: 0;
     pointer-events: none;
@@ -125,7 +131,12 @@ body.footer-expanded .cars-toolbar {
 
 .cars-filter {
     position: absolute;
-    z-index: 150;
+    // Below .footer-container (100) so an expanded footer sits on top; above
+    // the dash nav (50) and grid content (1)
+    z-index: 90;
+    // Delayed fade-in so it only reappears after the footer's collapse
+    // animation (0.4s) finishes; the expanded rule overrides the delay to 0
+    transition: opacity 0.4s 0.4s;
     width: 100%;
     overflow-y: auto;
     overflow-x: hidden;

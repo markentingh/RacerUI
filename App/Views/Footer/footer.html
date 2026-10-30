@@ -22,8 +22,15 @@
                 <span class="no-selection">Select a car and track to play</span>
             </div>
             <div class="session-settings"></div>
+            <div class="session-mode"></div>
         </div>
         <div class="footer-settings">
+            <div class="settings-tabs">
+                <button class="settings-tab" data-tab="environment"><span>Environment</span></button>
+                <button class="settings-tab" data-tab="race"><span>Rules</span></button>
+            </div>
+            <div class="settings-panels">
+            <div class="tab-panel" data-panel="environment">
             <div class="setting-row">
                 <label class="setting-label" for="ftr-time-input">Time of Day</label>
                 <input type="text" id="ftr-time-input" class="setting-input setting-time-input" maxlength="5" />
@@ -85,6 +92,223 @@
                     <option value="5">Optimum</option>
                 </dropdown-list>
             </div>
+            </div>
+            <div class="tab-panel" data-panel="race" style="display:none;">
+                <div class="mode-toggles">
+                    <button class="mode-toggle" data-mode="practice"><span>Practice</span></button>
+                    <button class="mode-toggle" data-mode="hotlap"><span>Hotlap</span></button>
+                    <button class="mode-toggle" data-mode="race"><span>Race</span></button>
+                    <dropdown-list id="ftr-mode-more" class="mode-toggle mode-more" placeholder="More">
+                        <option value="trackday">Track Day</option>
+                        <option value="weekend">Weekend</option>
+                        <option value="drift">Drift</option>
+                        <option value="timeattack">Time Attack</option>
+                        <option value="drag">Drag</option>
+                    </dropdown-list>
+                </div>
+                <div class="mode-panel" data-mode="practice">
+                    <div class="checkbox-grid">
+                        <label class="check-field"><input type="checkbox" data-setting="penalties" /><span>Penalties</span></label>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">Start From</label>
+                        <dropdown-list data-setting="startType">
+                            <option value="PIT">Pits</option>
+                            <option value="START">Starting Line</option>
+                            <option value="HOTLAP_START">Hotlap Start</option>
+                        </dropdown-list>
+                    </div>
+                    <div class="slider-grid">
+                        <div class="slider-cell">
+                            <label class="slider-label">Ballast <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="200" step="1" data-setting="ballast" data-unit=" kg" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Restrictor <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="restrictor" data-unit=" %" />
+                        </div>
+                    </div>
+                </div>
+                <div class="mode-panel" data-mode="hotlap" style="display:none;">
+                    <div class="checkbox-grid">
+                        <label class="check-field"><input type="checkbox" data-setting="penalties" /><span>Penalties</span></label>
+                        <label class="check-field"><input type="checkbox" data-setting="ghostCar" /><span>Ghost Car</span></label>
+                        <label class="check-field"><input type="checkbox" data-setting="ghostCarRecord" /><span>Record Ghost Car</span></label>
+                    </div>
+                    <div class="slider-grid">
+                        <div class="slider-cell">
+                            <label class="slider-label">Ghost Advantage <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="5" step="0.5" data-setting="ghostCarAdvantage" data-unit=" s" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Ballast <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="200" step="1" data-setting="ballast" data-unit=" kg" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Restrictor <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="restrictor" data-unit=" %" />
+                        </div>
+                    </div>
+                </div>
+                <div class="mode-panel" data-mode="race" style="display:none;">
+                    <div class="slider-grid">
+                        <div class="slider-cell">
+                            <label class="slider-label">Laps <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="1" max="50" step="1" data-setting="laps" data-unit="" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Opponents <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="24" step="1" data-setting="opponents" data-unit="" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">AI Level <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="aiLevel" data-unit=" %" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">AI Aggression <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="aiAggression" data-unit=" %" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Starting Position <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="24" step="1" data-setting="startingPosition" data-unit="" />
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">Jump Start Penalty</label>
+                        <dropdown-list data-setting="jumpStartPenalty" data-numeric>
+                            <option value="0">None</option>
+                            <option value="1">Pits</option>
+                            <option value="2">Drive Through</option>
+                        </dropdown-list>
+                        <label class="check-field"><input type="checkbox" data-setting="penalties" /><span>Penalties</span></label>
+                    </div>
+                </div>
+                <div class="mode-panel" data-mode="trackday" style="display:none;">
+                    <div class="checkbox-grid">
+                        <label class="check-field"><input type="checkbox" data-setting="penalties" /><span>Penalties</span></label>
+                    </div>
+                    <div class="slider-grid">
+                        <div class="slider-cell">
+                            <label class="slider-label">Opponents <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="24" step="1" data-setting="opponents" data-unit="" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">AI Level <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="aiLevel" data-unit=" %" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">AI Aggression <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="aiAggression" data-unit=" %" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Opponent Speed Limit <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="200" step="1" data-setting="speedLimit" data-unit=" km/h" />
+                        </div>
+                    </div>
+                </div>
+                <div class="mode-panel" data-mode="weekend" style="display:none;">
+                    <div class="slider-grid">
+                        <div class="slider-cell">
+                            <label class="slider-label">Race Laps <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="1" max="50" step="1" data-setting="laps" data-unit="" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Practice Duration <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="90" step="5" data-setting="practiceDuration" data-unit=" min" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Qualifying Duration <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="5" max="90" step="5" data-setting="qualificationDuration" data-unit=" min" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Opponents <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="24" step="1" data-setting="opponents" data-unit="" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">AI Level <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="aiLevel" data-unit=" %" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">AI Aggression <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="aiAggression" data-unit=" %" />
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">Jump Start Penalty</label>
+                        <dropdown-list data-setting="jumpStartPenalty" data-numeric>
+                            <option value="0">None</option>
+                            <option value="1">Pits</option>
+                            <option value="2">Drive Through</option>
+                        </dropdown-list>
+                        <label class="check-field"><input type="checkbox" data-setting="penalties" /><span>Penalties</span></label>
+                    </div>
+                </div>
+                <div class="mode-panel" data-mode="drift" style="display:none;">
+                    <div class="checkbox-grid">
+                        <label class="check-field"><input type="checkbox" data-setting="penalties" /><span>Penalties</span></label>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">Start From</label>
+                        <dropdown-list data-setting="startType">
+                            <option value="PIT">Pits</option>
+                            <option value="START">Starting Line</option>
+                            <option value="HOTLAP_START">Hotlap Start</option>
+                        </dropdown-list>
+                    </div>
+                    <div class="slider-grid">
+                        <div class="slider-cell">
+                            <label class="slider-label">Ballast <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="200" step="1" data-setting="ballast" data-unit=" kg" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Restrictor <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="restrictor" data-unit=" %" />
+                        </div>
+                    </div>
+                </div>
+                <div class="mode-panel" data-mode="timeattack" style="display:none;">
+                    <div class="checkbox-grid">
+                        <label class="check-field"><input type="checkbox" data-setting="penalties" /><span>Penalties</span></label>
+                    </div>
+                    <div class="slider-grid">
+                        <div class="slider-cell">
+                            <label class="slider-label">Ballast <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="200" step="1" data-setting="ballast" data-unit=" kg" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Restrictor <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="restrictor" data-unit=" %" />
+                        </div>
+                    </div>
+                </div>
+                <div class="mode-panel" data-mode="drag" style="display:none;">
+                    <div class="checkbox-grid">
+                        <label class="check-field"><input type="checkbox" data-setting="penalties" /><span>Penalties</span></label>
+                    </div>
+                    <div class="slider-grid">
+                        <div class="slider-cell">
+                            <label class="slider-label">Matches <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="1" max="20" step="1" data-setting="matches" data-unit="" />
+                        </div>
+                        <div class="slider-cell">
+                            <label class="slider-label">Opponent Strength <span class="slider-value"></span></label>
+                            <input type="range" class="setting-slider" min="0" max="100" step="1" data-setting="aiLevel" data-unit=" %" />
+                        </div>
+                    </div>
+                </div>
+                <div class="candidates-section" id="ftr-candidates" style="display:none;">
+                    <div class="candidates-header">
+                        <span class="setting-label">Candidates</span>
+                        <button class="candidates-add-btn" id="ftr-candidates-add" title="Add Candidate">
+                            <svg viewBox="0 0 64 64" class="dark">
+                                <use xlink:href="#icon-add" x="0" y="0" width="64" height="64"></use>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="candidates-list" id="ftr-candidates-list"></div>
+                </div>
+            </div>
+            </div>
             <div class="setting-actions">
                 <button class="add-fav-btn" id="ftr-add-favorite" disabled>
                     <svg viewBox="0 0 64 64" class="dark">
@@ -114,6 +338,10 @@
                 </svg>
                 <span>Start Race</span>
             </button>
+            <div class="fav-edit-actions">
+                <button class="fav-edit-cancel" id="ftr-fav-edit-cancel"><span>Cancel</span></button>
+                <button class="fav-edit-update" id="ftr-fav-edit-update"><span>Update Favorite</span></button>
+            </div>
         </div>
     </div>
 </div>
@@ -129,5 +357,18 @@
             <button class="fav-save-btn" id="ftr-fav-save">Save To Favorites</button>
             <button class="fav-ok-btn" id="ftr-fav-ok" style="display: none;">OK</button>
         </div>
+    </div>
+</div>
+<div class="car-picker-backdrop scale-ui" id="ftr-car-picker" style="display: none;">
+    <div class="car-picker-modal">
+        <div class="car-picker-header">
+            <div class="car-picker-title" id="ftr-car-picker-title"></div>
+            <button class="car-picker-close" id="ftr-car-picker-close">
+                <svg viewBox="0 0 64 64" class="dark">
+                    <use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use>
+                </svg>
+            </button>
+        </div>
+        <div class="car-picker-body" id="ftr-car-picker-body"></div>
     </div>
 </div>

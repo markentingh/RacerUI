@@ -1,3 +1,9 @@
+body.footer-expanded .content.history .history-content {
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0s;
+}
+
 .content.history {
     display: flex;
     flex-direction: column;
@@ -6,6 +12,8 @@
         flex: 1;
         overflow-y: auto;
         padding: 1.5em 2em 10em;
+        // Fade back in while the footer collapses - no delay
+        transition: opacity 0.4s;
     }
 
     .coming-soon {
@@ -74,7 +82,7 @@
                 }
             }
 
-            .fav-settings {
+            .fav-settings, .fav-mode {
                 font-size: 0.75em;
                 line-height: 1.3;
                 opacity: 0.6;
@@ -127,7 +135,7 @@
             }
         }
 
-        .fav-delete-btn {
+        .fav-delete-btn, .fav-edit-btn {
             display: flex;
             align-items: center;
             justify-content: center;

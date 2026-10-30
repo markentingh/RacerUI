@@ -64,6 +64,15 @@ namespace RacerUI.Controllers
         }
 
         /// <summary>
+        /// Updates a favorite's saved racing configuration
+        /// </summary>
+        [HttpPut("{id}")]
+        public IActionResult Update(int id, [FromBody] SaveFavoriteRequest request)
+        {
+            return FavoritesRepository.Update(id, request?.ConfigJson ?? "{}") ? Ok() : NotFound();
+        }
+
+        /// <summary>
         /// Deletes a favorite by id
         /// </summary>
         [HttpDelete("{id}")]

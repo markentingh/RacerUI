@@ -465,6 +465,69 @@ body .footer-container .footer-settings select option {
   background-color: #effcf9;
   color: #000;
 }
+body .footer-container .footer-settings .settings-tabs {
+  border-bottom-color: rgba(47, 172, 173, 0.25);
+}
+body .footer-container .footer-settings .settings-tabs .settings-tab {
+  color: #333333;
+}
+body .footer-container .footer-settings .settings-tabs .settings-tab:hover {
+  color: #000;
+}
+body .footer-container .footer-settings .settings-tabs .settings-tab.selected {
+  color: #000;
+  border-bottom-color: #38a8ff;
+}
+body .footer-container .footer-settings .mode-toggles .mode-toggle {
+  color: #333333;
+}
+body .footer-container .footer-settings .mode-toggles .mode-toggle:hover {
+  color: #000;
+}
+body .footer-container .footer-settings .mode-toggles .mode-toggle.selected {
+  color: #000;
+  border-bottom-color: #38a8ff;
+}
+body .footer-container .footer-settings .mode-toggles .mode-more .ddl-toggle {
+  background: transparent;
+  border-color: transparent;
+  color: inherit;
+}
+body .footer-container .footer-settings .mode-toggles .mode-more .ddl-toggle:hover {
+  background: transparent;
+}
+body .footer-container .footer-settings .mode-toggles .mode-more.selected .ddl-toggle {
+  color: #000;
+}
+body .footer-container .footer-settings .check-field {
+  color: #000;
+}
+body .footer-container .footer-settings .check-field input[type="checkbox"] {
+  accent-color: #38a8ff;
+}
+body .footer-container .footer-settings .slider-cell .slider-label {
+  color: #333333;
+}
+body .footer-container .footer-settings .slider-cell .slider-value {
+  color: #000;
+}
+body .footer-container .footer-settings .candidates-section .candidates-add-btn {
+  background: transparent;
+  color: #333333;
+}
+body .footer-container .footer-settings .candidates-section .candidates-add-btn:hover {
+  color: #000;
+}
+body .footer-container .footer-settings .candidates-section .candidate-item {
+  background: rgba(47, 172, 173, 0.05);
+  color: #000;
+}
+body .footer-container .footer-settings .candidates-section .candidate-item .candidate-remove {
+  color: #333333;
+}
+body .footer-container .footer-settings .candidates-section .candidate-item .candidate-remove:hover {
+  color: #000;
+}
 body .footer-container .footer-settings .dynamic-weather-settings {
   background: rgba(200, 220, 240, 0.4);
 }
@@ -483,6 +546,21 @@ body .footer-container .footer-settings .wind-compass .compass-arrow {
 }
 body .footer-container .footer-settings .wind-compass .compass-center {
   fill: #38a8ff;
+}
+body .footer-container .fav-edit-actions .fav-edit-update {
+  background: #38a8ff;
+  color: #fff;
+}
+body .footer-container .fav-edit-actions .fav-edit-update:hover {
+  background: #2196f3;
+  color: #fff;
+}
+body .footer-container .fav-edit-actions .fav-edit-cancel {
+  background: rgba(128, 128, 128, 0.35);
+  color: #000;
+}
+body .footer-container .fav-edit-actions .fav-edit-cancel:hover {
+  background: rgba(128, 128, 128, 0.55);
 }
 body .footer-container .details-btn,
 body .footer-container .hide-details-btn {
@@ -551,6 +629,24 @@ body .fav-modal-backdrop .fav-modal .fav-cancel-btn {
 body .fav-modal-backdrop .fav-modal .fav-cancel-btn:hover {
   background: rgba(128, 128, 128, 0.55);
 }
+body .car-picker-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+body .car-picker-backdrop .car-picker-modal {
+  background: #fafafa;
+  border: 2px solid rgba(47, 172, 173, 0.25);
+}
+body .car-picker-backdrop .car-picker-modal .car-picker-header {
+  color: #000;
+  border-bottom: 1px solid rgba(47, 172, 173, 0.25);
+}
+body .car-picker-backdrop .car-picker-modal .car-picker-close {
+  background: transparent;
+  color: #333333;
+}
+body .car-picker-backdrop .car-picker-modal .car-picker-close:hover {
+  color: #000;
+}
 body .content.history .favorite-item {
   background-color: rgba(200, 220, 240, 0.4);
 }
@@ -562,13 +658,18 @@ body .content.history .favorite-item .fav-play-btn:hover {
   background: #2196f3;
   color: #fff;
 }
-body .content.history .favorite-item .fav-delete-btn {
+body .content.history .favorite-item .fav-delete-btn,
+body .content.history .favorite-item .fav-edit-btn {
   background: rgba(128, 128, 128, 0.25);
   color: #000;
 }
 body .content.history .favorite-item .fav-delete-btn:hover {
   background: #d32f2f;
   color: #fff;
+}
+body .content.history .favorite-item .fav-edit-btn:hover {
+  background: rgba(128, 128, 128, 0.45);
+  color: #000;
 }
 body .fav-delete-modal .fav-delete-confirm-btn {
   background: #d32f2f;

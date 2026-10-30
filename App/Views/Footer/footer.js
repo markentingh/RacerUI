@@ -47,8 +47,35 @@ ui.views.footer.staticWeatherTypes = [
     { value: 32, label: 'Hail' }
 ];
 
+// ACTools quick-drive modes reachable through the "More" dropdown (Practice,
+// Hotlap and Race get their own toggle buttons)
+ui.views.footer.MORE_MODES = ['trackday', 'weekend', 'drift', 'timeattack', 'drag'];
+
+// Modes that race against AI opponents - they get the Candidates section
+ui.views.footer.OPPONENT_MODES = ['race', 'trackday', 'weekend', 'drag'];
+
+// Per-mode field defaults, mirroring the SaveableData of ACTools' QuickDrive_*
+// pages (penalties on, AI level 95, aggression 0, 7 opponents, grid spot 7)
+ui.views.footer.MODE_DEFAULTS = {
+    practice:   { penalties: true, startType: 'PIT', ballast: 0, restrictor: 0 },
+    hotlap:     { penalties: true, ghostCar: true, ghostCarRecord: true, ghostCarAdvantage: 0, ballast: 0, restrictor: 0 },
+    race:       { penalties: true, jumpStartPenalty: 0, laps: 2, opponents: 7, aiLevel: 95, aiAggression: 0, startingPosition: 7 },
+    trackday:   { penalties: true, opponents: 7, aiLevel: 95, aiAggression: 0, speedLimit: 0 },
+    weekend:    { penalties: true, jumpStartPenalty: 0, laps: 2, practiceDuration: 15, qualificationDuration: 30, opponents: 7, aiLevel: 95, aiAggression: 0 },
+    drift:      { penalties: true, startType: 'PIT', ballast: 0, restrictor: 0 },
+    timeattack: { penalties: true, ballast: 0, restrictor: 0 },
+    drag:       { penalties: true, matches: 10, aiLevel: 100 }
+};
+
+ui.views.footer.defaultModeSettings = () =>
+    JSON.parse(JSON.stringify(ui.views.footer.MODE_DEFAULTS));
+
 // Launch settings shown in the expanded footer (defaults mirror Content Manager)
 ui.views.footer.raceSettings = {
+    tab: 'environment',          // settings panel tab: 'environment' | 'race'
+    mode: 'hotlap',              // quick-drive mode: practice|hotlap|race|trackday|weekend|drift|timeattack|drag
+    modes: ui.views.footer.defaultModeSettings(),
+    candidates: [],              // opponent car pool: [{id, name, carPath, skinPath}]
     timeMinutes: 840,            // 14:00 -> SUN_ANGLE 16
     weatherMode: 'static',       // 'static' or 'dynamic:<controllerId>'
     weatherController: 'base',
@@ -77,6 +104,7 @@ ui.views.footer.load = () => {
         if (newFooterContainer) {
             newFooterContainer.classList.toggle('expanded', ui.views.footer.expanded);
         }
+        document.body.classList.toggle('footer-expanded', ui.views.footer.expanded);
 
         // Re-apply the scale-ui transform to the re-inserted footer
         if (ui.utils.scaleUI) {
@@ -239,11 +267,13 @@ ui.views.footer.selectCar = (car, skin) => {
     ui.views.footer.selectedCar = car;
     ui.views.footer.selectedSkin = skin || null;
     
-    // Save to localStorage
-    localStorage.setItem('RacerUI:footer-selected-car', JSON.stringify({
-        car: car,
-        skin: skin
-    }));
+    // Save to localStorage - editing a favorite never touches the user's data
+    if (!ui.views.footer.editingFavorite) {
+        localStorage.setItem('RacerUI:footer-selected-car', JSON.stringify({
+            car: car,
+            skin: skin
+        }));
+    }
     
     ui.views.footer.updateDisplay();
 };
@@ -252,11 +282,13 @@ ui.views.footer.selectTrack = (track, layout) => {
     ui.views.footer.selectedTrack = track;
     ui.views.footer.selectedLayout = layout || null;
     
-    // Save to localStorage
-    localStorage.setItem('RacerUI:footer-selected-track', JSON.stringify({
-        track: track,
-        layout: layout || null
-    }));
+    // Save to localStorage - editing a favorite never touches the user's data
+    if (!ui.views.footer.editingFavorite) {
+        localStorage.setItem('RacerUI:footer-selected-track', JSON.stringify({
+            track: track,
+            layout: layout || null
+        }));
+    }
     
     ui.views.footer.updateDisplay();
 };
@@ -307,7 +339,11 @@ ui.views.footer.parseTime = (text) => {
 };
 
 ui.views.footer.saveRaceSettings = () => {
-    localStorage.setItem('RacerUI:footer-race-settings', JSON.stringify(ui.views.footer.raceSettings));
+    // Editing a favorite updates the in-memory config only - the user's own
+    // settings must stay untouched in localStorage
+    if (!ui.views.footer.editingFavorite) {
+        localStorage.setItem('RacerUI:footer-race-settings', JSON.stringify(ui.views.footer.raceSettings));
+    }
     ui.views.footer.updateSettingsSummary();
 };
 
@@ -341,6 +377,202 @@ ui.views.footer.updateSettingsSummary = () => {
     const dir = dirs[Math.round(s.windDirection / 22.5) % 16];
 
     el.textContent = `${time}, ${weather}, ${s.temperature}\u00B0C, Wind at ${kmh}KM/H ${dir}`;
+
+    const modeEl = document.querySelector('.footer-container .session-mode');
+    if (modeEl) {
+        modeEl.textContent = ui.views.footer.modeSummary();
+    }
+};
+
+const MODE_LABELS = {
+    practice: 'Practice', hotlap: 'Hotlap', race: 'Race', trackday: 'Track Day',
+    weekend: 'Weekend', drift: 'Drift', timeattack: 'Time Attack', drag: 'Drag'
+};
+
+const ordinal = (n) => {
+    if (n % 100 >= 11 && n % 100 <= 13) return `${n}th`;
+    return n + (['th', 'st', 'nd', 'rd'][n % 10] || 'th');
+};
+
+// Collapsed-footer third row - the selected race mode + its key settings
+// (e.g. "Race - 10 Laps, 7 Opponents, 7th Starting Position")
+ui.views.footer.modeSummary = (settings) => {
+    let s = settings || ui.views.footer.raceSettings;
+    if (s && s.settings) s = s.settings; // legacy blobs wrapped settings
+    s = s || {};
+    if (!s.mode) return ''; // legacy saves predate race modes
+    const mode = s.mode;
+    const ms = (s.modes && s.modes[mode]) || {};
+    const parts = [];
+    switch (mode) {
+        case 'race':
+            parts.push(`${ms.laps} Laps`, `${ms.opponents} Opponents`,
+                `${ordinal(ms.startingPosition)} Starting Position`);
+            break;
+        case 'weekend':
+            parts.push(`${ms.practiceDuration} min Practice`, `${ms.qualificationDuration} min Qualifying`,
+                `${ms.laps} Laps`, `${ms.opponents} Opponents`);
+            break;
+        case 'trackday':
+            parts.push(`${ms.opponents} Opponents`);
+            break;
+        case 'drag':
+            parts.push(`${ms.matches} Matches`);
+            break;
+        case 'hotlap':
+            if (ms.ghostCar) parts.push('Ghost Car');
+            break;
+    }
+    if (ms.ballast) parts.push(`Ballast ${ms.ballast} kg`);
+    if (ms.restrictor) parts.push(`Restrictor ${ms.restrictor} %`);
+    return parts.length ? `${MODE_LABELS[mode] || mode} - ${parts.join(', ')}` : (MODE_LABELS[mode] || mode);
+};
+
+// Favorite-edit mode - while set, the footer edits a saved favorite's config
+// instead of the user's own settings; nothing is written to localStorage
+ui.views.footer.editingFavorite = null;
+
+// Re-applies the current raceSettings to every bound control - used when the
+// settings change outside the form (e.g. loading a favorite for editing)
+ui.views.footer.refreshSettingsControls = () => {
+    const s = ui.views.footer.raceSettings;
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    const qs = (sel) => container.querySelector(sel);
+
+    const setVal = (el, v) => { if (el) el.value = v; };
+    setVal(qs('#ftr-static-weather'), s.staticWeatherType);
+    setVal(qs('#ftr-weather-mode'), s.weatherMode);
+    setVal(qs('#ftr-weather-controller'), s.weatherController);
+    setVal(qs('#ftr-track-state'), s.trackPreset);
+    setVal(qs('#ftr-time-slider'), s.timeMinutes);
+    setVal(qs('#ftr-time-input'), ui.views.footer.formatTime(s.timeMinutes));
+    setVal(qs('#ftr-temp-slider'), s.temperature);
+    setVal(qs('#ftr-wind-slider'), s.windSpeed);
+    const tempValue = qs('#ftr-temp-value');
+    if (tempValue) tempValue.textContent = `${s.temperature}°C`;
+    const windValue = qs('#ftr-wind-value');
+    if (windValue) windValue.textContent = `${s.windSpeed} km/h`;
+    ui.views.footer.setWindDirection(s.windDirection);
+    ui.views.footer.applyWeatherMode();
+    ui.views.footer.selectSettingsTab(s.tab || 'environment', false);
+    ui.views.footer.refreshModePanels();
+    ui.views.footer.updateSettingsSummary();
+};
+
+// Opens the favorite's settings in the expanded footer for editing. The
+// user's own settings are stashed and nothing is persisted to localStorage
+// while the edit is open
+ui.views.footer.openFavoriteEdit = (fav) => {
+    ui.views.footer.editingFavorite = {
+        fav: fav,
+        stash: JSON.parse(JSON.stringify(ui.views.footer.raceSettings))
+    };
+
+    const mount = () => {
+        const edit = ui.views.footer.editingFavorite;
+        if (!edit) return;
+
+        // Load the favorite's car/track/config into the live state
+        ui.views.footer.selectedCar = { id: fav.carId, name: fav.carName, path: fav.carPath };
+        ui.views.footer.selectedSkin = fav.skinPath || null;
+        if (fav.trackParentId) {
+            ui.views.footer.selectedTrack = { id: fav.trackParentId, name: fav.parentTrackName, path: fav.trackPath };
+            ui.views.footer.selectedLayout = {
+                id: fav.trackId, name: fav.trackName,
+                layoutName: fav.layoutName || null,
+                path: fav.trackPath, subPath: fav.trackSubPath
+            };
+        } else {
+            ui.views.footer.selectedTrack = {
+                id: fav.trackId, name: fav.trackName,
+                path: fav.trackPath, subPath: fav.trackSubPath
+            };
+            ui.views.footer.selectedLayout = null;
+        }
+
+        let cfg = {};
+        try { cfg = JSON.parse(fav.configJson) || {}; } catch (e) { }
+        const saved = cfg.settings || cfg;
+        const savedModes = saved.modes;
+        delete saved.modes;
+        Object.assign(ui.views.footer.raceSettings, saved);
+        if (savedModes) {
+            if (!ui.views.footer.raceSettings.modes) {
+                ui.views.footer.raceSettings.modes = ui.views.footer.defaultModeSettings();
+            }
+            Object.keys(savedModes).forEach((mode) => {
+                ui.views.footer.raceSettings.modes[mode] = Object.assign(
+                    {}, ui.views.footer.MODE_DEFAULTS[mode] || {}, savedModes[mode]);
+            });
+        }
+
+        const footerEl = document.querySelector('.footer-container');
+        footerEl.classList.add('editing-fav');
+        if (!ui.views.footer.expanded) ui.views.footer.toggleDetails();
+        // unload() strips these while the expanded flag stays set - force them
+        // so the page content hides regardless of which path got us here
+        footerEl.classList.add('expanded');
+        document.body.classList.add('footer-expanded');
+        ui.views.footer.refreshSettingsControls();
+        ui.views.footer.updateDisplay();
+    };
+
+    // The footer is unloaded on the history view - mount it first, then open
+    if (document.querySelector('.footer-container')) {
+        mount();
+    } else {
+        ui.views.footer.load();
+        const poll = setInterval(() => {
+            if (document.querySelector('.footer-container')) {
+                clearInterval(poll);
+                mount();
+            }
+        }, 50);
+    }
+};
+
+// Closes favorite-edit mode. update=true PUTs the edited configJson first.
+// Either way the user's stashed settings are restored and the footer unloads
+ui.views.footer.closeFavoriteEdit = (update) => {
+    const edit = ui.views.footer.editingFavorite;
+    if (!edit) return;
+
+    const finish = () => {
+        ui.views.footer.raceSettings = edit.stash;
+        ui.views.footer.editingFavorite = null;
+        const container = document.querySelector('.footer-container');
+        if (container) {
+            container.classList.remove('editing-fav');
+            // Fades out alongside the collapse animation (see footer.less)
+            container.classList.add('fav-edit-closing');
+        }
+        // Collapse the footer (body class comes off immediately so the
+        // favorites list fades in alongside the collapse animation), then
+        // unload once the transition has played out
+        if (ui.views.footer.expanded) {
+            ui.views.footer.toggleDetails();
+        }
+        setTimeout(() => ui.views.footer.unload(), 450);
+        // Refresh the favorites list with the updated config - the list
+        // renders inside .history-content, not .content
+        const content = document.querySelector('.history-content');
+        if (ui.views.history && content) {
+            ui.views.history.loadFavorites(content);
+        }
+    };
+
+    if (update) {
+        ui.ajax({
+            url: `/api/favorites/${edit.fav.id}`,
+            method: 'PUT',
+            data: { configJson: JSON.stringify(ui.views.footer.raceSettings) },
+            complete: finish,
+            error: finish
+        });
+    } else {
+        finish();
+    }
 };
 
 ui.views.footer.restoreRaceSettings = () => {
@@ -352,6 +584,14 @@ ui.views.footer.restoreRaceSettings = () => {
     } catch (e) {
         console.error('Error restoring race settings:', e);
     }
+    // Merge per-mode settings over the defaults so modes or fields added
+    // after a save still get their defaults
+    const modes = ui.views.footer.defaultModeSettings();
+    const savedModes = ui.views.footer.raceSettings.modes || {};
+    Object.keys(savedModes).forEach((m) => {
+        modes[m] = Object.assign({}, modes[m] || {}, savedModes[m]);
+    });
+    ui.views.footer.raceSettings.modes = modes;
 };
 
 ui.views.footer.initRaceSettings = () => {
@@ -445,8 +685,343 @@ ui.views.footer.initRaceSettings = () => {
     ui.views.footer.setupWindCompass();
     ui.views.footer.setWindDirection(settings.windDirection);
     ui.views.footer.applyWeatherMode();
+    ui.views.footer.initRaceTabs();
     ui.views.footer.updateSettingsSummary();
 };
+
+//#region "Race tab"
+
+// The settings object for one quick-drive mode, with defaults applied.
+// Fills missing defaults IN PLACE - event handlers capture this object, so
+// its identity must stay stable (never swap it for a new merged object)
+ui.views.footer.modeSettings = (mode) => {
+    const s = ui.views.footer.raceSettings;
+    if (!s.modes) s.modes = ui.views.footer.defaultModeSettings();
+    const ms = s.modes[mode] || (s.modes[mode] = {});
+    const defaults = ui.views.footer.MODE_DEFAULTS[mode] || {};
+    Object.keys(defaults).forEach((k) => {
+        if (ms[k] === undefined) ms[k] = defaults[k];
+    });
+    return ms;
+};
+
+ui.views.footer.initRaceTabs = () => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    const settings = ui.views.footer.raceSettings;
+
+    container.querySelectorAll('.settings-tab').forEach((tab) => {
+        tab.addEventListener('click', () => ui.views.footer.selectSettingsTab(tab.dataset.tab));
+    });
+    ui.views.footer.selectSettingsTab(settings.tab || 'environment', false);
+
+    container.querySelectorAll('.mode-toggle[data-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => ui.views.footer.selectRaceMode(btn.dataset.mode));
+    });
+
+    const moreDdl = container.querySelector('#ftr-mode-more');
+    if (moreDdl) {
+        moreDdl.addEventListener('change', () => {
+            if (moreDdl.value) ui.views.footer.selectRaceMode(moreDdl.value);
+        });
+        if (ui.views.footer.MORE_MODES.includes(settings.mode)) {
+            moreDdl.value = settings.mode;
+        }
+    }
+
+    container.querySelectorAll('.mode-panel').forEach((panel) => {
+        ui.views.footer.bindModePanel(panel);
+    });
+
+    const addBtn = container.querySelector('#ftr-candidates-add');
+    if (addBtn) addBtn.addEventListener('click', () => ui.views.footer.openCandidatePicker());
+    const pickerClose = document.getElementById('ftr-car-picker-close');
+    if (pickerClose) pickerClose.addEventListener('click', () => ui.views.footer.closeCandidatePicker());
+    const pickerBackdrop = document.getElementById('ftr-car-picker');
+    if (pickerBackdrop) {
+        pickerBackdrop.addEventListener('click', (e) => {
+            if (e.target === pickerBackdrop) ui.views.footer.closeCandidatePicker();
+        });
+    }
+
+    // Favorite-edit buttons (visible only while .editing-fav is set)
+    const favEditCancel = document.getElementById('ftr-fav-edit-cancel');
+    const favEditUpdate = document.getElementById('ftr-fav-edit-update');
+    if (favEditCancel) favEditCancel.onclick = () => ui.views.footer.closeFavoriteEdit(false);
+    if (favEditUpdate) favEditUpdate.onclick = () => ui.views.footer.closeFavoriteEdit(true);
+
+    ui.views.footer.syncOpponentLimits();
+    ui.views.footer.syncModeToggles();
+    ui.views.footer.showModePanel();
+    ui.views.footer.renderCandidates();
+};
+
+ui.views.footer.selectSettingsTab = (tab, save = true) => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    container.querySelectorAll('.settings-tab').forEach((t) =>
+        t.classList.toggle('selected', t.dataset.tab === tab));
+    container.querySelectorAll('.settings-panels .tab-panel').forEach((p) => {
+        p.style.display = p.dataset.panel === tab ? '' : 'none';
+    });
+    ui.views.footer.raceSettings.tab = tab;
+    if (save) ui.views.footer.saveRaceSettings();
+};
+
+ui.views.footer.selectRaceMode = (mode) => {
+    if (!mode) return;
+    const settings = ui.views.footer.raceSettings;
+    settings.mode = mode;
+
+    const moreDdl = document.querySelector('#ftr-mode-more');
+    if (moreDdl) {
+        if (ui.views.footer.MORE_MODES.includes(mode)) {
+            // Programmatic mode switch (e.g. a saved favorite) - reflect it
+            if (moreDdl.value !== mode) moreDdl.value = mode;
+        } else if (moreDdl.clear) {
+            // A main mode was picked - the More menu drops back to placeholder
+            moreDdl.clear();
+        }
+    }
+    ui.views.footer.syncModeToggles();
+    ui.views.footer.showModePanel();
+    ui.views.footer.saveRaceSettings();
+};
+
+// The active mode's control gets the 3px underline - a .mode-toggle button or,
+// for the extended modes, the More dropdown itself
+ui.views.footer.syncModeToggles = () => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    const mode = ui.views.footer.raceSettings.mode;
+    container.querySelectorAll('.mode-toggle[data-mode]').forEach((b) =>
+        b.classList.toggle('selected', b.dataset.mode === mode));
+    const moreDdl = container.querySelector('#ftr-mode-more');
+    if (moreDdl) {
+        moreDdl.classList.toggle('selected', ui.views.footer.MORE_MODES.includes(mode));
+    }
+};
+
+ui.views.footer.showModePanel = () => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    const mode = ui.views.footer.raceSettings.mode;
+    container.querySelectorAll('.mode-panel').forEach((p) => {
+        p.style.display = p.dataset.mode === mode ? '' : 'none';
+    });
+    const candidates = container.querySelector('#ftr-candidates');
+    if (candidates) {
+        candidates.style.display = ui.views.footer.OPPONENT_MODES.includes(mode) ? '' : 'none';
+    }
+};
+
+// Wires every [data-setting] control inside a mode panel to that mode's
+// settings object: checkboxes, sliders (each with a labelled live value) and
+// dropdowns (data-numeric coerces the option value to a number)
+ui.views.footer.bindModePanel = (panel) => {
+    const mode = panel.dataset.mode;
+    const ms = ui.views.footer.modeSettings(mode);
+    panel.querySelectorAll('[data-setting]').forEach((el) => {
+        const key = el.dataset.setting;
+        if (ms[key] === undefined) return;
+        if (el.tagName === 'DROPDOWN-LIST') {
+            el.value = String(ms[key]);
+            el.addEventListener('change', () => {
+                ui.views.footer.modeSettings(mode)[key] =
+                    el.hasAttribute('data-numeric') ? parseInt(el.value, 10) : el.value;
+                ui.views.footer.saveRaceSettings();
+            });
+        } else if (el.type === 'checkbox') {
+            el.checked = !!ms[key];
+            el.addEventListener('change', () => {
+                ui.views.footer.modeSettings(mode)[key] = el.checked;
+                ui.views.footer.saveRaceSettings();
+            });
+        } else if (el.type === 'range') {
+            const cell = el.closest('.slider-cell');
+            const out = cell ? cell.querySelector('.slider-value') : null;
+            const unit = el.dataset.unit || '';
+            el.value = ms[key];
+            if (out) out.textContent = ms[key] + unit;
+            // 'input' keeps the label + in-memory value live while dragging;
+            // 'change' fires on release and is what persists to localStorage
+            el.addEventListener('input', () => {
+                ui.views.footer.modeSettings(mode)[key] = parseFloat(el.value);
+                if (out) out.textContent = el.value + unit;
+                if (key === 'opponents') ui.views.footer.syncStartingPositionLimit(panel);
+            });
+            el.addEventListener('change', () => {
+                ui.views.footer.saveRaceSettings();
+            });
+        }
+    });
+};
+
+// Re-applies the current mode settings to every bound control - used when the
+// settings change outside the form (e.g. playing a favorite)
+ui.views.footer.refreshModePanels = () => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    container.querySelectorAll('.mode-panel').forEach((panel) => {
+        const ms = ui.views.footer.modeSettings(panel.dataset.mode);
+        panel.querySelectorAll('[data-setting]').forEach((el) => {
+            const key = el.dataset.setting;
+            if (ms[key] === undefined) return;
+            if (el.tagName === 'DROPDOWN-LIST') {
+                el.value = String(ms[key]);
+            } else if (el.type === 'checkbox') {
+                el.checked = !!ms[key];
+            } else if (el.type === 'range') {
+                el.value = ms[key];
+                const cell = el.closest('.slider-cell');
+                const out = cell ? cell.querySelector('.slider-value') : null;
+                if (out) out.textContent = ms[key] + (el.dataset.unit || '');
+            }
+        });
+    });
+    const moreDdl = document.querySelector('#ftr-mode-more');
+    if (moreDdl) {
+        const mode = ui.views.footer.raceSettings.mode;
+        if (ui.views.footer.MORE_MODES.includes(mode)) moreDdl.value = mode;
+        else if (moreDdl.clear) moreDdl.clear();
+    }
+    ui.views.footer.syncModeToggles();
+    ui.views.footer.showModePanel();
+    ui.views.footer.renderCandidates();
+    ui.views.footer.syncOpponentLimits();
+};
+
+// Opponent sliders are capped by the selected track's pit boxes (one slot is
+// the player) - the same limit ACTools applies to its race grid
+ui.views.footer.syncOpponentLimits = () => {
+    const t = ui.views.footer.getEffectiveTrack();
+    const pits = (t && t.pitBoxes) || 0;
+    const max = Math.max(1, (pits || 25) - 1);
+    document.querySelectorAll('.mode-panel input[data-setting="opponents"]').forEach((el) => {
+        el.max = max;
+        const ms = ui.views.footer.modeSettings(el.closest('.mode-panel').dataset.mode);
+        if (ms.opponents > max) {
+            ms.opponents = max;
+            el.value = max;
+            const cell = el.closest('.slider-cell');
+            const out = cell && cell.querySelector('.slider-value');
+            if (out) out.textContent = max + (el.dataset.unit || '');
+        }
+        ui.views.footer.syncStartingPositionLimit(el.closest('.mode-panel'));
+    });
+};
+
+// Resolves a skin's display name (ui_skin.json name) from its path, falling
+// back to the path itself when the car's skin list isn't available
+ui.views.footer.skinDisplayName = (car, skinPath) => {
+    if (!skinPath) return '';
+    const skin = car && car.skins && car.skins.find((sk) => sk.path === skinPath);
+    return (skin && skin.name) || skinPath;
+};
+
+// A candidate entry for the currently selected car+skin (used to seed the
+// list and as the shape for picker additions)
+ui.views.footer.currentCandidate = () => {
+    const car = ui.views.footer.selectedCar;
+    if (!car) return null;
+    const skinPath = ui.views.footer.selectedSkin || null;
+    return {
+        id: car.id,
+        year: car.year,
+        name: car.name || car.carName || car.path,
+        carPath: car.path,
+        skinPath,
+        skinName: ui.views.footer.skinDisplayName(car, skinPath)
+    };
+};
+
+ui.views.footer.renderCandidates = () => {
+    const list = document.getElementById('ftr-candidates-list');
+    if (!list) return;
+    const s = ui.views.footer.raceSettings;
+    if (!Array.isArray(s.candidates)) s.candidates = [];
+
+    // With an empty list the player's own car is the first candidate - the
+    // same thing ACTools does with its opponent candidates
+    if (!s.candidates.length && ui.views.footer.selectedCar) {
+        s.candidates.push(ui.views.footer.currentCandidate());
+    }
+
+    list.innerHTML = '';
+    s.candidates.forEach((c, i) => {
+        const row = document.createElement('div');
+        row.className = 'candidate-item';
+        const name = document.createElement('span');
+        name.className = 'candidate-name';
+        name.textContent = ((c.year ? c.year + ' ' : '') + (c.name || c.carPath || ''));
+        const rm = document.createElement('button');
+        rm.className = 'candidate-remove';
+        rm.title = 'Remove Candidate';
+        rm.innerHTML = '<svg viewBox="0 0 64 64" class="dark"><use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use></svg>';
+        rm.addEventListener('click', () => {
+            s.candidates.splice(i, 1);
+            ui.views.footer.renderCandidates();
+            ui.views.footer.saveRaceSettings();
+        });
+        row.append(name, rm);
+        list.appendChild(row);
+    });
+};
+
+// Opens the car picker modal - the full cars view (filters, grid, details)
+// mounted inside it; the Select Car button adds the car to the candidate
+// list. The title is configurable so the modal can be reused elsewhere
+ui.views.footer.openCandidatePicker = (title) => {
+    const backdrop = document.getElementById('ftr-car-picker');
+    const body = document.getElementById('ftr-car-picker-body');
+    if (!backdrop || !body) return;
+    const titleEl = document.getElementById('ftr-car-picker-title');
+    if (titleEl) titleEl.textContent = title || 'Select Your Vehicle Candidate';
+    backdrop.style.display = '';
+    ui.views.cars.loadInto(body, {
+        onPick: (car, skinName) => {
+            const s = ui.views.footer.raceSettings;
+            s.candidates.push({
+                id: car.id,
+                year: car.year,
+                name: car.name || car.carName || car.path,
+                carPath: car.path,
+                skinPath: skinName || null,
+                skinName: ui.views.footer.skinDisplayName(car, skinName)
+            });
+            ui.views.footer.renderCandidates();
+            ui.views.footer.saveRaceSettings();
+            ui.views.footer.closeCandidatePicker();
+        }
+    });
+};
+
+ui.views.footer.closeCandidatePicker = () => {
+    ui.views.cars.unloadFrom();
+    const backdrop = document.getElementById('ftr-car-picker');
+    if (backdrop) backdrop.style.display = 'none';
+    const body = document.getElementById('ftr-car-picker-body');
+    if (body) body.innerHTML = '';
+};
+
+// The grid can't have more starting positions than cars (opponents + player)
+ui.views.footer.syncStartingPositionLimit = (panel) => {
+    if (!panel) return;
+    const startPos = panel.querySelector('input[data-setting="startingPosition"]');
+    if (!startPos) return;
+    const ms = ui.views.footer.modeSettings(panel.dataset.mode);
+    const limit = (ms.opponents || 0) + 1;
+    startPos.max = limit;
+    if (ms.startingPosition > limit) {
+        ms.startingPosition = limit;
+        startPos.value = limit;
+        const cell = startPos.closest('.slider-cell');
+        const out = cell && cell.querySelector('.slider-value');
+        if (out) out.textContent = limit + (startPos.dataset.unit || '');
+    }
+};
+
+//#endregion
 
 // Enumerates CSP weather controllers (extension/weather-controllers/*) from the
 // server, splitting them the way Content Manager does: controllers that follow
@@ -670,14 +1245,39 @@ ui.views.footer.setWindDirection = (deg) => {
 ui.views.footer.buildLaunchSettings = () => {
     const s = ui.views.footer.raceSettings;
     const isStatic = s.weatherMode === 'static';
-    return {
+    const mode = s.mode || 'hotlap';
+    const m = (s.modes && s.modes[mode]) || {};
+    const launch = {
         WeatherType: isStatic ? s.staticWeatherType : 15,
         WeatherController: isStatic ? s.weatherController : s.dynamicControllerId,
         ControllerSettings: isStatic ? null : s.controllerSettings,
         WindSpeedKmh: s.windSpeed,
         WindDirectionDeg: s.windDirection,
-        TrackPreset: s.trackPreset
+        TrackPreset: s.trackPreset,
+        Mode: mode
     };
+    // Only the fields the active mode's form exposes are sent
+    if (m.penalties !== undefined) launch.Penalties = m.penalties;
+    if (m.jumpStartPenalty !== undefined) launch.JumpStartPenalty = m.jumpStartPenalty;
+    if (m.startType !== undefined) launch.StartType = m.startType;
+    if (m.ballast !== undefined) launch.BallastKg = m.ballast;
+    if (m.restrictor !== undefined) launch.RestrictorPct = m.restrictor;
+    if (m.ghostCar !== undefined) launch.GhostCar = m.ghostCar;
+    if (m.ghostCarRecord !== undefined) launch.RecordGhostCar = m.ghostCarRecord;
+    if (m.ghostCarAdvantage !== undefined) launch.GhostCarAdvantage = m.ghostCarAdvantage;
+    if (m.opponents !== undefined) launch.Opponents = m.opponents;
+    if (m.aiLevel !== undefined) launch.AiLevel = m.aiLevel;
+    if (m.aiAggression !== undefined) launch.AiAggression = m.aiAggression;
+    if (m.startingPosition !== undefined) launch.StartingPosition = m.startingPosition;
+    if (m.laps !== undefined) launch.RaceLaps = m.laps;
+    if (m.speedLimit !== undefined) launch.SpeedLimitKmh = m.speedLimit;
+    if (m.practiceDuration !== undefined) launch.PracticeDurationMinutes = m.practiceDuration;
+    if (m.qualificationDuration !== undefined) launch.QualificationDurationMinutes = m.qualificationDuration;
+    if (m.matches !== undefined) launch.MatchesCount = m.matches;
+    if (ui.views.footer.OPPONENT_MODES.includes(mode) && s.candidates && s.candidates.length) {
+        launch.Candidates = s.candidates.map((c) => ({ CarPath: c.carPath, SkinPath: c.skinPath }));
+    }
+    return launch;
 };
 
 //#endregion
@@ -742,6 +1342,11 @@ ui.views.footer.updateDisplay = () => {
             trackOutline.removeAttribute('src');
         }
     }
+
+    // The opponents sliders' maximum follows the selected track's pit boxes
+    ui.views.footer.syncOpponentLimits();
+    // Re-render candidates - an empty list reseeds from the selected car
+    ui.views.footer.renderCandidates();
 
     // Update session info text - show the layout name next to the track name
     // when a layout different from the selected track is chosen

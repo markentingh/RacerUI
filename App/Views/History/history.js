@@ -156,6 +156,7 @@ ui.views.history.favoriteHtml = (itemHtml, fav, index) => {
         .split('{{layoutName}}').join(esc(layoutName))
         .hasBlock('has-layout', layoutName)
         .split('{{settingsSummary}}').join(esc(ui.views.history.settingsSummary(cfg)))
+        .split('{{modeSummary}}').join(esc(ui.views.footer.modeSummary(cfg)))
         .split('{{timeMinutes}}').join(s.timeMinutes != null ? s.timeMinutes : 840);
 };
 
@@ -251,9 +252,37 @@ ui.views.history.playFavorite = (btn) => {
     }
 
     const settings = ui.views.history.favoriteConfig(fav);
-    Object.assign(ui.views.footer.raceSettings, settings.settings || settings);
+    const saved = settings.settings || settings;
+    // Merge per-mode settings over the defaults rather than replacing the
+    // whole modes object - other modes keep their configured values
+    const savedModes = saved.modes;
+    delete saved.modes;
+    Object.assign(ui.views.footer.raceSettings, saved);
+    if (savedModes) {
+        if (!ui.views.footer.raceSettings.modes) {
+            ui.views.footer.raceSettings.modes = ui.views.footer.defaultModeSettings();
+        }
+        Object.keys(savedModes).forEach((mode) => {
+            ui.views.footer.raceSettings.modes[mode] = Object.assign(
+                {}, ui.views.footer.MODE_DEFAULTS[mode] || {}, savedModes[mode]);
+        });
+    }
+    // Reflect the favorite's mode + field values on the bound controls
+    if (ui.views.footer.refreshModePanels) {
+        ui.views.footer.refreshModePanels();
+    }
     ui.views.footer.updateDisplay();
     ui.views.footer.play();
+};
+
+// Opens the favorite for editing in the expanded footer - loads the saved
+// config without touching the user's own settings or localStorage
+ui.views.history.editFavorite = (btn) => {
+    const item = btn.closest('.favorite-item');
+    const index = parseInt(item.getAttribute('data-fav-index'), 10);
+    const fav = (ui.views.history.favorites || [])[index];
+    if (!fav) return;
+    ui.views.footer.openFavoriteEdit(fav);
 };
 
 // Shows the delete-confirmation modal (injected at body level so

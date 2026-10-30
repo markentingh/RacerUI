@@ -313,7 +313,7 @@ ui.view.inject = (html, name) => {
 }
 
 ui.view.injectComponent = (html, selector) => {
-    const content = document.querySelector(selector);
+    const content = selector instanceof Element ? selector : document.querySelector(selector);
     content.innerHTML = html;
     ui.utils.scaleUI();
 }
@@ -466,10 +466,17 @@ class DropdownList extends HTMLElement {
         return Array.from(this.children).filter((c) => c.tagName === 'OPTION');
     }
 
+    // A `placeholder` attribute makes the control start unselected and show the
+    // placeholder text until an option is picked (e.g. the "More" race-mode
+    // menu, where "More" itself is not a selectable item)
+    get placeholder() {
+        return this.getAttribute('placeholder');
+    }
+
     get value() {
         const opt = this.options.find((o) => o.value === this._selectedValue)
             || this.options.find((o) => o.hasAttribute('selected'))
-            || this.options[0];
+            || (this.placeholder == null ? this.options[0] : null);
         return opt ? opt.value : '';
     }
 
@@ -492,6 +499,7 @@ class DropdownList extends HTMLElement {
         });
         if (this._toggle) {
             this._toggle.querySelector('.ddl-label').textContent = opt.textContent;
+            this._toggle.classList.remove('ddl-placeholder');
         }
         if (this._portal) {
             this._portal.querySelectorAll('.ddl-item').forEach((item) => {
@@ -523,17 +531,48 @@ class DropdownList extends HTMLElement {
             this.options.find((o) => o.value === this._selectedValue)
             || this.options.find((o) => o.value === pending)
             || this.options.find((o) => o.hasAttribute('selected'))
-            || this.options[0];
+            || (this.placeholder == null ? this.options[0] : null);
 
         if (selected) {
             this._select(selected, false);
         } else if (this._toggle) {
-            this._toggle.querySelector('.ddl-label').textContent = '';
+            this._showPlaceholder();
         }
 
         // Keep the open list in sync if options change while open
         if (this._portal) {
             this._buildItems();
+        }
+    }
+
+    _showPlaceholder() {
+        const label = this._toggle.querySelector('.ddl-label');
+        label.textContent = this.placeholder || '';
+        this._toggle.classList.toggle('ddl-placeholder', this.placeholder != null);
+    }
+
+    // Returns the control to its unselected state: the placeholder text when
+    // one is set, otherwise the first option (matching initial render)
+    clear() {
+        this._selectedValue = undefined;
+        this._pendingValue = undefined;
+        this.options.forEach((o) => {
+            o.removeAttribute('selected');
+            o.selected = false;
+        });
+        if (this._portal) {
+            this._portal.querySelectorAll('.ddl-item').forEach((item) => {
+                item.classList.remove('selected');
+            });
+        }
+        if (this._toggle) {
+            if (this.placeholder != null) {
+                this._showPlaceholder();
+            } else if (this.options.length) {
+                this._select(this.options[0], false);
+            } else {
+                this._toggle.querySelector('.ddl-label').textContent = '';
+            }
         }
     }
 
@@ -775,15 +814,99 @@ ui.views.cars = {
     virtualDOM: {
         topHiddenRows: 0,
         bottomHiddenRows: 0
+    },
+    scope: null,   // element DOM lookups run inside while the view is mounted in the candidate-picker modal
+    picker: null,  // (car, skinName) => void - when set, the Select Car button calls this instead of footer.selectCar
+    pickerState: null // stashed page filter/grid state while the picker modal is open
+};
+
+// The picker's filter lives in its own localStorage slot so remembering it
+// doesn't bleed into the cars page's filters (and vice versa)
+ui.views.cars.filterKey = () =>
+    ui.views.cars.scope ? 'RacerUI:cars-filter-picker' : 'RacerUI:cars-filter';
+
+ui.views.cars.defaultFilter = () => ({
+    countries: ['all'], //ISO 3166-1 alpha-2 country codes
+    makes: [],//makeId int
+    models: [],//modelId int
+    years: [],//4-digit year
+    types: [],//typeId int
+    styles: [],//styleId int
+    specializations: [],//specializationId int
+    search: '',
+    sort: 'year',
+    start: 0,
+    length: 20,
+    view: 'grid',
+    prevView: 'grid',
+});
+
+// The cars view is mounted in two places: the page's .content element and the
+// footer's candidate-picker modal. All lookups run through these helpers so
+// ids/classes don't collide when both instances are in the DOM at once.
+ui.views.cars.qs = (sel) => (ui.views.cars.scope || document).querySelector(sel);
+ui.views.cars.qsa = (sel) => (ui.views.cars.scope || document).querySelectorAll(sel);
+ui.views.cars.byId = (id) => ui.views.cars.scope
+    ? ui.views.cars.scope.querySelector('#' + id)
+    : document.getElementById(id);
+
+// Mounts the cars view inside an arbitrary container (the candidate-picker
+// modal) - same init steps as load() minus the page-level plumbing. The
+// page's filter/grid state is stashed and the picker works on its own
+// filter (saved under its own localStorage key). options.onPick replaces
+// the Select Car button's default action
+ui.views.cars.loadInto = (container, options) => {
+    options = options || {};
+    ui.views.cars.scope = container;
+    ui.views.cars.picker = options.onPick || null;
+    ui.views.cars.pickerState = {
+        filter: ui.views.cars.filter,
+        results: ui.views.cars.results,
+        allCars: ui.views.cars.allCars,
+        selected: ui.views.cars.selected,
+        hasMore: ui.views.cars.hasMore
+    };
+    ui.views.cars.filter = ui.views.cars.defaultFilter();
+    ui.views.cars.results = null;
+    ui.views.cars.allCars = [];
+    ui.views.cars.selected = null;
+    ui.views.cars.hasMore = true;
+    if (localStorage.getItem(ui.views.cars.filterKey())) {
+        ui.views.cars.filter = {...ui.views.cars.filter, ...JSON.parse(localStorage.getItem(ui.views.cars.filterKey()))};
+    }
+    ui.view.loadComponent('Cars/cars', (html) => {
+        container.innerHTML = html;
+        ui.views.cars.setupSearchListener();
+        ui.views.cars.setupSortDropdown();
+        ui.views.cars.updateClearFilterButton();
+        ui.views.cars.getFilteredList();
+        ui.views.cars.resize();
+        ui.views.cars.setupInfiniteScroll();
+        ui.utils.scaleUI();
+    });
+};
+
+// Unmounts the picker - DOM lookups go back to the document and the page's
+// stashed filter/grid state is restored
+ui.views.cars.unloadFrom = () => {
+    ui.views.cars.scope = null;
+    ui.views.cars.picker = null;
+    if (ui.views.cars.pickerState) {
+        Object.assign(ui.views.cars, ui.views.cars.pickerState);
+        ui.views.cars.pickerState = null;
     }
 };
 
 ui.views.cars.load = (e) => {
+    // Page mount - the view lives at document level again
+    ui.views.cars.scope = null;
+    ui.views.cars.picker = null;
+    ui.views.cars.pickerState = null;
     //first, load filter settings from local storage
-    if (localStorage.getItem('RacerUI:cars-filter')) {
-        ui.views.cars.filter = {...ui.views.cars.filter, ...JSON.parse(localStorage.getItem('RacerUI:cars-filter'))};
+    if (localStorage.getItem(ui.views.cars.filterKey())) {
+        ui.views.cars.filter = {...ui.views.cars.filter, ...JSON.parse(localStorage.getItem(ui.views.cars.filterKey()))};
     }
-    if (document.querySelector('.cars-toolbar') == null) {
+    if (ui.views.cars.qs('.cars-toolbar') == null) {
         //view not loaded yet
         ui.view.loadComponent(`Cars/cars`, (html) => {
             ui.nav.select('cars');
@@ -819,9 +942,9 @@ ui.views.cars.load = (e) => {
 };
 
 ui.views.cars.setupSearchListener = () => {
-    const searchInput = document.getElementById('search_cars');
-    const searchClear = document.getElementById('search_clear');
-    const clearFilterBtn = document.getElementById('clear_filter_btn');
+    const searchInput = ui.views.cars.byId('search_cars');
+    const searchClear = ui.views.cars.byId('search_clear');
+    const clearFilterBtn = ui.views.cars.byId('clear_filter_btn');
     
     if (searchInput) {
         // Populate search field from cached filter
@@ -890,49 +1013,49 @@ ui.views.cars.setupSearchListener = () => {
             
             // Reset UI state of any open filter section
             // Country filter
-            document.querySelectorAll('.filter-country li').forEach((li) => {
+            ui.views.cars.qsa('.filter-country li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-country li[data-country="all"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-country li[data-country="all"]')?.classList.add('selected');
             
             // Manufacturer filter
-            document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+            ui.views.cars.qsa('.filter-manufacturer li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
             
             // Year filter
-            document.querySelectorAll('.filter-year li').forEach((li) => {
+            ui.views.cars.qsa('.filter-year li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-year li[data-year="0"]')?.classList.add('selected');
             
             // Class filter
-            document.querySelectorAll('.filter-class li').forEach((li) => {
+            ui.views.cars.qsa('.filter-class li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-class li[data-class="all"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-class li[data-class="all"]')?.classList.add('selected');
             
             // Type filter
-            document.querySelectorAll('.filter-type li').forEach((li) => {
+            ui.views.cars.qsa('.filter-type li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
             
             // Style filter
-            document.querySelectorAll('.filter-style li').forEach((li) => {
+            ui.views.cars.qsa('.filter-style li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-style li[data-style="0"]')?.classList.add('selected');
             
             // Specialization filter
-            document.querySelectorAll('.filter-specialization li').forEach((li) => {
+            ui.views.cars.qsa('.filter-specialization li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
             
             // Reload currently open filter view if any
-            const selectedNavItem = document.querySelector('.cars-toolbar li.selected');
+            const selectedNavItem = ui.views.cars.qs('.cars-toolbar li.selected');
             if (selectedNavItem) {
                 const section = selectedNavItem.className.match(/item-(\w+)/)?.[1];
                 if (section) {
@@ -976,7 +1099,7 @@ ui.views.cars.setupSearchListener = () => {
 };
 
 ui.views.cars.setupSortDropdown = () => {
-    const sortDdl = document.getElementById('cars_sort');
+    const sortDdl = ui.views.cars.byId('cars_sort');
     if (!sortDdl) return;
     // stale localStorage values (e.g. removed options) snap back to the default
     const valid = ['year', 'yearasc', 'country', 'manufacturer', 'model', 'rating', 'maxspeed'];
@@ -990,24 +1113,34 @@ ui.views.cars.setupSortDropdown = () => {
 
 ui.views.cars.unload = () => {
     window.removeEventListener('resize', ui.views.cars.resize);
-    const container = document.querySelector('.cars-content');
+    const container = ui.views.cars.qs('.cars-content');
     if (container && ui.views.cars.scrollListener) {
         container.removeEventListener('scroll', ui.views.cars.scrollListener);
     }
 }
 
 ui.views.cars.resize = () => {
-    const el = document.querySelector('.cars-content');
+    const el = ui.views.cars.qs('.cars-content');
     if(!el) return;
     const rect = el.getBoundingClientRect();
-    el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.cars.footerHeight : ((ui.views.cars.footerHeight / 1920) * window.innerWidth)}em)`;
+    if (ui.views.cars.scope) {
+        // Mounted in the picker modal - fill the modal body instead of sizing
+        // against the viewport
+        el.style.height = '';
+    } else {
+        el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.cars.footerHeight : ((ui.views.cars.footerHeight / 1920) * window.innerWidth)}em)`;
+    }
     
     // Set max-height for cars-filter div accounting for scale factor
-    const filterEl = document.querySelector('.cars-filter');
+    const filterEl = ui.views.cars.qs('.cars-filter');
     if (filterEl) {
         const filterRect = filterEl.getBoundingClientRect();
         const scaleFactor = ui.utils.scaleFactor || 1;
-        const maxHeight = (window.innerHeight - filterRect.top) / scaleFactor;
+        // On the page, keep the filter panel above the footer (expanded or
+        // collapsed) - in the picker modal there is no footer below it
+        const footerEl = ui.views.cars.scope ? null : document.querySelector('.footer-container');
+        const footerHeight = footerEl ? footerEl.getBoundingClientRect().height : 0;
+        const maxHeight = (window.innerHeight - filterRect.top - footerHeight) / scaleFactor;
         filterEl.style.maxHeight = `${maxHeight}px`;
     }
 }
@@ -1015,26 +1148,32 @@ ui.views.cars.resize = () => {
 ui.views.cars.nav = (e, section) => {
     e.preventDefault();
     e.stopPropagation();
-    var navItem = document.querySelector(`.cars-toolbar li.item-${section}`);
+    var navItem = ui.views.cars.qs(`.cars-toolbar li.item-${section}`);
     if (navItem.classList.contains('selected')) {
         ui.views.cars.hideFilter();
         return false;
+    }
+    if (ui.views.cars.scope) {
+        // Inside the picker modal - no routing (pushState would reload the
+        // cars view into the page); load the filter section in place
+        ui.views.cars.updateNav(section);
+        return true;
     }
     history.pushState(null, '', `/dashboard/cars/${section}` + window.location.search);
     return true;
 };
 
 ui.views.cars.updateNav = (section) => {
-    ui.nav.select('cars')
-    var navItem = document.querySelector(`.cars-toolbar li.item-${section}`);
+    if (!ui.views.cars.scope) ui.nav.select('cars');
+    var navItem = ui.views.cars.qs(`.cars-toolbar li.item-${section}`);
     if (navItem.classList.contains('selected')) {
         ui.views.cars.hideFilter();
         return false;
     }
-    document.querySelector('.cars-toolbar li').classList.remove('selected');
+    ui.views.cars.qs('.cars-toolbar li').classList.remove('selected');
     navItem.classList.add('selected');
     ui.view.loadComponent(`Cars/filter-${section}`, (html) => {
-        ui.view.injectComponent(html, '.cars-filter');
+        ui.view.injectComponent(html, ui.views.cars.qs('.cars-filter'));
         switch (section) {
             case 'country':
                 ui.views.cars.country.load();
@@ -1062,21 +1201,23 @@ ui.views.cars.updateNav = (section) => {
                 break;
         }
         //show close button
-        document.querySelector('.cars-toolbar .close-btn').style.display = 'block';
+        ui.views.cars.qs('.cars-toolbar .close-btn').style.display = 'block';
     });
 };
 
 ui.views.cars.hideFilter = () => {
-    document.querySelector('.cars-toolbar .close-btn').style.display = 'none';
-    document.querySelector('.cars-filter').innerHTML = '';
-    document.querySelectorAll('.cars-toolbar li').forEach((li) => {
+    ui.views.cars.qs('.cars-toolbar .close-btn').style.display = 'none';
+    ui.views.cars.qs('.cars-filter').innerHTML = '';
+    ui.views.cars.qsa('.cars-toolbar li').forEach((li) => {
         li.classList.remove('selected');
     });
-    history.pushState(null, '', `/dashboard/cars` + window.location.search);
+    if (!ui.views.cars.scope) {
+        history.pushState(null, '', `/dashboard/cars` + window.location.search);
+    }
 };
 
 ui.views.cars.saveFilter = () => {
-    localStorage.setItem('RacerUI:cars-filter', JSON.stringify(ui.views.cars.filter));
+    localStorage.setItem(ui.views.cars.filterKey(), JSON.stringify(ui.views.cars.filter));
 };
 
 ui.views.cars.hasNonModelFilters = () => {
@@ -1099,7 +1240,7 @@ ui.views.cars.hasActiveFilters = () => {
 };
 
 ui.views.cars.updateClearFilterButton = () => {
-    const clearFilterBtn = document.getElementById('clear_filter_btn');
+    const clearFilterBtn = ui.views.cars.byId('clear_filter_btn');
     if (clearFilterBtn) {
         if (ui.views.cars.hasActiveFilters()) {
             clearFilterBtn.parentElement.style.display = 'inline-block';
@@ -1186,7 +1327,7 @@ ui.views.cars.getFilteredList = (reset = true) => {
 };
 
 ui.views.cars.setupInfiniteScroll = () => {
-    const container = document.querySelector('.cars-content');
+    const container = ui.views.cars.qs('.cars-content');
     if (!container) return;
     
     // Remove existing listener if any
@@ -1252,7 +1393,7 @@ ui.views.cars.loadMore = () => {
 };
 
 ui.views.cars.manageVirtualDOM = () => {
-    const container = document.querySelector('.cars-content');
+    const container = ui.views.cars.qs('.cars-content');
     const gridView = container?.querySelector('.grid-view');
     if (!gridView) return;
     
@@ -1422,7 +1563,7 @@ ui.views.cars.views.load = (list) => {
     // Check if no cars found - show empty results view
     if (!list.cars || list.cars.length === 0) {
         ui.view.loadComponent('Cars/empty-results', (htmlEmpty) => {
-            ui.view.injectComponent(htmlEmpty, '.cars-content');
+            ui.view.injectComponent(htmlEmpty, ui.views.cars.qs('.cars-content'));
         });
         ui.views.cars.isLoading = false;
         return;
@@ -1446,22 +1587,34 @@ ui.views.cars.views.load = (list) => {
                         .split('{{name}}').join(carName)
                         .split('{{items}}').join(output)
                         .split('{{preview}}').join(car.preview)
-                        , '.cars-content');
+                        , ui.views.cars.qs('.cars-content'));
                     ui.views.cars.views.gallery.setup();
                     break;
                 case 'grid': case 'gridxl': case 'gridsm':
-                    ui.view.injectComponent(htmlView.split('{{items}}').join(output), '.cars-content');
+                    ui.view.injectComponent(htmlView.split('{{items}}').join(output), ui.views.cars.qs('.cars-content'));
                     ui.views.cars.views.grid.setup();
                     break;
                 default:
-                    ui.view.injectComponent(htmlView.split('{{items}}').join(output), '.cars-content');
+                    ui.view.injectComponent(htmlView.split('{{items}}').join(output), ui.views.cars.qs('.cars-content'));
                     break;
             }
             ui.views.cars.isLoading = false;
             ui.views.cars.resize();
             ui.views.cars.setupInfiniteScroll();
+            ui.views.cars.checkOverflowLoad();
         });
     });
+};
+
+// If the grid doesn't overflow its container, no scroll event can ever fire
+// and infinite scroll stalls on the first page - keep loading until the
+// container scrolls or the results run out
+ui.views.cars.checkOverflowLoad = () => {
+    const container = ui.views.cars.qs('.cars-content');
+    if (container && container.scrollHeight <= container.clientHeight
+        && ui.views.cars.hasMore && !ui.views.cars.isLoading) {
+        ui.views.cars.loadMore();
+    }
 };
 
 ui.views.cars.views.appendCars = (list) => {
@@ -1475,7 +1628,7 @@ ui.views.cars.views.appendCars = (list) => {
     ui.views.cars.hasMore = list.cars.length >= ui.views.cars.filter.length;
     
     ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
-        const gridView = document.querySelector('.cars-content .grid-view');
+        const gridView = ui.views.cars.qs('.cars-content .grid-view');
         if (!gridView) {
             ui.views.cars.isLoading = false;
             return;
@@ -1488,6 +1641,7 @@ ui.views.cars.views.appendCars = (list) => {
         
         ui.views.cars.views.grid.setup();
         ui.views.cars.isLoading = false;
+        ui.views.cars.checkOverflowLoad();
     });
 };
 
@@ -1503,7 +1657,7 @@ ui.views.cars.views.changeView = (view) => {
 ui.views.cars.views.grid = {
     detailsDiv: null,
     setup: () => {
-        document.querySelectorAll('.grid-view > .car').forEach((item) => {
+        ui.views.cars.qsa('.grid-view > .car').forEach((item) => {
             item.onmouseenter = (e) => {
                 //hover over car grid item
                 e.preventDefault();
@@ -1555,7 +1709,7 @@ ui.views.cars.views.grid = {
         // Check if the clicked car is already selected
         if (ui.views.cars.selected && ui.views.cars.selected.car && ui.views.cars.selected.car.path === car.path) {
             // Hide details if the same car is clicked again
-            const detailsDiv = document.querySelector('.grid-details');
+            const detailsDiv = ui.views.cars.qs('.grid-details');
             if (detailsDiv) {
                 detailsDiv.classList.add('hiding');
                 setTimeout(() => {
@@ -1571,7 +1725,7 @@ ui.views.cars.views.grid = {
             return;
         }
         ui.view.loadComponent(`Cars/grid-details`, (html) => {
-            const detailsDiv = document.querySelector('.grid-details');
+            const detailsDiv = ui.views.cars.qs('.grid-details');
             if(detailsDiv != null){
                 detailsDiv.classList.add('hiding');
                 setTimeout(() => {
@@ -1658,14 +1812,14 @@ ui.views.cars.views.grid = {
                 
                 setTimeout(() => {
                     //scroll to car details
-                    ui.scrollTo(document.querySelector('.cars-content'), item, 500, 'easeInOutQuad', 0);
+                    ui.scrollTo(ui.views.cars.qs('.cars-content'), item, 500, 'easeInOutQuad', 0);
                 }, 350);
             });
         });
     },
     setupSelectCarHandler: () => {
         // Add event listeners to all select car buttons
-        const selectCarBtns = document.querySelectorAll('.select-car-btn');
+        const selectCarBtns = ui.views.cars.qsa('.select-car-btn');
         selectCarBtns.forEach((btn) => {
             btn.addEventListener('click', () => {
                 // Get the selected car and skin from ui.views.cars.selected
@@ -1676,15 +1830,21 @@ ui.views.cars.views.grid = {
                     if (!skinName && ui.views.cars.selected.car.skins && ui.views.cars.selected.car.skins.length > 0) {
                         skinName = ui.views.cars.selected.car.skins[0].path;
                     }
-                    
-                    // Update footer with car and skin info
-                    ui.views.footer.selectCar(ui.views.cars.selected.car, skinName);
+
+                    if (ui.views.cars.picker) {
+                        // Mounted in the footer's candidate-picker modal - the
+                        // selection goes to the race candidate list instead
+                        ui.views.cars.picker(ui.views.cars.selected.car, skinName);
+                    } else {
+                        // Update footer with car and skin info
+                        ui.views.footer.selectCar(ui.views.cars.selected.car, skinName);
+                    }
                 }
             });
         });
     },
     setupButtonHoverEffects: () => {
-        const buttons = document.querySelectorAll('.select-car-btn');
+        const buttons = ui.views.cars.qsa('.select-car-btn');
         
         buttons.forEach((button) => {
             // Skip if already wrapped
@@ -1720,8 +1880,8 @@ ui.views.cars.views.grid = {
         });
     },
     setupTabHandlers: () => {
-        const tabButtons = document.querySelectorAll('.car-tab');
-        const tabContents = document.querySelectorAll('.car-tab-content');
+        const tabButtons = ui.views.cars.qsa('.car-tab');
+        const tabContents = ui.views.cars.qsa('.car-tab-content');
         
         tabButtons.forEach((button) => {
             button.addEventListener('click', () => {
@@ -1733,7 +1893,7 @@ ui.views.cars.views.grid = {
                 
                 // Add active class to clicked tab and corresponding content
                 button.classList.add('active');
-                const targetContent = document.querySelector(`.car-tab-content[data-content="${targetTab}"]`);
+                const targetContent = ui.views.cars.qs(`.car-tab-content[data-content="${targetTab}"]`);
                 if (targetContent) {
                     targetContent.classList.add('active');
                 }
@@ -1741,7 +1901,7 @@ ui.views.cars.views.grid = {
         });
     },
     setupSkinHandlers: () => {
-        const skinItems = document.querySelectorAll('.skin-item');
+        const skinItems = ui.views.cars.qsa('.skin-item');
         
         skinItems.forEach((skinItem) => {
             // Wrap skin-item in a positioned container
@@ -1773,13 +1933,13 @@ ui.views.cars.views.grid = {
             
             // Click handler to change preview (only on original, clone has pointer-events: none)
             skinItem.parentNode.addEventListener('click', () => {
-                const previewContainer = document.querySelector('.grid-details .preview-container');
-                const oldPreviewDiv = document.querySelector('.grid-details .preview');
+                const previewContainer = ui.views.cars.qs('.grid-details .preview-container');
+                const oldPreviewDiv = ui.views.cars.qs('.grid-details .preview');
                 const previewPath = skinItem.getAttribute('data-preview');
                 const skinName = skinItem.getAttribute('data-skin');
                 
                 // Remove selected class from all skins
-                document.querySelectorAll('.skin-item').forEach(item => {
+                ui.views.cars.qsa('.skin-item').forEach(item => {
                     item.classList.remove('selected');
                 });
                 
@@ -1823,7 +1983,7 @@ ui.views.cars.views.grid = {
     setupPowerGraph: (car) => {
         const container = ui.views.cars.views.grid.detailsDiv && ui.views.cars.views.grid.detailsDiv.querySelector
             ? ui.views.cars.views.grid.detailsDiv.querySelector('.car-graph')
-            : document.querySelector('.grid-details .car-graph');
+            : ui.views.cars.qs('.grid-details .car-graph');
         if (!container || !car.id) return;
         ui.ajax({
             url: `/api/cars/${car.id}/powercurve`,
@@ -1954,7 +2114,7 @@ ui.views.cars.view = {};
 ui.views.cars.view.load = () => {
     //load selected countries
     if (ui.views.cars.filter.countries.length > 0) {
-        document.querySelectorAll('.filter-country li').forEach((li) => {
+        ui.views.cars.qsa('.filter-country li').forEach((li) => {
             if (ui.views.cars.filter.countries.includes(li.getAttribute('data-country'))) {
                 li.classList.add('selected');
             } else {
@@ -1962,7 +2122,7 @@ ui.views.cars.view.load = () => {
             }
         });
     }
-    document.querySelectorAll('.filter-view li').forEach((li) => {
+    ui.views.cars.qsa('.filter-view li').forEach((li) => {
         li.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1973,10 +2133,10 @@ ui.views.cars.view.load = () => {
 
 ui.views.cars.view.select = (view) => {
     ui.views.cars.filter.view = view;
-    document.querySelectorAll('.filter-view li').forEach((li) => {
+    ui.views.cars.qsa('.filter-view li').forEach((li) => {
         li.classList.remove('selected');
     });
-    document.querySelectorAll('.filter-view li[data-view="' + view + '"]').forEach((li) => {
+    ui.views.cars.qsa('.filter-view li[data-view="' + view + '"]').forEach((li) => {
         li.classList.add('selected');
     });
 };
@@ -1999,7 +2159,7 @@ ui.views.cars.country.load = () => {
                 try {
                     const countries = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-country .select-list');
+                    const container = ui.views.cars.qs('.filter-country .select-list');
                     if (!container) {
                         console.error('Container .filter-country .select-list not found');
                         return;
@@ -2016,7 +2176,7 @@ ui.views.cars.country.load = () => {
                     });
                     
                     // Set up click handlers after populating
-                    document.querySelectorAll('.filter-country li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-country li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -2026,7 +2186,7 @@ ui.views.cars.country.load = () => {
                     
                     // Load selected countries
                     if (ui.views.cars.filter.countries.length > 0) {
-                        document.querySelectorAll('.filter-country li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-country li').forEach((li) => {
                             if (ui.views.cars.filter.countries.includes(li.getAttribute('data-country'))) {
                                 li.classList.add('selected');
                             } else {
@@ -2045,7 +2205,7 @@ ui.views.cars.country.load = () => {
 ui.views.cars.country.select = (country) => {
     if (country == 'all') {
         ui.views.cars.filter.countries = ['all'];
-        document.querySelectorAll('.filter-country li').forEach((li) => {
+        ui.views.cars.qsa('.filter-country li').forEach((li) => {
             li.classList.remove('selected');
         });
     } else {
@@ -2057,11 +2217,11 @@ ui.views.cars.country.select = (country) => {
         if (ui.views.cars.filter.countries.indexOf('all') > -1) {
             ui.views.cars.filter.countries.splice(ui.views.cars.filter.countries.indexOf('all'), 1);
         }
-        document.querySelectorAll('.filter-country li[data-country="all"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-country li[data-country="all"]').forEach((li) => {
             li.classList.remove('selected');
         });
     }
-    document.querySelectorAll('.filter-country li[data-country="' + country + '"]').forEach((li) => {
+    ui.views.cars.qsa('.filter-country li[data-country="' + country + '"]').forEach((li) => {
         li.classList.toggle('selected');
     });
     ui.views.cars.getFilteredList();
@@ -2083,7 +2243,7 @@ ui.views.cars.manufacturer.load = () => {
                 try {
                     const manufacturers = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-manufacturer .select-list');
+                    const container = ui.views.cars.qs('.filter-manufacturer .select-list');
                     if (!container) {
                         console.error('Container .filter-manufacturer .select-list not found');
                         return;
@@ -2098,7 +2258,7 @@ ui.views.cars.manufacturer.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-manufacturer li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -2107,7 +2267,7 @@ ui.views.cars.manufacturer.load = () => {
                     });
                     
                     if (ui.views.cars.filter.makes.length > 0) {
-                        document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-manufacturer li').forEach((li) => {
                             if (ui.views.cars.filter.makes.includes(parseInt(li.getAttribute('data-make')))) {
                                 li.classList.add('selected');
                             } else {
@@ -2115,7 +2275,7 @@ ui.views.cars.manufacturer.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading manufacturers:', error);
@@ -2128,25 +2288,25 @@ ui.views.cars.manufacturer.load = () => {
 ui.views.cars.manufacturer.select = (makeId) => {
     if (makeId == 0) { // Assuming 0 is the 'all' value for manufacturers
         ui.views.cars.filter.makes = [];
-        document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+        ui.views.cars.qsa('.filter-manufacturer li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.makes.includes(makeId)) {
             ui.views.cars.filter.makes.splice(ui.views.cars.filter.makes.indexOf(makeId), 1);
         } else {
             ui.views.cars.filter.makes.push(makeId);
         }
-        document.querySelectorAll('.filter-manufacturer li[data-make="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-manufacturer li[data-make="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-manufacturer li[data-make="' + makeId + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-manufacturer li[data-make="' + makeId + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no manufacturers selected, select 'All'
         if (ui.views.cars.filter.makes.length === 0) {
-            document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -2159,7 +2319,7 @@ ui.views.cars.manufacturer.select = (makeId) => {
 ui.views.cars.model = {};
 
 ui.views.cars.model.load = () => {
-    const container = document.querySelector('.filter-model .select-list');
+    const container = ui.views.cars.qs('.filter-model .select-list');
     if (!container) return;
 
     // Models are a narrowing filter - they are only listed once another
@@ -2186,7 +2346,7 @@ ui.views.cars.model.load = () => {
                         container.innerHTML += itemHtml;
                     });
 
-                    document.querySelectorAll('.filter-model li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-model li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -2195,7 +2355,7 @@ ui.views.cars.model.load = () => {
                     });
 
                     if (ui.views.cars.filter.models.length > 0) {
-                        document.querySelectorAll('.filter-model li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-model li').forEach((li) => {
                             if (ui.views.cars.filter.models.includes(parseInt(li.getAttribute('data-model')))) {
                                 li.classList.add('selected');
                             } else {
@@ -2203,7 +2363,7 @@ ui.views.cars.model.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-model li[data-model="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading models:', error);
@@ -2216,25 +2376,25 @@ ui.views.cars.model.load = () => {
 ui.views.cars.model.select = (modelId) => {
     if (modelId == 0) { // Assuming 0 is the 'all' value for models
         ui.views.cars.filter.models = [];
-        document.querySelectorAll('.filter-model li').forEach((li) => {
+        ui.views.cars.qsa('.filter-model li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-model li[data-model="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.models.includes(modelId)) {
             ui.views.cars.filter.models.splice(ui.views.cars.filter.models.indexOf(modelId), 1);
         } else {
             ui.views.cars.filter.models.push(modelId);
         }
-        document.querySelectorAll('.filter-model li[data-model="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-model li[data-model="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
         // If no models selected, select 'All'
         if (ui.views.cars.filter.models.length === 0) {
-            document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-model li[data-model="0"]')?.classList.add('selected');
         }
     }
-    document.querySelectorAll('.filter-model li[data-model="' + modelId + '"]').forEach((li) => {
+    ui.views.cars.qsa('.filter-model li[data-model="' + modelId + '"]').forEach((li) => {
         li.classList.toggle('selected');
     });
     ui.views.cars.getFilteredList();
@@ -2256,7 +2416,7 @@ ui.views.cars.year.load = () => {
                 try {
                     const years = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-year .select-list');
+                    const container = ui.views.cars.qs('.filter-year .select-list');
                     if (!container) {
                         console.error('Container .filter-year .select-list not found');
                         return;
@@ -2270,7 +2430,7 @@ ui.views.cars.year.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-year li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-year li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -2279,7 +2439,7 @@ ui.views.cars.year.load = () => {
                     });
                     
                     if (ui.views.cars.filter.years.length > 0) {
-                        document.querySelectorAll('.filter-year li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-year li').forEach((li) => {
                             if (ui.views.cars.filter.years.includes(parseInt(li.getAttribute('data-year')))) {
                                 li.classList.add('selected');
                             } else {
@@ -2287,7 +2447,7 @@ ui.views.cars.year.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-year li[data-year="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading years:', error);
@@ -2300,25 +2460,25 @@ ui.views.cars.year.load = () => {
 ui.views.cars.year.select = (year) => {
     if (year == 0) { // Assuming 0 is the 'all' value for years
         ui.views.cars.filter.years = [];
-        document.querySelectorAll('.filter-year li').forEach((li) => {
+        ui.views.cars.qsa('.filter-year li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-year li[data-year="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.years.includes(year)) {
             ui.views.cars.filter.years.splice(ui.views.cars.filter.years.indexOf(year), 1);
         } else {
             ui.views.cars.filter.years.push(year);
         }
-        document.querySelectorAll('.filter-year li[data-year="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-year li[data-year="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-year li[data-year="' + year + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-year li[data-year="' + year + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no years selected, select 'All'
         if (ui.views.cars.filter.years.length === 0) {
-            document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-year li[data-year="0"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -2340,7 +2500,7 @@ ui.views.cars.type.load = () => {
                 try {
                     const types = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-type .select-list');
+                    const container = ui.views.cars.qs('.filter-type .select-list');
                     if (!container) {
                         console.error('Container .filter-type .select-list not found');
                         return;
@@ -2355,7 +2515,7 @@ ui.views.cars.type.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-type li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-type li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -2364,7 +2524,7 @@ ui.views.cars.type.load = () => {
                     });
                     
                     if (ui.views.cars.filter.types.length > 0) {
-                        document.querySelectorAll('.filter-type li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-type li').forEach((li) => {
                             if (ui.views.cars.filter.types.includes(parseInt(li.getAttribute('data-type')))) {
                                 li.classList.add('selected');
                             } else {
@@ -2372,7 +2532,7 @@ ui.views.cars.type.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading types:', error);
@@ -2385,25 +2545,25 @@ ui.views.cars.type.load = () => {
 ui.views.cars.type.select = (typeId) => {
     if (typeId == 0) { // Assuming 0 is the 'all' value for types
         ui.views.cars.filter.types = [];
-        document.querySelectorAll('.filter-type li').forEach((li) => {
+        ui.views.cars.qsa('.filter-type li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.types.includes(typeId)) {
             ui.views.cars.filter.types.splice(ui.views.cars.filter.types.indexOf(typeId), 1);
         } else {
             ui.views.cars.filter.types.push(typeId);
         }
-        document.querySelectorAll('.filter-type li[data-type="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-type li[data-type="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-type li[data-type="' + typeId + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-type li[data-type="' + typeId + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no types selected, select 'All'
         if (ui.views.cars.filter.types.length === 0) {
-            document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -2428,7 +2588,7 @@ ui.views.cars.class.load = () => {
                     try {
                         const classesByCategory = JSON.parse(response.responseText);
                         
-                        const container = document.querySelector('.filter-class .select-list');
+                        const container = ui.views.cars.qs('.filter-class .select-list');
                         container.innerHTML = '<li data-class="all">All Classes</li>';
                         
                         classesByCategory.forEach(category => {
@@ -2453,7 +2613,7 @@ ui.views.cars.class.load = () => {
                         });
                         
                         // Set up click handlers after populating
-                        document.querySelectorAll('.filter-class li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-class li').forEach((li) => {
                             li.onclick = (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -2463,7 +2623,7 @@ ui.views.cars.class.load = () => {
                         
                         // Load selected classes
                         if (ui.views.cars.filter.classes && ui.views.cars.filter.classes.length > 0) {
-                            document.querySelectorAll('.filter-class li').forEach((li) => {
+                            ui.views.cars.qsa('.filter-class li').forEach((li) => {
                                 if (ui.views.cars.filter.classes.includes(li.getAttribute('data-class'))) {
                                     li.classList.add('selected');
                                 }
@@ -2485,25 +2645,25 @@ ui.views.cars.class.select = (className) => {
     
     if (className === 'all') {
         ui.views.cars.filter.classes = [];
-        document.querySelectorAll('.filter-class li').forEach((li) => {
+        ui.views.cars.qsa('.filter-class li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-class li[data-class="all"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-class li[data-class="all"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.classes.includes(className)) {
             ui.views.cars.filter.classes.splice(ui.views.cars.filter.classes.indexOf(className), 1);
         } else {
             ui.views.cars.filter.classes.push(className);
         }
-        document.querySelectorAll('.filter-class li[data-class="all"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-class li[data-class="all"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-class li[data-class="' + className + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-class li[data-class="' + className + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no classes selected, select 'All'
         if (ui.views.cars.filter.classes.length === 0) {
-            document.querySelector('.filter-class li[data-class="all"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-class li[data-class="all"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -2525,7 +2685,7 @@ ui.views.cars.style.load = () => {
                 try {
                     const styles = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-style .select-list');
+                    const container = ui.views.cars.qs('.filter-style .select-list');
                     container.innerHTML = '<li data-style="0">All Styles</li>';
                     
                     styles.forEach(style => {
@@ -2535,7 +2695,7 @@ ui.views.cars.style.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-style li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-style li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -2544,7 +2704,7 @@ ui.views.cars.style.load = () => {
                     });
                     
                     if (ui.views.cars.filter.styles.length > 0) {
-                        document.querySelectorAll('.filter-style li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-style li').forEach((li) => {
                             if (ui.views.cars.filter.styles.includes(parseInt(li.getAttribute('data-style')))) {
                                 li.classList.add('selected');
                             } else {
@@ -2552,7 +2712,7 @@ ui.views.cars.style.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-style li[data-style="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading styles:', error);
@@ -2565,25 +2725,25 @@ ui.views.cars.style.load = () => {
 ui.views.cars.style.select = (styleId) => {
     if (styleId == 0) { // Assuming 0 is the 'all' value for styles
         ui.views.cars.filter.styles = [];
-        document.querySelectorAll('.filter-style li').forEach((li) => {
+        ui.views.cars.qsa('.filter-style li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-style li[data-style="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.styles.includes(styleId)) {
             ui.views.cars.filter.styles.splice(ui.views.cars.filter.styles.indexOf(styleId), 1);
         } else {
             ui.views.cars.filter.styles.push(styleId);
         }
-        document.querySelectorAll('.filter-style li[data-style="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-style li[data-style="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-style li[data-style="' + styleId + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-style li[data-style="' + styleId + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no styles selected, select 'All'
         if (ui.views.cars.filter.styles.length === 0) {
-            document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-style li[data-style="0"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -2605,7 +2765,7 @@ ui.views.cars.specialization.load = () => {
                 try {
                     const specializations = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-specialization .select-list');
+                    const container = ui.views.cars.qs('.filter-specialization .select-list');
                     if (!container) {
                         console.error('Container .filter-specialization .select-list not found');
                         return;
@@ -2620,7 +2780,7 @@ ui.views.cars.specialization.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-specialization li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-specialization li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -2629,7 +2789,7 @@ ui.views.cars.specialization.load = () => {
                     });
                     
                     if (ui.views.cars.filter.specializations.length > 0) {
-                        document.querySelectorAll('.filter-specialization li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-specialization li').forEach((li) => {
                             if (ui.views.cars.filter.specializations.includes(parseInt(li.getAttribute('data-specialization')))) {
                                 li.classList.add('selected');
                             } else {
@@ -2637,7 +2797,7 @@ ui.views.cars.specialization.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading specializations:', error);
@@ -2650,25 +2810,25 @@ ui.views.cars.specialization.load = () => {
 ui.views.cars.specialization.select = (specializationId) => {
     if (specializationId == 0) { // Assuming 0 is the 'all' value for specializations
         ui.views.cars.filter.specializations = [];
-        document.querySelectorAll('.filter-specialization li').forEach((li) => {
+        ui.views.cars.qsa('.filter-specialization li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.specializations.includes(specializationId)) {
             ui.views.cars.filter.specializations.splice(ui.views.cars.filter.specializations.indexOf(specializationId), 1);
         } else {
             ui.views.cars.filter.specializations.push(specializationId);
         }
-        document.querySelectorAll('.filter-specialization li[data-specialization="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-specialization li[data-specialization="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-specialization li[data-specialization="' + specializationId + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-specialization li[data-specialization="' + specializationId + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no specializations selected, select 'All'
         if (ui.views.cars.filter.specializations.length === 0) {
-            document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -2725,8 +2885,35 @@ ui.views.footer.staticWeatherTypes = [
     { value: 32, label: 'Hail' }
 ];
 
+// ACTools quick-drive modes reachable through the "More" dropdown (Practice,
+// Hotlap and Race get their own toggle buttons)
+ui.views.footer.MORE_MODES = ['trackday', 'weekend', 'drift', 'timeattack', 'drag'];
+
+// Modes that race against AI opponents - they get the Candidates section
+ui.views.footer.OPPONENT_MODES = ['race', 'trackday', 'weekend', 'drag'];
+
+// Per-mode field defaults, mirroring the SaveableData of ACTools' QuickDrive_*
+// pages (penalties on, AI level 95, aggression 0, 7 opponents, grid spot 7)
+ui.views.footer.MODE_DEFAULTS = {
+    practice:   { penalties: true, startType: 'PIT', ballast: 0, restrictor: 0 },
+    hotlap:     { penalties: true, ghostCar: true, ghostCarRecord: true, ghostCarAdvantage: 0, ballast: 0, restrictor: 0 },
+    race:       { penalties: true, jumpStartPenalty: 0, laps: 2, opponents: 7, aiLevel: 95, aiAggression: 0, startingPosition: 7 },
+    trackday:   { penalties: true, opponents: 7, aiLevel: 95, aiAggression: 0, speedLimit: 0 },
+    weekend:    { penalties: true, jumpStartPenalty: 0, laps: 2, practiceDuration: 15, qualificationDuration: 30, opponents: 7, aiLevel: 95, aiAggression: 0 },
+    drift:      { penalties: true, startType: 'PIT', ballast: 0, restrictor: 0 },
+    timeattack: { penalties: true, ballast: 0, restrictor: 0 },
+    drag:       { penalties: true, matches: 10, aiLevel: 100 }
+};
+
+ui.views.footer.defaultModeSettings = () =>
+    JSON.parse(JSON.stringify(ui.views.footer.MODE_DEFAULTS));
+
 // Launch settings shown in the expanded footer (defaults mirror Content Manager)
 ui.views.footer.raceSettings = {
+    tab: 'environment',          // settings panel tab: 'environment' | 'race'
+    mode: 'hotlap',              // quick-drive mode: practice|hotlap|race|trackday|weekend|drift|timeattack|drag
+    modes: ui.views.footer.defaultModeSettings(),
+    candidates: [],              // opponent car pool: [{id, name, carPath, skinPath}]
     timeMinutes: 840,            // 14:00 -> SUN_ANGLE 16
     weatherMode: 'static',       // 'static' or 'dynamic:<controllerId>'
     weatherController: 'base',
@@ -2755,6 +2942,7 @@ ui.views.footer.load = () => {
         if (newFooterContainer) {
             newFooterContainer.classList.toggle('expanded', ui.views.footer.expanded);
         }
+        document.body.classList.toggle('footer-expanded', ui.views.footer.expanded);
 
         // Re-apply the scale-ui transform to the re-inserted footer
         if (ui.utils.scaleUI) {
@@ -2917,11 +3105,13 @@ ui.views.footer.selectCar = (car, skin) => {
     ui.views.footer.selectedCar = car;
     ui.views.footer.selectedSkin = skin || null;
     
-    // Save to localStorage
-    localStorage.setItem('RacerUI:footer-selected-car', JSON.stringify({
-        car: car,
-        skin: skin
-    }));
+    // Save to localStorage - editing a favorite never touches the user's data
+    if (!ui.views.footer.editingFavorite) {
+        localStorage.setItem('RacerUI:footer-selected-car', JSON.stringify({
+            car: car,
+            skin: skin
+        }));
+    }
     
     ui.views.footer.updateDisplay();
 };
@@ -2930,11 +3120,13 @@ ui.views.footer.selectTrack = (track, layout) => {
     ui.views.footer.selectedTrack = track;
     ui.views.footer.selectedLayout = layout || null;
     
-    // Save to localStorage
-    localStorage.setItem('RacerUI:footer-selected-track', JSON.stringify({
-        track: track,
-        layout: layout || null
-    }));
+    // Save to localStorage - editing a favorite never touches the user's data
+    if (!ui.views.footer.editingFavorite) {
+        localStorage.setItem('RacerUI:footer-selected-track', JSON.stringify({
+            track: track,
+            layout: layout || null
+        }));
+    }
     
     ui.views.footer.updateDisplay();
 };
@@ -2985,7 +3177,11 @@ ui.views.footer.parseTime = (text) => {
 };
 
 ui.views.footer.saveRaceSettings = () => {
-    localStorage.setItem('RacerUI:footer-race-settings', JSON.stringify(ui.views.footer.raceSettings));
+    // Editing a favorite updates the in-memory config only - the user's own
+    // settings must stay untouched in localStorage
+    if (!ui.views.footer.editingFavorite) {
+        localStorage.setItem('RacerUI:footer-race-settings', JSON.stringify(ui.views.footer.raceSettings));
+    }
     ui.views.footer.updateSettingsSummary();
 };
 
@@ -3019,6 +3215,202 @@ ui.views.footer.updateSettingsSummary = () => {
     const dir = dirs[Math.round(s.windDirection / 22.5) % 16];
 
     el.textContent = `${time}, ${weather}, ${s.temperature}\u00B0C, Wind at ${kmh}KM/H ${dir}`;
+
+    const modeEl = document.querySelector('.footer-container .session-mode');
+    if (modeEl) {
+        modeEl.textContent = ui.views.footer.modeSummary();
+    }
+};
+
+const MODE_LABELS = {
+    practice: 'Practice', hotlap: 'Hotlap', race: 'Race', trackday: 'Track Day',
+    weekend: 'Weekend', drift: 'Drift', timeattack: 'Time Attack', drag: 'Drag'
+};
+
+const ordinal = (n) => {
+    if (n % 100 >= 11 && n % 100 <= 13) return `${n}th`;
+    return n + (['th', 'st', 'nd', 'rd'][n % 10] || 'th');
+};
+
+// Collapsed-footer third row - the selected race mode + its key settings
+// (e.g. "Race - 10 Laps, 7 Opponents, 7th Starting Position")
+ui.views.footer.modeSummary = (settings) => {
+    let s = settings || ui.views.footer.raceSettings;
+    if (s && s.settings) s = s.settings; // legacy blobs wrapped settings
+    s = s || {};
+    if (!s.mode) return ''; // legacy saves predate race modes
+    const mode = s.mode;
+    const ms = (s.modes && s.modes[mode]) || {};
+    const parts = [];
+    switch (mode) {
+        case 'race':
+            parts.push(`${ms.laps} Laps`, `${ms.opponents} Opponents`,
+                `${ordinal(ms.startingPosition)} Starting Position`);
+            break;
+        case 'weekend':
+            parts.push(`${ms.practiceDuration} min Practice`, `${ms.qualificationDuration} min Qualifying`,
+                `${ms.laps} Laps`, `${ms.opponents} Opponents`);
+            break;
+        case 'trackday':
+            parts.push(`${ms.opponents} Opponents`);
+            break;
+        case 'drag':
+            parts.push(`${ms.matches} Matches`);
+            break;
+        case 'hotlap':
+            if (ms.ghostCar) parts.push('Ghost Car');
+            break;
+    }
+    if (ms.ballast) parts.push(`Ballast ${ms.ballast} kg`);
+    if (ms.restrictor) parts.push(`Restrictor ${ms.restrictor} %`);
+    return parts.length ? `${MODE_LABELS[mode] || mode} - ${parts.join(', ')}` : (MODE_LABELS[mode] || mode);
+};
+
+// Favorite-edit mode - while set, the footer edits a saved favorite's config
+// instead of the user's own settings; nothing is written to localStorage
+ui.views.footer.editingFavorite = null;
+
+// Re-applies the current raceSettings to every bound control - used when the
+// settings change outside the form (e.g. loading a favorite for editing)
+ui.views.footer.refreshSettingsControls = () => {
+    const s = ui.views.footer.raceSettings;
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    const qs = (sel) => container.querySelector(sel);
+
+    const setVal = (el, v) => { if (el) el.value = v; };
+    setVal(qs('#ftr-static-weather'), s.staticWeatherType);
+    setVal(qs('#ftr-weather-mode'), s.weatherMode);
+    setVal(qs('#ftr-weather-controller'), s.weatherController);
+    setVal(qs('#ftr-track-state'), s.trackPreset);
+    setVal(qs('#ftr-time-slider'), s.timeMinutes);
+    setVal(qs('#ftr-time-input'), ui.views.footer.formatTime(s.timeMinutes));
+    setVal(qs('#ftr-temp-slider'), s.temperature);
+    setVal(qs('#ftr-wind-slider'), s.windSpeed);
+    const tempValue = qs('#ftr-temp-value');
+    if (tempValue) tempValue.textContent = `${s.temperature}°C`;
+    const windValue = qs('#ftr-wind-value');
+    if (windValue) windValue.textContent = `${s.windSpeed} km/h`;
+    ui.views.footer.setWindDirection(s.windDirection);
+    ui.views.footer.applyWeatherMode();
+    ui.views.footer.selectSettingsTab(s.tab || 'environment', false);
+    ui.views.footer.refreshModePanels();
+    ui.views.footer.updateSettingsSummary();
+};
+
+// Opens the favorite's settings in the expanded footer for editing. The
+// user's own settings are stashed and nothing is persisted to localStorage
+// while the edit is open
+ui.views.footer.openFavoriteEdit = (fav) => {
+    ui.views.footer.editingFavorite = {
+        fav: fav,
+        stash: JSON.parse(JSON.stringify(ui.views.footer.raceSettings))
+    };
+
+    const mount = () => {
+        const edit = ui.views.footer.editingFavorite;
+        if (!edit) return;
+
+        // Load the favorite's car/track/config into the live state
+        ui.views.footer.selectedCar = { id: fav.carId, name: fav.carName, path: fav.carPath };
+        ui.views.footer.selectedSkin = fav.skinPath || null;
+        if (fav.trackParentId) {
+            ui.views.footer.selectedTrack = { id: fav.trackParentId, name: fav.parentTrackName, path: fav.trackPath };
+            ui.views.footer.selectedLayout = {
+                id: fav.trackId, name: fav.trackName,
+                layoutName: fav.layoutName || null,
+                path: fav.trackPath, subPath: fav.trackSubPath
+            };
+        } else {
+            ui.views.footer.selectedTrack = {
+                id: fav.trackId, name: fav.trackName,
+                path: fav.trackPath, subPath: fav.trackSubPath
+            };
+            ui.views.footer.selectedLayout = null;
+        }
+
+        let cfg = {};
+        try { cfg = JSON.parse(fav.configJson) || {}; } catch (e) { }
+        const saved = cfg.settings || cfg;
+        const savedModes = saved.modes;
+        delete saved.modes;
+        Object.assign(ui.views.footer.raceSettings, saved);
+        if (savedModes) {
+            if (!ui.views.footer.raceSettings.modes) {
+                ui.views.footer.raceSettings.modes = ui.views.footer.defaultModeSettings();
+            }
+            Object.keys(savedModes).forEach((mode) => {
+                ui.views.footer.raceSettings.modes[mode] = Object.assign(
+                    {}, ui.views.footer.MODE_DEFAULTS[mode] || {}, savedModes[mode]);
+            });
+        }
+
+        const footerEl = document.querySelector('.footer-container');
+        footerEl.classList.add('editing-fav');
+        if (!ui.views.footer.expanded) ui.views.footer.toggleDetails();
+        // unload() strips these while the expanded flag stays set - force them
+        // so the page content hides regardless of which path got us here
+        footerEl.classList.add('expanded');
+        document.body.classList.add('footer-expanded');
+        ui.views.footer.refreshSettingsControls();
+        ui.views.footer.updateDisplay();
+    };
+
+    // The footer is unloaded on the history view - mount it first, then open
+    if (document.querySelector('.footer-container')) {
+        mount();
+    } else {
+        ui.views.footer.load();
+        const poll = setInterval(() => {
+            if (document.querySelector('.footer-container')) {
+                clearInterval(poll);
+                mount();
+            }
+        }, 50);
+    }
+};
+
+// Closes favorite-edit mode. update=true PUTs the edited configJson first.
+// Either way the user's stashed settings are restored and the footer unloads
+ui.views.footer.closeFavoriteEdit = (update) => {
+    const edit = ui.views.footer.editingFavorite;
+    if (!edit) return;
+
+    const finish = () => {
+        ui.views.footer.raceSettings = edit.stash;
+        ui.views.footer.editingFavorite = null;
+        const container = document.querySelector('.footer-container');
+        if (container) {
+            container.classList.remove('editing-fav');
+            // Fades out alongside the collapse animation (see footer.less)
+            container.classList.add('fav-edit-closing');
+        }
+        // Collapse the footer (body class comes off immediately so the
+        // favorites list fades in alongside the collapse animation), then
+        // unload once the transition has played out
+        if (ui.views.footer.expanded) {
+            ui.views.footer.toggleDetails();
+        }
+        setTimeout(() => ui.views.footer.unload(), 450);
+        // Refresh the favorites list with the updated config - the list
+        // renders inside .history-content, not .content
+        const content = document.querySelector('.history-content');
+        if (ui.views.history && content) {
+            ui.views.history.loadFavorites(content);
+        }
+    };
+
+    if (update) {
+        ui.ajax({
+            url: `/api/favorites/${edit.fav.id}`,
+            method: 'PUT',
+            data: { configJson: JSON.stringify(ui.views.footer.raceSettings) },
+            complete: finish,
+            error: finish
+        });
+    } else {
+        finish();
+    }
 };
 
 ui.views.footer.restoreRaceSettings = () => {
@@ -3030,6 +3422,14 @@ ui.views.footer.restoreRaceSettings = () => {
     } catch (e) {
         console.error('Error restoring race settings:', e);
     }
+    // Merge per-mode settings over the defaults so modes or fields added
+    // after a save still get their defaults
+    const modes = ui.views.footer.defaultModeSettings();
+    const savedModes = ui.views.footer.raceSettings.modes || {};
+    Object.keys(savedModes).forEach((m) => {
+        modes[m] = Object.assign({}, modes[m] || {}, savedModes[m]);
+    });
+    ui.views.footer.raceSettings.modes = modes;
 };
 
 ui.views.footer.initRaceSettings = () => {
@@ -3123,8 +3523,343 @@ ui.views.footer.initRaceSettings = () => {
     ui.views.footer.setupWindCompass();
     ui.views.footer.setWindDirection(settings.windDirection);
     ui.views.footer.applyWeatherMode();
+    ui.views.footer.initRaceTabs();
     ui.views.footer.updateSettingsSummary();
 };
+
+//#region "Race tab"
+
+// The settings object for one quick-drive mode, with defaults applied.
+// Fills missing defaults IN PLACE - event handlers capture this object, so
+// its identity must stay stable (never swap it for a new merged object)
+ui.views.footer.modeSettings = (mode) => {
+    const s = ui.views.footer.raceSettings;
+    if (!s.modes) s.modes = ui.views.footer.defaultModeSettings();
+    const ms = s.modes[mode] || (s.modes[mode] = {});
+    const defaults = ui.views.footer.MODE_DEFAULTS[mode] || {};
+    Object.keys(defaults).forEach((k) => {
+        if (ms[k] === undefined) ms[k] = defaults[k];
+    });
+    return ms;
+};
+
+ui.views.footer.initRaceTabs = () => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    const settings = ui.views.footer.raceSettings;
+
+    container.querySelectorAll('.settings-tab').forEach((tab) => {
+        tab.addEventListener('click', () => ui.views.footer.selectSettingsTab(tab.dataset.tab));
+    });
+    ui.views.footer.selectSettingsTab(settings.tab || 'environment', false);
+
+    container.querySelectorAll('.mode-toggle[data-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => ui.views.footer.selectRaceMode(btn.dataset.mode));
+    });
+
+    const moreDdl = container.querySelector('#ftr-mode-more');
+    if (moreDdl) {
+        moreDdl.addEventListener('change', () => {
+            if (moreDdl.value) ui.views.footer.selectRaceMode(moreDdl.value);
+        });
+        if (ui.views.footer.MORE_MODES.includes(settings.mode)) {
+            moreDdl.value = settings.mode;
+        }
+    }
+
+    container.querySelectorAll('.mode-panel').forEach((panel) => {
+        ui.views.footer.bindModePanel(panel);
+    });
+
+    const addBtn = container.querySelector('#ftr-candidates-add');
+    if (addBtn) addBtn.addEventListener('click', () => ui.views.footer.openCandidatePicker());
+    const pickerClose = document.getElementById('ftr-car-picker-close');
+    if (pickerClose) pickerClose.addEventListener('click', () => ui.views.footer.closeCandidatePicker());
+    const pickerBackdrop = document.getElementById('ftr-car-picker');
+    if (pickerBackdrop) {
+        pickerBackdrop.addEventListener('click', (e) => {
+            if (e.target === pickerBackdrop) ui.views.footer.closeCandidatePicker();
+        });
+    }
+
+    // Favorite-edit buttons (visible only while .editing-fav is set)
+    const favEditCancel = document.getElementById('ftr-fav-edit-cancel');
+    const favEditUpdate = document.getElementById('ftr-fav-edit-update');
+    if (favEditCancel) favEditCancel.onclick = () => ui.views.footer.closeFavoriteEdit(false);
+    if (favEditUpdate) favEditUpdate.onclick = () => ui.views.footer.closeFavoriteEdit(true);
+
+    ui.views.footer.syncOpponentLimits();
+    ui.views.footer.syncModeToggles();
+    ui.views.footer.showModePanel();
+    ui.views.footer.renderCandidates();
+};
+
+ui.views.footer.selectSettingsTab = (tab, save = true) => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    container.querySelectorAll('.settings-tab').forEach((t) =>
+        t.classList.toggle('selected', t.dataset.tab === tab));
+    container.querySelectorAll('.settings-panels .tab-panel').forEach((p) => {
+        p.style.display = p.dataset.panel === tab ? '' : 'none';
+    });
+    ui.views.footer.raceSettings.tab = tab;
+    if (save) ui.views.footer.saveRaceSettings();
+};
+
+ui.views.footer.selectRaceMode = (mode) => {
+    if (!mode) return;
+    const settings = ui.views.footer.raceSettings;
+    settings.mode = mode;
+
+    const moreDdl = document.querySelector('#ftr-mode-more');
+    if (moreDdl) {
+        if (ui.views.footer.MORE_MODES.includes(mode)) {
+            // Programmatic mode switch (e.g. a saved favorite) - reflect it
+            if (moreDdl.value !== mode) moreDdl.value = mode;
+        } else if (moreDdl.clear) {
+            // A main mode was picked - the More menu drops back to placeholder
+            moreDdl.clear();
+        }
+    }
+    ui.views.footer.syncModeToggles();
+    ui.views.footer.showModePanel();
+    ui.views.footer.saveRaceSettings();
+};
+
+// The active mode's control gets the 3px underline - a .mode-toggle button or,
+// for the extended modes, the More dropdown itself
+ui.views.footer.syncModeToggles = () => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    const mode = ui.views.footer.raceSettings.mode;
+    container.querySelectorAll('.mode-toggle[data-mode]').forEach((b) =>
+        b.classList.toggle('selected', b.dataset.mode === mode));
+    const moreDdl = container.querySelector('#ftr-mode-more');
+    if (moreDdl) {
+        moreDdl.classList.toggle('selected', ui.views.footer.MORE_MODES.includes(mode));
+    }
+};
+
+ui.views.footer.showModePanel = () => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    const mode = ui.views.footer.raceSettings.mode;
+    container.querySelectorAll('.mode-panel').forEach((p) => {
+        p.style.display = p.dataset.mode === mode ? '' : 'none';
+    });
+    const candidates = container.querySelector('#ftr-candidates');
+    if (candidates) {
+        candidates.style.display = ui.views.footer.OPPONENT_MODES.includes(mode) ? '' : 'none';
+    }
+};
+
+// Wires every [data-setting] control inside a mode panel to that mode's
+// settings object: checkboxes, sliders (each with a labelled live value) and
+// dropdowns (data-numeric coerces the option value to a number)
+ui.views.footer.bindModePanel = (panel) => {
+    const mode = panel.dataset.mode;
+    const ms = ui.views.footer.modeSettings(mode);
+    panel.querySelectorAll('[data-setting]').forEach((el) => {
+        const key = el.dataset.setting;
+        if (ms[key] === undefined) return;
+        if (el.tagName === 'DROPDOWN-LIST') {
+            el.value = String(ms[key]);
+            el.addEventListener('change', () => {
+                ui.views.footer.modeSettings(mode)[key] =
+                    el.hasAttribute('data-numeric') ? parseInt(el.value, 10) : el.value;
+                ui.views.footer.saveRaceSettings();
+            });
+        } else if (el.type === 'checkbox') {
+            el.checked = !!ms[key];
+            el.addEventListener('change', () => {
+                ui.views.footer.modeSettings(mode)[key] = el.checked;
+                ui.views.footer.saveRaceSettings();
+            });
+        } else if (el.type === 'range') {
+            const cell = el.closest('.slider-cell');
+            const out = cell ? cell.querySelector('.slider-value') : null;
+            const unit = el.dataset.unit || '';
+            el.value = ms[key];
+            if (out) out.textContent = ms[key] + unit;
+            // 'input' keeps the label + in-memory value live while dragging;
+            // 'change' fires on release and is what persists to localStorage
+            el.addEventListener('input', () => {
+                ui.views.footer.modeSettings(mode)[key] = parseFloat(el.value);
+                if (out) out.textContent = el.value + unit;
+                if (key === 'opponents') ui.views.footer.syncStartingPositionLimit(panel);
+            });
+            el.addEventListener('change', () => {
+                ui.views.footer.saveRaceSettings();
+            });
+        }
+    });
+};
+
+// Re-applies the current mode settings to every bound control - used when the
+// settings change outside the form (e.g. playing a favorite)
+ui.views.footer.refreshModePanels = () => {
+    const container = document.querySelector('.footer-container');
+    if (!container) return;
+    container.querySelectorAll('.mode-panel').forEach((panel) => {
+        const ms = ui.views.footer.modeSettings(panel.dataset.mode);
+        panel.querySelectorAll('[data-setting]').forEach((el) => {
+            const key = el.dataset.setting;
+            if (ms[key] === undefined) return;
+            if (el.tagName === 'DROPDOWN-LIST') {
+                el.value = String(ms[key]);
+            } else if (el.type === 'checkbox') {
+                el.checked = !!ms[key];
+            } else if (el.type === 'range') {
+                el.value = ms[key];
+                const cell = el.closest('.slider-cell');
+                const out = cell ? cell.querySelector('.slider-value') : null;
+                if (out) out.textContent = ms[key] + (el.dataset.unit || '');
+            }
+        });
+    });
+    const moreDdl = document.querySelector('#ftr-mode-more');
+    if (moreDdl) {
+        const mode = ui.views.footer.raceSettings.mode;
+        if (ui.views.footer.MORE_MODES.includes(mode)) moreDdl.value = mode;
+        else if (moreDdl.clear) moreDdl.clear();
+    }
+    ui.views.footer.syncModeToggles();
+    ui.views.footer.showModePanel();
+    ui.views.footer.renderCandidates();
+    ui.views.footer.syncOpponentLimits();
+};
+
+// Opponent sliders are capped by the selected track's pit boxes (one slot is
+// the player) - the same limit ACTools applies to its race grid
+ui.views.footer.syncOpponentLimits = () => {
+    const t = ui.views.footer.getEffectiveTrack();
+    const pits = (t && t.pitBoxes) || 0;
+    const max = Math.max(1, (pits || 25) - 1);
+    document.querySelectorAll('.mode-panel input[data-setting="opponents"]').forEach((el) => {
+        el.max = max;
+        const ms = ui.views.footer.modeSettings(el.closest('.mode-panel').dataset.mode);
+        if (ms.opponents > max) {
+            ms.opponents = max;
+            el.value = max;
+            const cell = el.closest('.slider-cell');
+            const out = cell && cell.querySelector('.slider-value');
+            if (out) out.textContent = max + (el.dataset.unit || '');
+        }
+        ui.views.footer.syncStartingPositionLimit(el.closest('.mode-panel'));
+    });
+};
+
+// Resolves a skin's display name (ui_skin.json name) from its path, falling
+// back to the path itself when the car's skin list isn't available
+ui.views.footer.skinDisplayName = (car, skinPath) => {
+    if (!skinPath) return '';
+    const skin = car && car.skins && car.skins.find((sk) => sk.path === skinPath);
+    return (skin && skin.name) || skinPath;
+};
+
+// A candidate entry for the currently selected car+skin (used to seed the
+// list and as the shape for picker additions)
+ui.views.footer.currentCandidate = () => {
+    const car = ui.views.footer.selectedCar;
+    if (!car) return null;
+    const skinPath = ui.views.footer.selectedSkin || null;
+    return {
+        id: car.id,
+        year: car.year,
+        name: car.name || car.carName || car.path,
+        carPath: car.path,
+        skinPath,
+        skinName: ui.views.footer.skinDisplayName(car, skinPath)
+    };
+};
+
+ui.views.footer.renderCandidates = () => {
+    const list = document.getElementById('ftr-candidates-list');
+    if (!list) return;
+    const s = ui.views.footer.raceSettings;
+    if (!Array.isArray(s.candidates)) s.candidates = [];
+
+    // With an empty list the player's own car is the first candidate - the
+    // same thing ACTools does with its opponent candidates
+    if (!s.candidates.length && ui.views.footer.selectedCar) {
+        s.candidates.push(ui.views.footer.currentCandidate());
+    }
+
+    list.innerHTML = '';
+    s.candidates.forEach((c, i) => {
+        const row = document.createElement('div');
+        row.className = 'candidate-item';
+        const name = document.createElement('span');
+        name.className = 'candidate-name';
+        name.textContent = ((c.year ? c.year + ' ' : '') + (c.name || c.carPath || ''));
+        const rm = document.createElement('button');
+        rm.className = 'candidate-remove';
+        rm.title = 'Remove Candidate';
+        rm.innerHTML = '<svg viewBox="0 0 64 64" class="dark"><use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use></svg>';
+        rm.addEventListener('click', () => {
+            s.candidates.splice(i, 1);
+            ui.views.footer.renderCandidates();
+            ui.views.footer.saveRaceSettings();
+        });
+        row.append(name, rm);
+        list.appendChild(row);
+    });
+};
+
+// Opens the car picker modal - the full cars view (filters, grid, details)
+// mounted inside it; the Select Car button adds the car to the candidate
+// list. The title is configurable so the modal can be reused elsewhere
+ui.views.footer.openCandidatePicker = (title) => {
+    const backdrop = document.getElementById('ftr-car-picker');
+    const body = document.getElementById('ftr-car-picker-body');
+    if (!backdrop || !body) return;
+    const titleEl = document.getElementById('ftr-car-picker-title');
+    if (titleEl) titleEl.textContent = title || 'Select Your Vehicle Candidate';
+    backdrop.style.display = '';
+    ui.views.cars.loadInto(body, {
+        onPick: (car, skinName) => {
+            const s = ui.views.footer.raceSettings;
+            s.candidates.push({
+                id: car.id,
+                year: car.year,
+                name: car.name || car.carName || car.path,
+                carPath: car.path,
+                skinPath: skinName || null,
+                skinName: ui.views.footer.skinDisplayName(car, skinName)
+            });
+            ui.views.footer.renderCandidates();
+            ui.views.footer.saveRaceSettings();
+            ui.views.footer.closeCandidatePicker();
+        }
+    });
+};
+
+ui.views.footer.closeCandidatePicker = () => {
+    ui.views.cars.unloadFrom();
+    const backdrop = document.getElementById('ftr-car-picker');
+    if (backdrop) backdrop.style.display = 'none';
+    const body = document.getElementById('ftr-car-picker-body');
+    if (body) body.innerHTML = '';
+};
+
+// The grid can't have more starting positions than cars (opponents + player)
+ui.views.footer.syncStartingPositionLimit = (panel) => {
+    if (!panel) return;
+    const startPos = panel.querySelector('input[data-setting="startingPosition"]');
+    if (!startPos) return;
+    const ms = ui.views.footer.modeSettings(panel.dataset.mode);
+    const limit = (ms.opponents || 0) + 1;
+    startPos.max = limit;
+    if (ms.startingPosition > limit) {
+        ms.startingPosition = limit;
+        startPos.value = limit;
+        const cell = startPos.closest('.slider-cell');
+        const out = cell && cell.querySelector('.slider-value');
+        if (out) out.textContent = limit + (startPos.dataset.unit || '');
+    }
+};
+
+//#endregion
 
 // Enumerates CSP weather controllers (extension/weather-controllers/*) from the
 // server, splitting them the way Content Manager does: controllers that follow
@@ -3348,14 +4083,39 @@ ui.views.footer.setWindDirection = (deg) => {
 ui.views.footer.buildLaunchSettings = () => {
     const s = ui.views.footer.raceSettings;
     const isStatic = s.weatherMode === 'static';
-    return {
+    const mode = s.mode || 'hotlap';
+    const m = (s.modes && s.modes[mode]) || {};
+    const launch = {
         WeatherType: isStatic ? s.staticWeatherType : 15,
         WeatherController: isStatic ? s.weatherController : s.dynamicControllerId,
         ControllerSettings: isStatic ? null : s.controllerSettings,
         WindSpeedKmh: s.windSpeed,
         WindDirectionDeg: s.windDirection,
-        TrackPreset: s.trackPreset
+        TrackPreset: s.trackPreset,
+        Mode: mode
     };
+    // Only the fields the active mode's form exposes are sent
+    if (m.penalties !== undefined) launch.Penalties = m.penalties;
+    if (m.jumpStartPenalty !== undefined) launch.JumpStartPenalty = m.jumpStartPenalty;
+    if (m.startType !== undefined) launch.StartType = m.startType;
+    if (m.ballast !== undefined) launch.BallastKg = m.ballast;
+    if (m.restrictor !== undefined) launch.RestrictorPct = m.restrictor;
+    if (m.ghostCar !== undefined) launch.GhostCar = m.ghostCar;
+    if (m.ghostCarRecord !== undefined) launch.RecordGhostCar = m.ghostCarRecord;
+    if (m.ghostCarAdvantage !== undefined) launch.GhostCarAdvantage = m.ghostCarAdvantage;
+    if (m.opponents !== undefined) launch.Opponents = m.opponents;
+    if (m.aiLevel !== undefined) launch.AiLevel = m.aiLevel;
+    if (m.aiAggression !== undefined) launch.AiAggression = m.aiAggression;
+    if (m.startingPosition !== undefined) launch.StartingPosition = m.startingPosition;
+    if (m.laps !== undefined) launch.RaceLaps = m.laps;
+    if (m.speedLimit !== undefined) launch.SpeedLimitKmh = m.speedLimit;
+    if (m.practiceDuration !== undefined) launch.PracticeDurationMinutes = m.practiceDuration;
+    if (m.qualificationDuration !== undefined) launch.QualificationDurationMinutes = m.qualificationDuration;
+    if (m.matches !== undefined) launch.MatchesCount = m.matches;
+    if (ui.views.footer.OPPONENT_MODES.includes(mode) && s.candidates && s.candidates.length) {
+        launch.Candidates = s.candidates.map((c) => ({ CarPath: c.carPath, SkinPath: c.skinPath }));
+    }
+    return launch;
 };
 
 //#endregion
@@ -3420,6 +4180,11 @@ ui.views.footer.updateDisplay = () => {
             trackOutline.removeAttribute('src');
         }
     }
+
+    // The opponents sliders' maximum follows the selected track's pit boxes
+    ui.views.footer.syncOpponentLimits();
+    // Re-render candidates - an empty list reseeds from the selected car
+    ui.views.footer.renderCandidates();
 
     // Update session info text - show the layout name next to the track name
     // when a layout different from the selected track is chosen
@@ -3953,6 +4718,7 @@ ui.views.history.favoriteHtml = (itemHtml, fav, index) => {
         .split('{{layoutName}}').join(esc(layoutName))
         .hasBlock('has-layout', layoutName)
         .split('{{settingsSummary}}').join(esc(ui.views.history.settingsSummary(cfg)))
+        .split('{{modeSummary}}').join(esc(ui.views.footer.modeSummary(cfg)))
         .split('{{timeMinutes}}').join(s.timeMinutes != null ? s.timeMinutes : 840);
 };
 
@@ -4048,9 +4814,37 @@ ui.views.history.playFavorite = (btn) => {
     }
 
     const settings = ui.views.history.favoriteConfig(fav);
-    Object.assign(ui.views.footer.raceSettings, settings.settings || settings);
+    const saved = settings.settings || settings;
+    // Merge per-mode settings over the defaults rather than replacing the
+    // whole modes object - other modes keep their configured values
+    const savedModes = saved.modes;
+    delete saved.modes;
+    Object.assign(ui.views.footer.raceSettings, saved);
+    if (savedModes) {
+        if (!ui.views.footer.raceSettings.modes) {
+            ui.views.footer.raceSettings.modes = ui.views.footer.defaultModeSettings();
+        }
+        Object.keys(savedModes).forEach((mode) => {
+            ui.views.footer.raceSettings.modes[mode] = Object.assign(
+                {}, ui.views.footer.MODE_DEFAULTS[mode] || {}, savedModes[mode]);
+        });
+    }
+    // Reflect the favorite's mode + field values on the bound controls
+    if (ui.views.footer.refreshModePanels) {
+        ui.views.footer.refreshModePanels();
+    }
     ui.views.footer.updateDisplay();
     ui.views.footer.play();
+};
+
+// Opens the favorite for editing in the expanded footer - loads the saved
+// config without touching the user's own settings or localStorage
+ui.views.history.editFavorite = (btn) => {
+    const item = btn.closest('.favorite-item');
+    const index = parseInt(item.getAttribute('data-fav-index'), 10);
+    const fav = (ui.views.history.favorites || [])[index];
+    if (!fav) return;
+    ui.views.footer.openFavoriteEdit(fav);
 };
 
 // Shows the delete-confirmation modal (injected at body level so

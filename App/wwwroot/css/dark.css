@@ -465,6 +465,69 @@ body.dark-mode .footer-container .footer-settings select option {
   background-color: #182252;
   color: #fff;
 }
+body.dark-mode .footer-container .footer-settings .settings-tabs {
+  border-bottom-color: rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .footer-container .footer-settings .settings-tabs .settings-tab {
+  color: #c5c5c5;
+}
+body.dark-mode .footer-container .footer-settings .settings-tabs .settings-tab:hover {
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-settings .settings-tabs .settings-tab.selected {
+  color: #fff;
+  border-bottom-color: #179c69;
+}
+body.dark-mode .footer-container .footer-settings .mode-toggles .mode-toggle {
+  color: #c5c5c5;
+}
+body.dark-mode .footer-container .footer-settings .mode-toggles .mode-toggle:hover {
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-settings .mode-toggles .mode-toggle.selected {
+  color: #fff;
+  border-bottom-color: #179c69;
+}
+body.dark-mode .footer-container .footer-settings .mode-toggles .mode-more .ddl-toggle {
+  background: transparent;
+  border-color: transparent;
+  color: inherit;
+}
+body.dark-mode .footer-container .footer-settings .mode-toggles .mode-more .ddl-toggle:hover {
+  background: transparent;
+}
+body.dark-mode .footer-container .footer-settings .mode-toggles .mode-more.selected .ddl-toggle {
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-settings .check-field {
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-settings .check-field input[type="checkbox"] {
+  accent-color: #179c69;
+}
+body.dark-mode .footer-container .footer-settings .slider-cell .slider-label {
+  color: #c5c5c5;
+}
+body.dark-mode .footer-container .footer-settings .slider-cell .slider-value {
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-settings .candidates-section .candidates-add-btn {
+  background: transparent;
+  color: #c5c5c5;
+}
+body.dark-mode .footer-container .footer-settings .candidates-section .candidates-add-btn:hover {
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-settings .candidates-section .candidate-item {
+  background: rgba(56, 168, 255, 0.05);
+  color: #fff;
+}
+body.dark-mode .footer-container .footer-settings .candidates-section .candidate-item .candidate-remove {
+  color: #c5c5c5;
+}
+body.dark-mode .footer-container .footer-settings .candidates-section .candidate-item .candidate-remove:hover {
+  color: #fff;
+}
 body.dark-mode .footer-container .footer-settings .dynamic-weather-settings {
   background: #17225973;
 }
@@ -483,6 +546,21 @@ body.dark-mode .footer-container .footer-settings .wind-compass .compass-arrow {
 }
 body.dark-mode .footer-container .footer-settings .wind-compass .compass-center {
   fill: #179c69;
+}
+body.dark-mode .footer-container .fav-edit-actions .fav-edit-update {
+  background: #179c69;
+  color: #fff;
+}
+body.dark-mode .footer-container .fav-edit-actions .fav-edit-update:hover {
+  background: #01ba57e8;
+  color: #fff;
+}
+body.dark-mode .footer-container .fav-edit-actions .fav-edit-cancel {
+  background: rgba(128, 128, 128, 0.35);
+  color: #fff;
+}
+body.dark-mode .footer-container .fav-edit-actions .fav-edit-cancel:hover {
+  background: rgba(128, 128, 128, 0.55);
 }
 body.dark-mode .footer-container .details-btn,
 body.dark-mode .footer-container .hide-details-btn {
@@ -551,6 +629,24 @@ body.dark-mode .fav-modal-backdrop .fav-modal .fav-cancel-btn {
 body.dark-mode .fav-modal-backdrop .fav-modal .fav-cancel-btn:hover {
   background: rgba(128, 128, 128, 0.55);
 }
+body.dark-mode .car-picker-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+body.dark-mode .car-picker-backdrop .car-picker-modal {
+  background: #101010;
+  border: 2px solid rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .car-picker-backdrop .car-picker-modal .car-picker-header {
+  color: #fff;
+  border-bottom: 1px solid rgba(56, 168, 255, 0.25);
+}
+body.dark-mode .car-picker-backdrop .car-picker-modal .car-picker-close {
+  background: transparent;
+  color: #c5c5c5;
+}
+body.dark-mode .car-picker-backdrop .car-picker-modal .car-picker-close:hover {
+  color: #fff;
+}
 body.dark-mode .content.history .favorite-item {
   background-color: rgba(88, 88, 88, 0.38);
 }
@@ -562,12 +658,17 @@ body.dark-mode .content.history .favorite-item .fav-play-btn:hover {
   background: #01ba57e8;
   color: #fff;
 }
-body.dark-mode .content.history .favorite-item .fav-delete-btn {
+body.dark-mode .content.history .favorite-item .fav-delete-btn,
+body.dark-mode .content.history .favorite-item .fav-edit-btn {
   background: rgba(128, 128, 128, 0.25);
   color: #fff;
 }
 body.dark-mode .content.history .favorite-item .fav-delete-btn:hover {
   background: #d32f2f;
+  color: #fff;
+}
+body.dark-mode .content.history .favorite-item .fav-edit-btn:hover {
+  background: rgba(128, 128, 128, 0.45);
   color: #fff;
 }
 body.dark-mode .fav-delete-modal .fav-delete-confirm-btn {

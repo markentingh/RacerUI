@@ -24,7 +24,7 @@ ui.view.inject = (html, name) => {
 }
 
 ui.view.injectComponent = (html, selector) => {
-    const content = document.querySelector(selector);
+    const content = selector instanceof Element ? selector : document.querySelector(selector);
     content.innerHTML = html;
     ui.utils.scaleUI();
 }

@@ -43,7 +43,8 @@ dropdown-list {
 // escape overflow:hidden / scrolling containers like the footer settings
 .ddl-portal {
     position: fixed;
-    z-index: 10000;
+    // Above the car-picker / favorites modals (z-index 20000)
+    z-index: 21000;
     max-height: 22em;
     overflow-y: auto;
     border-radius: 0.5em;

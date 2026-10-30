@@ -28,15 +28,99 @@ ui.views.cars = {
     virtualDOM: {
         topHiddenRows: 0,
         bottomHiddenRows: 0
+    },
+    scope: null,   // element DOM lookups run inside while the view is mounted in the candidate-picker modal
+    picker: null,  // (car, skinName) => void - when set, the Select Car button calls this instead of footer.selectCar
+    pickerState: null // stashed page filter/grid state while the picker modal is open
+};
+
+// The picker's filter lives in its own localStorage slot so remembering it
+// doesn't bleed into the cars page's filters (and vice versa)
+ui.views.cars.filterKey = () =>
+    ui.views.cars.scope ? 'RacerUI:cars-filter-picker' : 'RacerUI:cars-filter';
+
+ui.views.cars.defaultFilter = () => ({
+    countries: ['all'], //ISO 3166-1 alpha-2 country codes
+    makes: [],//makeId int
+    models: [],//modelId int
+    years: [],//4-digit year
+    types: [],//typeId int
+    styles: [],//styleId int
+    specializations: [],//specializationId int
+    search: '',
+    sort: 'year',
+    start: 0,
+    length: 20,
+    view: 'grid',
+    prevView: 'grid',
+});
+
+// The cars view is mounted in two places: the page's .content element and the
+// footer's candidate-picker modal. All lookups run through these helpers so
+// ids/classes don't collide when both instances are in the DOM at once.
+ui.views.cars.qs = (sel) => (ui.views.cars.scope || document).querySelector(sel);
+ui.views.cars.qsa = (sel) => (ui.views.cars.scope || document).querySelectorAll(sel);
+ui.views.cars.byId = (id) => ui.views.cars.scope
+    ? ui.views.cars.scope.querySelector('#' + id)
+    : document.getElementById(id);
+
+// Mounts the cars view inside an arbitrary container (the candidate-picker
+// modal) - same init steps as load() minus the page-level plumbing. The
+// page's filter/grid state is stashed and the picker works on its own
+// filter (saved under its own localStorage key). options.onPick replaces
+// the Select Car button's default action
+ui.views.cars.loadInto = (container, options) => {
+    options = options || {};
+    ui.views.cars.scope = container;
+    ui.views.cars.picker = options.onPick || null;
+    ui.views.cars.pickerState = {
+        filter: ui.views.cars.filter,
+        results: ui.views.cars.results,
+        allCars: ui.views.cars.allCars,
+        selected: ui.views.cars.selected,
+        hasMore: ui.views.cars.hasMore
+    };
+    ui.views.cars.filter = ui.views.cars.defaultFilter();
+    ui.views.cars.results = null;
+    ui.views.cars.allCars = [];
+    ui.views.cars.selected = null;
+    ui.views.cars.hasMore = true;
+    if (localStorage.getItem(ui.views.cars.filterKey())) {
+        ui.views.cars.filter = {...ui.views.cars.filter, ...JSON.parse(localStorage.getItem(ui.views.cars.filterKey()))};
+    }
+    ui.view.loadComponent('Cars/cars', (html) => {
+        container.innerHTML = html;
+        ui.views.cars.setupSearchListener();
+        ui.views.cars.setupSortDropdown();
+        ui.views.cars.updateClearFilterButton();
+        ui.views.cars.getFilteredList();
+        ui.views.cars.resize();
+        ui.views.cars.setupInfiniteScroll();
+        ui.utils.scaleUI();
+    });
+};
+
+// Unmounts the picker - DOM lookups go back to the document and the page's
+// stashed filter/grid state is restored
+ui.views.cars.unloadFrom = () => {
+    ui.views.cars.scope = null;
+    ui.views.cars.picker = null;
+    if (ui.views.cars.pickerState) {
+        Object.assign(ui.views.cars, ui.views.cars.pickerState);
+        ui.views.cars.pickerState = null;
     }
 };
 
 ui.views.cars.load = (e) => {
+    // Page mount - the view lives at document level again
+    ui.views.cars.scope = null;
+    ui.views.cars.picker = null;
+    ui.views.cars.pickerState = null;
     //first, load filter settings from local storage
-    if (localStorage.getItem('RacerUI:cars-filter')) {
-        ui.views.cars.filter = {...ui.views.cars.filter, ...JSON.parse(localStorage.getItem('RacerUI:cars-filter'))};
+    if (localStorage.getItem(ui.views.cars.filterKey())) {
+        ui.views.cars.filter = {...ui.views.cars.filter, ...JSON.parse(localStorage.getItem(ui.views.cars.filterKey()))};
     }
-    if (document.querySelector('.cars-toolbar') == null) {
+    if (ui.views.cars.qs('.cars-toolbar') == null) {
         //view not loaded yet
         ui.view.loadComponent(`Cars/cars`, (html) => {
             ui.nav.select('cars');
@@ -72,9 +156,9 @@ ui.views.cars.load = (e) => {
 };
 
 ui.views.cars.setupSearchListener = () => {
-    const searchInput = document.getElementById('search_cars');
-    const searchClear = document.getElementById('search_clear');
-    const clearFilterBtn = document.getElementById('clear_filter_btn');
+    const searchInput = ui.views.cars.byId('search_cars');
+    const searchClear = ui.views.cars.byId('search_clear');
+    const clearFilterBtn = ui.views.cars.byId('clear_filter_btn');
     
     if (searchInput) {
         // Populate search field from cached filter
@@ -143,49 +227,49 @@ ui.views.cars.setupSearchListener = () => {
             
             // Reset UI state of any open filter section
             // Country filter
-            document.querySelectorAll('.filter-country li').forEach((li) => {
+            ui.views.cars.qsa('.filter-country li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-country li[data-country="all"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-country li[data-country="all"]')?.classList.add('selected');
             
             // Manufacturer filter
-            document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+            ui.views.cars.qsa('.filter-manufacturer li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
             
             // Year filter
-            document.querySelectorAll('.filter-year li').forEach((li) => {
+            ui.views.cars.qsa('.filter-year li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-year li[data-year="0"]')?.classList.add('selected');
             
             // Class filter
-            document.querySelectorAll('.filter-class li').forEach((li) => {
+            ui.views.cars.qsa('.filter-class li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-class li[data-class="all"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-class li[data-class="all"]')?.classList.add('selected');
             
             // Type filter
-            document.querySelectorAll('.filter-type li').forEach((li) => {
+            ui.views.cars.qsa('.filter-type li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
             
             // Style filter
-            document.querySelectorAll('.filter-style li').forEach((li) => {
+            ui.views.cars.qsa('.filter-style li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-style li[data-style="0"]')?.classList.add('selected');
             
             // Specialization filter
-            document.querySelectorAll('.filter-specialization li').forEach((li) => {
+            ui.views.cars.qsa('.filter-specialization li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
             
             // Reload currently open filter view if any
-            const selectedNavItem = document.querySelector('.cars-toolbar li.selected');
+            const selectedNavItem = ui.views.cars.qs('.cars-toolbar li.selected');
             if (selectedNavItem) {
                 const section = selectedNavItem.className.match(/item-(\w+)/)?.[1];
                 if (section) {
@@ -229,7 +313,7 @@ ui.views.cars.setupSearchListener = () => {
 };
 
 ui.views.cars.setupSortDropdown = () => {
-    const sortDdl = document.getElementById('cars_sort');
+    const sortDdl = ui.views.cars.byId('cars_sort');
     if (!sortDdl) return;
     // stale localStorage values (e.g. removed options) snap back to the default
     const valid = ['year', 'yearasc', 'country', 'manufacturer', 'model', 'rating', 'maxspeed'];
@@ -243,24 +327,34 @@ ui.views.cars.setupSortDropdown = () => {
 
 ui.views.cars.unload = () => {
     window.removeEventListener('resize', ui.views.cars.resize);
-    const container = document.querySelector('.cars-content');
+    const container = ui.views.cars.qs('.cars-content');
     if (container && ui.views.cars.scrollListener) {
         container.removeEventListener('scroll', ui.views.cars.scrollListener);
     }
 }
 
 ui.views.cars.resize = () => {
-    const el = document.querySelector('.cars-content');
+    const el = ui.views.cars.qs('.cars-content');
     if(!el) return;
     const rect = el.getBoundingClientRect();
-    el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.cars.footerHeight : ((ui.views.cars.footerHeight / 1920) * window.innerWidth)}em)`;
+    if (ui.views.cars.scope) {
+        // Mounted in the picker modal - fill the modal body instead of sizing
+        // against the viewport
+        el.style.height = '';
+    } else {
+        el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.cars.footerHeight : ((ui.views.cars.footerHeight / 1920) * window.innerWidth)}em)`;
+    }
     
     // Set max-height for cars-filter div accounting for scale factor
-    const filterEl = document.querySelector('.cars-filter');
+    const filterEl = ui.views.cars.qs('.cars-filter');
     if (filterEl) {
         const filterRect = filterEl.getBoundingClientRect();
         const scaleFactor = ui.utils.scaleFactor || 1;
-        const maxHeight = (window.innerHeight - filterRect.top) / scaleFactor;
+        // On the page, keep the filter panel above the footer (expanded or
+        // collapsed) - in the picker modal there is no footer below it
+        const footerEl = ui.views.cars.scope ? null : document.querySelector('.footer-container');
+        const footerHeight = footerEl ? footerEl.getBoundingClientRect().height : 0;
+        const maxHeight = (window.innerHeight - filterRect.top - footerHeight) / scaleFactor;
         filterEl.style.maxHeight = `${maxHeight}px`;
     }
 }
@@ -268,26 +362,32 @@ ui.views.cars.resize = () => {
 ui.views.cars.nav = (e, section) => {
     e.preventDefault();
     e.stopPropagation();
-    var navItem = document.querySelector(`.cars-toolbar li.item-${section}`);
+    var navItem = ui.views.cars.qs(`.cars-toolbar li.item-${section}`);
     if (navItem.classList.contains('selected')) {
         ui.views.cars.hideFilter();
         return false;
+    }
+    if (ui.views.cars.scope) {
+        // Inside the picker modal - no routing (pushState would reload the
+        // cars view into the page); load the filter section in place
+        ui.views.cars.updateNav(section);
+        return true;
     }
     history.pushState(null, '', `/dashboard/cars/${section}` + window.location.search);
     return true;
 };
 
 ui.views.cars.updateNav = (section) => {
-    ui.nav.select('cars')
-    var navItem = document.querySelector(`.cars-toolbar li.item-${section}`);
+    if (!ui.views.cars.scope) ui.nav.select('cars');
+    var navItem = ui.views.cars.qs(`.cars-toolbar li.item-${section}`);
     if (navItem.classList.contains('selected')) {
         ui.views.cars.hideFilter();
         return false;
     }
-    document.querySelector('.cars-toolbar li').classList.remove('selected');
+    ui.views.cars.qs('.cars-toolbar li').classList.remove('selected');
     navItem.classList.add('selected');
     ui.view.loadComponent(`Cars/filter-${section}`, (html) => {
-        ui.view.injectComponent(html, '.cars-filter');
+        ui.view.injectComponent(html, ui.views.cars.qs('.cars-filter'));
         switch (section) {
             case 'country':
                 ui.views.cars.country.load();
@@ -315,21 +415,23 @@ ui.views.cars.updateNav = (section) => {
                 break;
         }
         //show close button
-        document.querySelector('.cars-toolbar .close-btn').style.display = 'block';
+        ui.views.cars.qs('.cars-toolbar .close-btn').style.display = 'block';
     });
 };
 
 ui.views.cars.hideFilter = () => {
-    document.querySelector('.cars-toolbar .close-btn').style.display = 'none';
-    document.querySelector('.cars-filter').innerHTML = '';
-    document.querySelectorAll('.cars-toolbar li').forEach((li) => {
+    ui.views.cars.qs('.cars-toolbar .close-btn').style.display = 'none';
+    ui.views.cars.qs('.cars-filter').innerHTML = '';
+    ui.views.cars.qsa('.cars-toolbar li').forEach((li) => {
         li.classList.remove('selected');
     });
-    history.pushState(null, '', `/dashboard/cars` + window.location.search);
+    if (!ui.views.cars.scope) {
+        history.pushState(null, '', `/dashboard/cars` + window.location.search);
+    }
 };
 
 ui.views.cars.saveFilter = () => {
-    localStorage.setItem('RacerUI:cars-filter', JSON.stringify(ui.views.cars.filter));
+    localStorage.setItem(ui.views.cars.filterKey(), JSON.stringify(ui.views.cars.filter));
 };
 
 ui.views.cars.hasNonModelFilters = () => {
@@ -352,7 +454,7 @@ ui.views.cars.hasActiveFilters = () => {
 };
 
 ui.views.cars.updateClearFilterButton = () => {
-    const clearFilterBtn = document.getElementById('clear_filter_btn');
+    const clearFilterBtn = ui.views.cars.byId('clear_filter_btn');
     if (clearFilterBtn) {
         if (ui.views.cars.hasActiveFilters()) {
             clearFilterBtn.parentElement.style.display = 'inline-block';
@@ -439,7 +541,7 @@ ui.views.cars.getFilteredList = (reset = true) => {
 };
 
 ui.views.cars.setupInfiniteScroll = () => {
-    const container = document.querySelector('.cars-content');
+    const container = ui.views.cars.qs('.cars-content');
     if (!container) return;
     
     // Remove existing listener if any
@@ -505,7 +607,7 @@ ui.views.cars.loadMore = () => {
 };
 
 ui.views.cars.manageVirtualDOM = () => {
-    const container = document.querySelector('.cars-content');
+    const container = ui.views.cars.qs('.cars-content');
     const gridView = container?.querySelector('.grid-view');
     if (!gridView) return;
     
@@ -675,7 +777,7 @@ ui.views.cars.views.load = (list) => {
     // Check if no cars found - show empty results view
     if (!list.cars || list.cars.length === 0) {
         ui.view.loadComponent('Cars/empty-results', (htmlEmpty) => {
-            ui.view.injectComponent(htmlEmpty, '.cars-content');
+            ui.view.injectComponent(htmlEmpty, ui.views.cars.qs('.cars-content'));
         });
         ui.views.cars.isLoading = false;
         return;
@@ -699,22 +801,34 @@ ui.views.cars.views.load = (list) => {
                         .split('{{name}}').join(carName)
                         .split('{{items}}').join(output)
                         .split('{{preview}}').join(car.preview)
-                        , '.cars-content');
+                        , ui.views.cars.qs('.cars-content'));
                     ui.views.cars.views.gallery.setup();
                     break;
                 case 'grid': case 'gridxl': case 'gridsm':
-                    ui.view.injectComponent(htmlView.split('{{items}}').join(output), '.cars-content');
+                    ui.view.injectComponent(htmlView.split('{{items}}').join(output), ui.views.cars.qs('.cars-content'));
                     ui.views.cars.views.grid.setup();
                     break;
                 default:
-                    ui.view.injectComponent(htmlView.split('{{items}}').join(output), '.cars-content');
+                    ui.view.injectComponent(htmlView.split('{{items}}').join(output), ui.views.cars.qs('.cars-content'));
                     break;
             }
             ui.views.cars.isLoading = false;
             ui.views.cars.resize();
             ui.views.cars.setupInfiniteScroll();
+            ui.views.cars.checkOverflowLoad();
         });
     });
+};
+
+// If the grid doesn't overflow its container, no scroll event can ever fire
+// and infinite scroll stalls on the first page - keep loading until the
+// container scrolls or the results run out
+ui.views.cars.checkOverflowLoad = () => {
+    const container = ui.views.cars.qs('.cars-content');
+    if (container && container.scrollHeight <= container.clientHeight
+        && ui.views.cars.hasMore && !ui.views.cars.isLoading) {
+        ui.views.cars.loadMore();
+    }
 };
 
 ui.views.cars.views.appendCars = (list) => {
@@ -728,7 +842,7 @@ ui.views.cars.views.appendCars = (list) => {
     ui.views.cars.hasMore = list.cars.length >= ui.views.cars.filter.length;
     
     ui.view.loadComponent(`Cars/${ui.views.cars.filter.view}-item`, (htmlItem) => {
-        const gridView = document.querySelector('.cars-content .grid-view');
+        const gridView = ui.views.cars.qs('.cars-content .grid-view');
         if (!gridView) {
             ui.views.cars.isLoading = false;
             return;
@@ -741,6 +855,7 @@ ui.views.cars.views.appendCars = (list) => {
         
         ui.views.cars.views.grid.setup();
         ui.views.cars.isLoading = false;
+        ui.views.cars.checkOverflowLoad();
     });
 };
 
@@ -756,7 +871,7 @@ ui.views.cars.views.changeView = (view) => {
 ui.views.cars.views.grid = {
     detailsDiv: null,
     setup: () => {
-        document.querySelectorAll('.grid-view > .car').forEach((item) => {
+        ui.views.cars.qsa('.grid-view > .car').forEach((item) => {
             item.onmouseenter = (e) => {
                 //hover over car grid item
                 e.preventDefault();
@@ -808,7 +923,7 @@ ui.views.cars.views.grid = {
         // Check if the clicked car is already selected
         if (ui.views.cars.selected && ui.views.cars.selected.car && ui.views.cars.selected.car.path === car.path) {
             // Hide details if the same car is clicked again
-            const detailsDiv = document.querySelector('.grid-details');
+            const detailsDiv = ui.views.cars.qs('.grid-details');
             if (detailsDiv) {
                 detailsDiv.classList.add('hiding');
                 setTimeout(() => {
@@ -824,7 +939,7 @@ ui.views.cars.views.grid = {
             return;
         }
         ui.view.loadComponent(`Cars/grid-details`, (html) => {
-            const detailsDiv = document.querySelector('.grid-details');
+            const detailsDiv = ui.views.cars.qs('.grid-details');
             if(detailsDiv != null){
                 detailsDiv.classList.add('hiding');
                 setTimeout(() => {
@@ -911,14 +1026,14 @@ ui.views.cars.views.grid = {
                 
                 setTimeout(() => {
                     //scroll to car details
-                    ui.scrollTo(document.querySelector('.cars-content'), item, 500, 'easeInOutQuad', 0);
+                    ui.scrollTo(ui.views.cars.qs('.cars-content'), item, 500, 'easeInOutQuad', 0);
                 }, 350);
             });
         });
     },
     setupSelectCarHandler: () => {
         // Add event listeners to all select car buttons
-        const selectCarBtns = document.querySelectorAll('.select-car-btn');
+        const selectCarBtns = ui.views.cars.qsa('.select-car-btn');
         selectCarBtns.forEach((btn) => {
             btn.addEventListener('click', () => {
                 // Get the selected car and skin from ui.views.cars.selected
@@ -929,15 +1044,21 @@ ui.views.cars.views.grid = {
                     if (!skinName && ui.views.cars.selected.car.skins && ui.views.cars.selected.car.skins.length > 0) {
                         skinName = ui.views.cars.selected.car.skins[0].path;
                     }
-                    
-                    // Update footer with car and skin info
-                    ui.views.footer.selectCar(ui.views.cars.selected.car, skinName);
+
+                    if (ui.views.cars.picker) {
+                        // Mounted in the footer's candidate-picker modal - the
+                        // selection goes to the race candidate list instead
+                        ui.views.cars.picker(ui.views.cars.selected.car, skinName);
+                    } else {
+                        // Update footer with car and skin info
+                        ui.views.footer.selectCar(ui.views.cars.selected.car, skinName);
+                    }
                 }
             });
         });
     },
     setupButtonHoverEffects: () => {
-        const buttons = document.querySelectorAll('.select-car-btn');
+        const buttons = ui.views.cars.qsa('.select-car-btn');
         
         buttons.forEach((button) => {
             // Skip if already wrapped
@@ -973,8 +1094,8 @@ ui.views.cars.views.grid = {
         });
     },
     setupTabHandlers: () => {
-        const tabButtons = document.querySelectorAll('.car-tab');
-        const tabContents = document.querySelectorAll('.car-tab-content');
+        const tabButtons = ui.views.cars.qsa('.car-tab');
+        const tabContents = ui.views.cars.qsa('.car-tab-content');
         
         tabButtons.forEach((button) => {
             button.addEventListener('click', () => {
@@ -986,7 +1107,7 @@ ui.views.cars.views.grid = {
                 
                 // Add active class to clicked tab and corresponding content
                 button.classList.add('active');
-                const targetContent = document.querySelector(`.car-tab-content[data-content="${targetTab}"]`);
+                const targetContent = ui.views.cars.qs(`.car-tab-content[data-content="${targetTab}"]`);
                 if (targetContent) {
                     targetContent.classList.add('active');
                 }
@@ -994,7 +1115,7 @@ ui.views.cars.views.grid = {
         });
     },
     setupSkinHandlers: () => {
-        const skinItems = document.querySelectorAll('.skin-item');
+        const skinItems = ui.views.cars.qsa('.skin-item');
         
         skinItems.forEach((skinItem) => {
             // Wrap skin-item in a positioned container
@@ -1026,13 +1147,13 @@ ui.views.cars.views.grid = {
             
             // Click handler to change preview (only on original, clone has pointer-events: none)
             skinItem.parentNode.addEventListener('click', () => {
-                const previewContainer = document.querySelector('.grid-details .preview-container');
-                const oldPreviewDiv = document.querySelector('.grid-details .preview');
+                const previewContainer = ui.views.cars.qs('.grid-details .preview-container');
+                const oldPreviewDiv = ui.views.cars.qs('.grid-details .preview');
                 const previewPath = skinItem.getAttribute('data-preview');
                 const skinName = skinItem.getAttribute('data-skin');
                 
                 // Remove selected class from all skins
-                document.querySelectorAll('.skin-item').forEach(item => {
+                ui.views.cars.qsa('.skin-item').forEach(item => {
                     item.classList.remove('selected');
                 });
                 
@@ -1076,7 +1197,7 @@ ui.views.cars.views.grid = {
     setupPowerGraph: (car) => {
         const container = ui.views.cars.views.grid.detailsDiv && ui.views.cars.views.grid.detailsDiv.querySelector
             ? ui.views.cars.views.grid.detailsDiv.querySelector('.car-graph')
-            : document.querySelector('.grid-details .car-graph');
+            : ui.views.cars.qs('.grid-details .car-graph');
         if (!container || !car.id) return;
         ui.ajax({
             url: `/api/cars/${car.id}/powercurve`,
@@ -1207,7 +1328,7 @@ ui.views.cars.view = {};
 ui.views.cars.view.load = () => {
     //load selected countries
     if (ui.views.cars.filter.countries.length > 0) {
-        document.querySelectorAll('.filter-country li').forEach((li) => {
+        ui.views.cars.qsa('.filter-country li').forEach((li) => {
             if (ui.views.cars.filter.countries.includes(li.getAttribute('data-country'))) {
                 li.classList.add('selected');
             } else {
@@ -1215,7 +1336,7 @@ ui.views.cars.view.load = () => {
             }
         });
     }
-    document.querySelectorAll('.filter-view li').forEach((li) => {
+    ui.views.cars.qsa('.filter-view li').forEach((li) => {
         li.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1226,10 +1347,10 @@ ui.views.cars.view.load = () => {
 
 ui.views.cars.view.select = (view) => {
     ui.views.cars.filter.view = view;
-    document.querySelectorAll('.filter-view li').forEach((li) => {
+    ui.views.cars.qsa('.filter-view li').forEach((li) => {
         li.classList.remove('selected');
     });
-    document.querySelectorAll('.filter-view li[data-view="' + view + '"]').forEach((li) => {
+    ui.views.cars.qsa('.filter-view li[data-view="' + view + '"]').forEach((li) => {
         li.classList.add('selected');
     });
 };
@@ -1252,7 +1373,7 @@ ui.views.cars.country.load = () => {
                 try {
                     const countries = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-country .select-list');
+                    const container = ui.views.cars.qs('.filter-country .select-list');
                     if (!container) {
                         console.error('Container .filter-country .select-list not found');
                         return;
@@ -1269,7 +1390,7 @@ ui.views.cars.country.load = () => {
                     });
                     
                     // Set up click handlers after populating
-                    document.querySelectorAll('.filter-country li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-country li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -1279,7 +1400,7 @@ ui.views.cars.country.load = () => {
                     
                     // Load selected countries
                     if (ui.views.cars.filter.countries.length > 0) {
-                        document.querySelectorAll('.filter-country li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-country li').forEach((li) => {
                             if (ui.views.cars.filter.countries.includes(li.getAttribute('data-country'))) {
                                 li.classList.add('selected');
                             } else {
@@ -1298,7 +1419,7 @@ ui.views.cars.country.load = () => {
 ui.views.cars.country.select = (country) => {
     if (country == 'all') {
         ui.views.cars.filter.countries = ['all'];
-        document.querySelectorAll('.filter-country li').forEach((li) => {
+        ui.views.cars.qsa('.filter-country li').forEach((li) => {
             li.classList.remove('selected');
         });
     } else {
@@ -1310,11 +1431,11 @@ ui.views.cars.country.select = (country) => {
         if (ui.views.cars.filter.countries.indexOf('all') > -1) {
             ui.views.cars.filter.countries.splice(ui.views.cars.filter.countries.indexOf('all'), 1);
         }
-        document.querySelectorAll('.filter-country li[data-country="all"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-country li[data-country="all"]').forEach((li) => {
             li.classList.remove('selected');
         });
     }
-    document.querySelectorAll('.filter-country li[data-country="' + country + '"]').forEach((li) => {
+    ui.views.cars.qsa('.filter-country li[data-country="' + country + '"]').forEach((li) => {
         li.classList.toggle('selected');
     });
     ui.views.cars.getFilteredList();
@@ -1336,7 +1457,7 @@ ui.views.cars.manufacturer.load = () => {
                 try {
                     const manufacturers = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-manufacturer .select-list');
+                    const container = ui.views.cars.qs('.filter-manufacturer .select-list');
                     if (!container) {
                         console.error('Container .filter-manufacturer .select-list not found');
                         return;
@@ -1351,7 +1472,7 @@ ui.views.cars.manufacturer.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-manufacturer li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -1360,7 +1481,7 @@ ui.views.cars.manufacturer.load = () => {
                     });
                     
                     if (ui.views.cars.filter.makes.length > 0) {
-                        document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-manufacturer li').forEach((li) => {
                             if (ui.views.cars.filter.makes.includes(parseInt(li.getAttribute('data-make')))) {
                                 li.classList.add('selected');
                             } else {
@@ -1368,7 +1489,7 @@ ui.views.cars.manufacturer.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading manufacturers:', error);
@@ -1381,25 +1502,25 @@ ui.views.cars.manufacturer.load = () => {
 ui.views.cars.manufacturer.select = (makeId) => {
     if (makeId == 0) { // Assuming 0 is the 'all' value for manufacturers
         ui.views.cars.filter.makes = [];
-        document.querySelectorAll('.filter-manufacturer li').forEach((li) => {
+        ui.views.cars.qsa('.filter-manufacturer li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.makes.includes(makeId)) {
             ui.views.cars.filter.makes.splice(ui.views.cars.filter.makes.indexOf(makeId), 1);
         } else {
             ui.views.cars.filter.makes.push(makeId);
         }
-        document.querySelectorAll('.filter-manufacturer li[data-make="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-manufacturer li[data-make="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-manufacturer li[data-make="' + makeId + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-manufacturer li[data-make="' + makeId + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no manufacturers selected, select 'All'
         if (ui.views.cars.filter.makes.length === 0) {
-            document.querySelector('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-manufacturer li[data-make="0"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -1412,7 +1533,7 @@ ui.views.cars.manufacturer.select = (makeId) => {
 ui.views.cars.model = {};
 
 ui.views.cars.model.load = () => {
-    const container = document.querySelector('.filter-model .select-list');
+    const container = ui.views.cars.qs('.filter-model .select-list');
     if (!container) return;
 
     // Models are a narrowing filter - they are only listed once another
@@ -1439,7 +1560,7 @@ ui.views.cars.model.load = () => {
                         container.innerHTML += itemHtml;
                     });
 
-                    document.querySelectorAll('.filter-model li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-model li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -1448,7 +1569,7 @@ ui.views.cars.model.load = () => {
                     });
 
                     if (ui.views.cars.filter.models.length > 0) {
-                        document.querySelectorAll('.filter-model li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-model li').forEach((li) => {
                             if (ui.views.cars.filter.models.includes(parseInt(li.getAttribute('data-model')))) {
                                 li.classList.add('selected');
                             } else {
@@ -1456,7 +1577,7 @@ ui.views.cars.model.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-model li[data-model="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading models:', error);
@@ -1469,25 +1590,25 @@ ui.views.cars.model.load = () => {
 ui.views.cars.model.select = (modelId) => {
     if (modelId == 0) { // Assuming 0 is the 'all' value for models
         ui.views.cars.filter.models = [];
-        document.querySelectorAll('.filter-model li').forEach((li) => {
+        ui.views.cars.qsa('.filter-model li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-model li[data-model="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.models.includes(modelId)) {
             ui.views.cars.filter.models.splice(ui.views.cars.filter.models.indexOf(modelId), 1);
         } else {
             ui.views.cars.filter.models.push(modelId);
         }
-        document.querySelectorAll('.filter-model li[data-model="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-model li[data-model="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
         // If no models selected, select 'All'
         if (ui.views.cars.filter.models.length === 0) {
-            document.querySelector('.filter-model li[data-model="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-model li[data-model="0"]')?.classList.add('selected');
         }
     }
-    document.querySelectorAll('.filter-model li[data-model="' + modelId + '"]').forEach((li) => {
+    ui.views.cars.qsa('.filter-model li[data-model="' + modelId + '"]').forEach((li) => {
         li.classList.toggle('selected');
     });
     ui.views.cars.getFilteredList();
@@ -1509,7 +1630,7 @@ ui.views.cars.year.load = () => {
                 try {
                     const years = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-year .select-list');
+                    const container = ui.views.cars.qs('.filter-year .select-list');
                     if (!container) {
                         console.error('Container .filter-year .select-list not found');
                         return;
@@ -1523,7 +1644,7 @@ ui.views.cars.year.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-year li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-year li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -1532,7 +1653,7 @@ ui.views.cars.year.load = () => {
                     });
                     
                     if (ui.views.cars.filter.years.length > 0) {
-                        document.querySelectorAll('.filter-year li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-year li').forEach((li) => {
                             if (ui.views.cars.filter.years.includes(parseInt(li.getAttribute('data-year')))) {
                                 li.classList.add('selected');
                             } else {
@@ -1540,7 +1661,7 @@ ui.views.cars.year.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-year li[data-year="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading years:', error);
@@ -1553,25 +1674,25 @@ ui.views.cars.year.load = () => {
 ui.views.cars.year.select = (year) => {
     if (year == 0) { // Assuming 0 is the 'all' value for years
         ui.views.cars.filter.years = [];
-        document.querySelectorAll('.filter-year li').forEach((li) => {
+        ui.views.cars.qsa('.filter-year li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-year li[data-year="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.years.includes(year)) {
             ui.views.cars.filter.years.splice(ui.views.cars.filter.years.indexOf(year), 1);
         } else {
             ui.views.cars.filter.years.push(year);
         }
-        document.querySelectorAll('.filter-year li[data-year="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-year li[data-year="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-year li[data-year="' + year + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-year li[data-year="' + year + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no years selected, select 'All'
         if (ui.views.cars.filter.years.length === 0) {
-            document.querySelector('.filter-year li[data-year="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-year li[data-year="0"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -1593,7 +1714,7 @@ ui.views.cars.type.load = () => {
                 try {
                     const types = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-type .select-list');
+                    const container = ui.views.cars.qs('.filter-type .select-list');
                     if (!container) {
                         console.error('Container .filter-type .select-list not found');
                         return;
@@ -1608,7 +1729,7 @@ ui.views.cars.type.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-type li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-type li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -1617,7 +1738,7 @@ ui.views.cars.type.load = () => {
                     });
                     
                     if (ui.views.cars.filter.types.length > 0) {
-                        document.querySelectorAll('.filter-type li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-type li').forEach((li) => {
                             if (ui.views.cars.filter.types.includes(parseInt(li.getAttribute('data-type')))) {
                                 li.classList.add('selected');
                             } else {
@@ -1625,7 +1746,7 @@ ui.views.cars.type.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading types:', error);
@@ -1638,25 +1759,25 @@ ui.views.cars.type.load = () => {
 ui.views.cars.type.select = (typeId) => {
     if (typeId == 0) { // Assuming 0 is the 'all' value for types
         ui.views.cars.filter.types = [];
-        document.querySelectorAll('.filter-type li').forEach((li) => {
+        ui.views.cars.qsa('.filter-type li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.types.includes(typeId)) {
             ui.views.cars.filter.types.splice(ui.views.cars.filter.types.indexOf(typeId), 1);
         } else {
             ui.views.cars.filter.types.push(typeId);
         }
-        document.querySelectorAll('.filter-type li[data-type="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-type li[data-type="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-type li[data-type="' + typeId + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-type li[data-type="' + typeId + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no types selected, select 'All'
         if (ui.views.cars.filter.types.length === 0) {
-            document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -1681,7 +1802,7 @@ ui.views.cars.class.load = () => {
                     try {
                         const classesByCategory = JSON.parse(response.responseText);
                         
-                        const container = document.querySelector('.filter-class .select-list');
+                        const container = ui.views.cars.qs('.filter-class .select-list');
                         container.innerHTML = '<li data-class="all">All Classes</li>';
                         
                         classesByCategory.forEach(category => {
@@ -1706,7 +1827,7 @@ ui.views.cars.class.load = () => {
                         });
                         
                         // Set up click handlers after populating
-                        document.querySelectorAll('.filter-class li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-class li').forEach((li) => {
                             li.onclick = (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -1716,7 +1837,7 @@ ui.views.cars.class.load = () => {
                         
                         // Load selected classes
                         if (ui.views.cars.filter.classes && ui.views.cars.filter.classes.length > 0) {
-                            document.querySelectorAll('.filter-class li').forEach((li) => {
+                            ui.views.cars.qsa('.filter-class li').forEach((li) => {
                                 if (ui.views.cars.filter.classes.includes(li.getAttribute('data-class'))) {
                                     li.classList.add('selected');
                                 }
@@ -1738,25 +1859,25 @@ ui.views.cars.class.select = (className) => {
     
     if (className === 'all') {
         ui.views.cars.filter.classes = [];
-        document.querySelectorAll('.filter-class li').forEach((li) => {
+        ui.views.cars.qsa('.filter-class li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-class li[data-class="all"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-class li[data-class="all"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.classes.includes(className)) {
             ui.views.cars.filter.classes.splice(ui.views.cars.filter.classes.indexOf(className), 1);
         } else {
             ui.views.cars.filter.classes.push(className);
         }
-        document.querySelectorAll('.filter-class li[data-class="all"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-class li[data-class="all"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-class li[data-class="' + className + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-class li[data-class="' + className + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no classes selected, select 'All'
         if (ui.views.cars.filter.classes.length === 0) {
-            document.querySelector('.filter-class li[data-class="all"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-class li[data-class="all"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -1778,7 +1899,7 @@ ui.views.cars.style.load = () => {
                 try {
                     const styles = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-style .select-list');
+                    const container = ui.views.cars.qs('.filter-style .select-list');
                     container.innerHTML = '<li data-style="0">All Styles</li>';
                     
                     styles.forEach(style => {
@@ -1788,7 +1909,7 @@ ui.views.cars.style.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-style li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-style li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -1797,7 +1918,7 @@ ui.views.cars.style.load = () => {
                     });
                     
                     if (ui.views.cars.filter.styles.length > 0) {
-                        document.querySelectorAll('.filter-style li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-style li').forEach((li) => {
                             if (ui.views.cars.filter.styles.includes(parseInt(li.getAttribute('data-style')))) {
                                 li.classList.add('selected');
                             } else {
@@ -1805,7 +1926,7 @@ ui.views.cars.style.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-style li[data-style="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading styles:', error);
@@ -1818,25 +1939,25 @@ ui.views.cars.style.load = () => {
 ui.views.cars.style.select = (styleId) => {
     if (styleId == 0) { // Assuming 0 is the 'all' value for styles
         ui.views.cars.filter.styles = [];
-        document.querySelectorAll('.filter-style li').forEach((li) => {
+        ui.views.cars.qsa('.filter-style li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-style li[data-style="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.styles.includes(styleId)) {
             ui.views.cars.filter.styles.splice(ui.views.cars.filter.styles.indexOf(styleId), 1);
         } else {
             ui.views.cars.filter.styles.push(styleId);
         }
-        document.querySelectorAll('.filter-style li[data-style="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-style li[data-style="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-style li[data-style="' + styleId + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-style li[data-style="' + styleId + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no styles selected, select 'All'
         if (ui.views.cars.filter.styles.length === 0) {
-            document.querySelector('.filter-style li[data-style="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-style li[data-style="0"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();
@@ -1858,7 +1979,7 @@ ui.views.cars.specialization.load = () => {
                 try {
                     const specializations = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-specialization .select-list');
+                    const container = ui.views.cars.qs('.filter-specialization .select-list');
                     if (!container) {
                         console.error('Container .filter-specialization .select-list not found');
                         return;
@@ -1873,7 +1994,7 @@ ui.views.cars.specialization.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-specialization li').forEach((li) => {
+                    ui.views.cars.qsa('.filter-specialization li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -1882,7 +2003,7 @@ ui.views.cars.specialization.load = () => {
                     });
                     
                     if (ui.views.cars.filter.specializations.length > 0) {
-                        document.querySelectorAll('.filter-specialization li').forEach((li) => {
+                        ui.views.cars.qsa('.filter-specialization li').forEach((li) => {
                             if (ui.views.cars.filter.specializations.includes(parseInt(li.getAttribute('data-specialization')))) {
                                 li.classList.add('selected');
                             } else {
@@ -1890,7 +2011,7 @@ ui.views.cars.specialization.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+                        ui.views.cars.qs('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading specializations:', error);
@@ -1903,25 +2024,25 @@ ui.views.cars.specialization.load = () => {
 ui.views.cars.specialization.select = (specializationId) => {
     if (specializationId == 0) { // Assuming 0 is the 'all' value for specializations
         ui.views.cars.filter.specializations = [];
-        document.querySelectorAll('.filter-specialization li').forEach((li) => {
+        ui.views.cars.qsa('.filter-specialization li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+        ui.views.cars.qs('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
     } else {
         if (ui.views.cars.filter.specializations.includes(specializationId)) {
             ui.views.cars.filter.specializations.splice(ui.views.cars.filter.specializations.indexOf(specializationId), 1);
         } else {
             ui.views.cars.filter.specializations.push(specializationId);
         }
-        document.querySelectorAll('.filter-specialization li[data-specialization="0"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-specialization li[data-specialization="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-specialization li[data-specialization="' + specializationId + '"]').forEach((li) => {
+        ui.views.cars.qsa('.filter-specialization li[data-specialization="' + specializationId + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no specializations selected, select 'All'
         if (ui.views.cars.filter.specializations.length === 0) {
-            document.querySelector('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
+            ui.views.cars.qs('.filter-specialization li[data-specialization="0"]')?.classList.add('selected');
         }
     }
     ui.views.cars.getFilteredList();

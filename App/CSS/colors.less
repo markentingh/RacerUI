@@ -483,6 +483,96 @@
                 color: @race-input-color;
             }
 
+            .settings-tabs {
+                border-bottom-color: @race-input-border;
+
+                .settings-tab {
+                    color: @submenu-item-color;
+
+                    &:hover {
+                        color: @race-input-color;
+                    }
+
+                    &.selected {
+                        color: @race-input-color;
+                        border-bottom-color: @view-select-car-bg;
+                    }
+                }
+            }
+
+            .mode-toggles {
+                .mode-toggle {
+                    color: @submenu-item-color;
+
+                    &:hover {
+                        color: @race-input-color;
+                    }
+
+                    &.selected {
+                        color: @race-input-color;
+                        border-bottom-color: @view-select-car-bg;
+                    }
+                }
+
+                .mode-more {
+                    .ddl-toggle {
+                        background: transparent;
+                        border-color: transparent;
+                        color: inherit;
+
+                        &:hover {
+                            background: transparent;
+                        }
+                    }
+
+                    &.selected .ddl-toggle {
+                        color: @race-input-color;
+                    }
+                }
+            }
+
+            .check-field {
+                color: @race-input-color;
+
+                input[type="checkbox"] {
+                    accent-color: @view-select-car-bg;
+                }
+            }
+
+            .slider-cell {
+                .slider-label {
+                    color: @submenu-item-color;
+                }
+
+                .slider-value {
+                    color: @race-input-color;
+                }
+            }
+
+            .candidates-section {
+                .candidates-add-btn {
+                    background: transparent;
+                    color: @submenu-item-color;
+
+                    &:hover {
+                        color: @race-input-color;
+                    }
+                }
+
+                .candidate-item {
+                    background: @race-input-bg;
+                    color: @race-input-color;
+
+                    .candidate-remove {
+                        color: @submenu-item-color;
+
+                        &:hover {
+                            color: @race-input-color;
+                        }
+                    }
+                }
+            }
+
             .dynamic-weather-settings {
                 background: @race-form-bg;
             }
@@ -507,6 +597,27 @@
 
                 .compass-center {
                     fill: @view-select-car-bg;
+                }
+            }
+        }
+
+        .fav-edit-actions {
+            .fav-edit-update {
+                background: @view-select-car-bg;
+                color: @view-select-car-color;
+
+                &:hover {
+                    background: @view-select-car-hover-bg;
+                    color: @view-select-car-hover-color;
+                }
+            }
+
+            .fav-edit-cancel {
+                background: rgba(128, 128, 128, 0.35);
+                color: @race-input-color;
+
+                &:hover {
+                    background: rgba(128, 128, 128, 0.55);
                 }
             }
         }
@@ -594,6 +705,30 @@
         }
     }
 
+    // Candidate car-picker modal
+    .car-picker-backdrop {
+        background: rgba(0, 0, 0, 0.5);
+
+        .car-picker-modal {
+            background: @bg;
+            border: 2px solid @race-input-border;
+
+            .car-picker-header {
+                color: @race-input-color;
+                border-bottom: 1px solid @race-input-border;
+            }
+
+            .car-picker-close {
+                background: transparent;
+                color: @submenu-item-color;
+
+                &:hover {
+                    color: @race-input-color;
+                }
+            }
+        }
+    }
+
     // History page - favorites list
     .content.history {
         .favorite-item {
@@ -609,14 +744,19 @@
                 }
             }
 
-            .fav-delete-btn {
+            .fav-delete-btn, .fav-edit-btn {
                 background: rgba(128, 128, 128, 0.25);
                 color: @race-input-color;
+            }
 
-                &:hover {
-                    background: @fav-delete-btn-bg;
-                    color: #fff;
-                }
+            .fav-delete-btn:hover {
+                background: @fav-delete-btn-bg;
+                color: #fff;
+            }
+
+            .fav-edit-btn:hover {
+                background: rgba(128, 128, 128, 0.45);
+                color: @race-input-color;
             }
         }
     }
