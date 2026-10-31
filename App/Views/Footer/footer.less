@@ -26,6 +26,8 @@
 
     .footer-car-preview,
     .footer-track-preview {
+        cursor: pointer;
+        transition: box-shadow 0.2s ease;
         position: absolute;
         top: 1em;
         left: 1em;
@@ -182,6 +184,23 @@
             font-size: 0.75em;
             opacity: 0.7;
             transition: opacity 0.4s ease 0.4s, visibility 0s;
+        }
+
+        // Favorite-edit title field + car/track subtitle - hidden unless the
+        // footer is in editing-fav mode
+        .fav-title-input {
+            display: none;
+            font-size: 1.2em;
+            font-weight: 600;
+            min-width: 0;
+            width: 100%;
+            margin-bottom: 0.5em;
+        }
+
+        .fav-edit-subtitle {
+            display: none;
+            font-size: 0.75em;
+            opacity: 0.7;
         }
 
         // Mode row reads more prominently than the environment summary
@@ -618,6 +637,7 @@
                     padding: 0.35em 0.6em;
                     border-radius: 0.35em;
                     font-size: 0.9em;
+                    cursor: pointer;
 
                     .candidate-name {
                         min-width: 0;
@@ -641,7 +661,7 @@
                         background: none;
                         cursor: pointer;
                         flex-shrink: 0;
-                        opacity: 0.5;
+                        opacity: 0.15;
                         transition: opacity 0.15s ease;
 
                         svg {
@@ -706,6 +726,20 @@
 
     // Favorite-edit mode - swap the normal actions for Update/Cancel
     &.editing-fav {
+        .footer-session-info {
+            .session-text {
+                display: none;
+            }
+
+            .fav-title-input {
+                display: block;
+            }
+
+            .fav-edit-subtitle {
+                display: block;
+            }
+        }
+
         .setting-actions,
         .details-btn,
         .hide-details-btn,
@@ -961,6 +995,116 @@
 // Candidate car-picker modal - full window minus a 2em margin on every edge,
 // drop shadow, 50% black overlay behind it. Holds a mounted copy of the cars
 // view (toolbar, filter, grid + details)
+// Car details modal - opens when a candidate row is clicked
+.car-details-backdrop {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    z-index: 22000;
+
+    .car-details-modal {
+        position: relative;
+        width: 85%;
+        max-width: 100em;
+        height: 32em;
+        border-radius: 1em;
+        box-shadow: 0 2em 4em rgba(0, 0, 0, 0.6);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+
+        .car-details-close {
+            position: absolute;
+            top: 0.75em;
+            right: 0.75em;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2em;
+            height: 2em;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            background: transparent;
+
+            svg {
+                width: 1em;
+                height: 1em;
+            }
+        }
+
+        .car-details-save {
+            position: absolute;
+            bottom: 1em;
+            right: 1em;
+            z-index: 10;
+            border: none;
+            border-radius: 0.35em;
+            padding: 0.5em 1.4em;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        .car-details-body {
+            flex: 1;
+            min-height: 0;
+            // The modal itself never scrolls - car-info scrolls inside it
+            overflow: hidden;
+
+            .cars-content {
+                height: 100%;
+                max-height: none;
+                width: 100%;
+
+                .grid-view {
+                    width: 100%;
+
+                    // The fake click-target + its hover clone only exist to
+                    // drive the details flow - never show them
+                    > .car,
+                    .hovered-clone {
+                        display: none !important;
+                    }
+                }
+
+                // grid-details' height comes from the page grid context -
+                // give the modal copy an explicit floor so the preview shows
+                .grid-details {
+                    // Fill the modal body - car-info scrolls inside
+                    height: 100%;
+                    max-height: 100%;
+                    overflow: hidden;
+                    // Instant render - the expand animation is meant for the
+                    // grid, not a modal
+                    animation: none;
+
+                    // Candidates modal is read-only - no car selection
+                    .select-car-btn {
+                        display: none;
+                    }
+
+                    // The info column gets the scrollbar, not the modal
+                    .info,
+                    .car-info {
+                        height: 100%;
+                        max-height: 100%;
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                    }
+
+                    .preview-container .preview {
+                        min-height: 15em;
+                    }
+                }
+            }
+        }
+    }
+}
+
 .car-picker-backdrop {
     position: fixed;
     inset: 0;
@@ -1019,10 +1163,13 @@
             // The toolbar's sizing/menu styles come from .dash .sub-menu and
             // body.footer-expanded hides it - restore both for the modal copy.
             // z-index keeps it painted above .cars-content (positioned, z:1)
-            .cars-toolbar.sub-menu {
+            .cars-toolbar.sub-menu, .tracks-toolbar.sub-menu {
                 font-size: 0.8em;
                 height: 48px;
                 margin-bottom: calc(48px * (var(--scale-factor, 1) - 1));
+                // Grow the scale-ui transform around the toolbar's center so
+                // 4K scaling doesn't shove it right
+                transform-origin: top center;
                 opacity: 1;
                 pointer-events: auto;
                 flex-shrink: 0;
@@ -1079,7 +1226,7 @@
             // .cars-filter is position:absolute - inside a flex column its
             // static position lands at the container's start (overlaying the
             // toolbar), so anchor it to the toolbar's bottom edge instead
-            .cars-filter {
+            .cars-filter, .tracks-filter {
                 top: calc(48px * var(--scale-factor, 1));
                 // body.footer-expanded hides it - restore it inside the modal
                 opacity: 1;
@@ -1090,26 +1237,27 @@
             // cars.less - at <=1920px the items shrink so 4K doesn't
             // render them huge)
             @media screen and (max-width: 1300px) {
-                .cars-toolbar nav {
+                .cars-toolbar nav, .tracks-toolbar nav {
                     height: 7.4em !important;
                 }
 
-                .cars-toolbar.sub-menu {
+                .cars-toolbar.sub-menu, .tracks-toolbar.sub-menu {
                     height: calc(7.4em * var(--scale-factor)) !important;
                 }
 
-                .cars-filter {
+                .cars-filter, .tracks-filter {
                     top: calc(7.4em * var(--scale-factor, 1));
                 }
             }
 
             @media screen and (max-width: 1920px) {
-                .cars-toolbar nav > ul.menu li {
+                .cars-toolbar nav > ul.menu li, .tracks-toolbar nav > ul.menu li {
                     font-size: 0.8em;
                     margin-top: 0.15em;
                 }
 
-                .cars-toolbar nav > ul.menu li:not(.search-input) {
+                .cars-toolbar nav > ul.menu li:not(.search-input),
+                .tracks-toolbar nav > ul.menu li:not(.search-input) {
                     margin-top: 0.2em;
                 }
             }
@@ -1135,7 +1283,7 @@
             // The cars view sizes its grid against the viewport (100vw) - the
             // modal is narrower than the window so cells bleed off the right
             // edge without this
-            .cars-content {
+            .cars-content, .tracks-content {
                 height: auto;
                 max-height: none;
                 flex: 1;

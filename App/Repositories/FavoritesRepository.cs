@@ -96,14 +96,16 @@ namespace RacerUI.SQL
         /// <summary>
         /// Updates a favorite's ConfigJson
         /// </summary>
-        public static bool Update(int id, string configJson)
+        public static bool Update(int id, string title, string configJson)
         {
             EnsureTable();
             using (var connection = Connection.GetConnection())
             {
+                // Empty title keeps the existing one
                 return connection.Execute(
-                    "UPDATE Favorites SET ConfigJson = @ConfigJson WHERE Id = @Id",
-                    new { ConfigJson = configJson, Id = id }) > 0;
+                    @"UPDATE Favorites SET Title = COALESCE(NULLIF(@Title, ''), Title),
+                        ConfigJson = @ConfigJson WHERE Id = @Id",
+                    new { Title = title, ConfigJson = configJson, Id = id }) > 0;
             }
         }
 

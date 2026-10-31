@@ -1,3 +1,72 @@
+.edit-car-btn {
+  color: #444;
+  border-radius: 0.4em;
+}
+.edit-car-btn svg use {
+  color: #444;
+}
+.edit-car-btn:hover {
+  background: rgba(128, 128, 128, 0.25) !important;
+}
+.edit-car-btn:hover svg use {
+  color: #444;
+}
+.grid-details .car-edit-form input,
+.grid-details .car-edit-info textarea {
+  background-color: rgba(47, 172, 173, 0.05);
+  color: #000;
+  border: 1px solid rgba(47, 172, 173, 0.25);
+}
+.car-edit-form .edit-field label {
+  color: #333333;
+}
+.car-edit-form .edit-field .edit-add-btn {
+  color: #333333;
+}
+.car-edit-form .edit-field .edit-add-btn:hover {
+  color: #000;
+}
+.car-edit-actions .car-edit-cancel {
+  background: rgba(128, 128, 128, 0.25);
+  color: #000;
+}
+.car-edit-actions .car-edit-cancel:hover {
+  background: rgba(128, 128, 128, 0.45);
+  color: #fff;
+}
+.car-edit-actions .car-edit-save {
+  background: #1976d2;
+  color: #fff;
+}
+.car-edit-actions .car-edit-save:hover {
+  filter: brightness(1.15);
+}
+.car-edit-submodal-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+.car-edit-submodal-backdrop .car-edit-submodal {
+  background: #fafafa;
+  border: 2px solid rgba(47, 172, 173, 0.25);
+}
+.car-edit-submodal-backdrop .car-edit-submodal input {
+  background: rgba(47, 172, 173, 0.05);
+  color: #000;
+  border: 1px solid rgba(47, 172, 173, 0.25);
+}
+.car-edit-submodal-backdrop .car-edit-submodal .ces-cancel {
+  background: rgba(128, 128, 128, 0.25);
+  color: #000;
+}
+.car-edit-submodal-backdrop .car-edit-submodal .ces-cancel:hover {
+  background: rgba(128, 128, 128, 0.45);
+}
+.car-edit-submodal-backdrop .car-edit-submodal .ces-create {
+  background: #1976d2;
+  color: #fff;
+}
+.car-edit-submodal-backdrop .car-edit-submodal .ces-create:hover {
+  filter: brightness(1.15);
+}
 /* inputs */
 /* links */
 /* buttons */
@@ -35,13 +104,15 @@ body *::-webkit-scrollbar-thumb:hover {
   background: #6bc4ff;
 }
 body input,
-body select {
+body select,
+body textarea {
   background-color: #effcf9;
   color: #333;
   border-color: #2facad;
 }
 body input:focus,
-body select:focus {
+body select:focus,
+body textarea:focus {
   background-color: #effcf9;
   color: #333;
   border-color: #2facad;
@@ -426,6 +497,10 @@ body .footer-container .footer-car-preview,
 body .footer-container .footer-track-preview {
   background-color: rgba(200, 220, 240, 0.4);
 }
+body .footer-container .footer-car-preview:hover,
+body .footer-container .footer-track-preview:hover {
+  box-shadow: 0 0 1.2em #38a8ff;
+}
 body .footer-container .footer-car-preview .preview-placeholder,
 body .footer-container .footer-track-preview .preview-placeholder {
   color: #333333;
@@ -522,6 +597,9 @@ body .footer-container .footer-settings .candidates-section .candidate-item {
   background: rgba(47, 172, 173, 0.05);
   color: #000;
 }
+body .footer-container .footer-settings .candidates-section .candidate-item:hover {
+  background: #7ecbd8;
+}
 body .footer-container .footer-settings .candidates-section .candidate-item .candidate-remove {
   color: #333333;
 }
@@ -546,6 +624,13 @@ body .footer-container .footer-settings .wind-compass .compass-arrow {
 }
 body .footer-container .footer-settings .wind-compass .compass-center {
   fill: #38a8ff;
+}
+body .footer-container .fav-title-input {
+  background: rgba(47, 172, 173, 0.05);
+  color: #000;
+  border: 1px solid rgba(47, 172, 173, 0.25);
+  border-radius: 0.35em;
+  padding: 0.25em 0.6em;
 }
 body .footer-container .fav-edit-actions .fav-edit-update {
   background: #38a8ff;
@@ -628,6 +713,26 @@ body .fav-modal-backdrop .fav-modal .fav-cancel-btn {
 }
 body .fav-modal-backdrop .fav-modal .fav-cancel-btn:hover {
   background: rgba(128, 128, 128, 0.55);
+}
+body .car-details-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+body .car-details-backdrop .car-details-modal {
+  background: #fafafa;
+  border: 2px solid rgba(47, 172, 173, 0.25);
+}
+body .car-details-backdrop .car-details-modal .car-details-save {
+  background: #1976d2;
+  color: #fff;
+}
+body .car-details-backdrop .car-details-modal .car-details-save:hover {
+  filter: brightness(1.15);
+}
+body .car-details-backdrop .car-details-modal .car-details-close {
+  color: #333333;
+}
+body .car-details-backdrop .car-details-modal .car-details-close:hover {
+  color: #000;
 }
 body .car-picker-backdrop {
   background: rgba(0, 0, 0, 0.5);

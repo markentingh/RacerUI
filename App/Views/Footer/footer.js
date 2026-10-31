@@ -155,6 +155,9 @@ ui.views.footer.load = () => {
 // Removes the footer on views that don't show it (everything except Cars and
 // Tracks). Selection/expanded state is kept so the next load restores it.
 ui.views.footer.unload = () => {
+    // An open favorite edit is abandoned on unload - restore the user's
+    // stashed settings before the DOM goes away
+    ui.views.footer.discardFavoriteEdit();
     const container = document.querySelector('.footer-container');
     if (container) container.remove();
     const modal = document.getElementById('ftr-fav-modal');
@@ -258,6 +261,9 @@ ui.views.footer.toggleDetails = () => {
 
 // Collapses the footer when expanded (e.g. on dash nav clicks) - no-op otherwise
 ui.views.footer.collapseDetails = () => {
+    // Navigating mid-edit discards the favorite edit - the footer must show
+    // the user's own quick-race settings, not the favorite's
+    ui.views.footer.discardFavoriteEdit();
     if (ui.views.footer.expanded) {
         ui.views.footer.toggleDetails();
     }
@@ -466,7 +472,11 @@ ui.views.footer.refreshSettingsControls = () => {
 ui.views.footer.openFavoriteEdit = (fav) => {
     ui.views.footer.editingFavorite = {
         fav: fav,
-        stash: JSON.parse(JSON.stringify(ui.views.footer.raceSettings))
+        stash: JSON.parse(JSON.stringify(ui.views.footer.raceSettings)),
+        car: ui.views.footer.selectedCar,
+        skin: ui.views.footer.selectedSkin,
+        track: ui.views.footer.selectedTrack,
+        layout: ui.views.footer.selectedLayout
     };
 
     const mount = () => {
@@ -507,6 +517,12 @@ ui.views.footer.openFavoriteEdit = (fav) => {
             });
         }
 
+        // Populate the editable title + the car/track subtitle
+        const titleInput = document.getElementById('ftr-fav-title-input');
+        if (titleInput) titleInput.value = fav.title || '';
+        const subtitle = document.getElementById('ftr-fav-subtitle');
+        if (subtitle) subtitle.textContent = `${fav.carName || ''} at ${fav.trackName || ''}`;
+
         const footerEl = document.querySelector('.footer-container');
         footerEl.classList.add('editing-fav');
         if (!ui.views.footer.expanded) ui.views.footer.toggleDetails();
@@ -532,6 +548,32 @@ ui.views.footer.openFavoriteEdit = (fav) => {
     }
 };
 
+// Restores the stashed user state captured before a favorite edit - in
+// place so bound event handlers keep writing to the same settings object
+ui.views.footer.restoreEditStash = (edit) => {
+    Object.assign(ui.views.footer.raceSettings, edit.stash);
+    ui.views.footer.selectedCar = edit.car;
+    ui.views.footer.selectedSkin = edit.skin;
+    ui.views.footer.selectedTrack = edit.track;
+    ui.views.footer.selectedLayout = edit.layout;
+};
+
+// Discards an in-progress favorite edit - restores the user's settings and
+// resyncs the footer controls. Called when the footer collapses or unloads
+// mid-edit (e.g. nav clicks) instead of through Cancel/Update
+ui.views.footer.discardFavoriteEdit = () => {
+    const edit = ui.views.footer.editingFavorite;
+    if (!edit) return;
+    ui.views.footer.restoreEditStash(edit);
+    ui.views.footer.editingFavorite = null;
+    const container = document.querySelector('.footer-container');
+    if (container) {
+        container.classList.remove('editing-fav');
+        ui.views.footer.refreshSettingsControls();
+        ui.views.footer.updateDisplay();
+    }
+};
+
 // Closes favorite-edit mode. update=true PUTs the edited configJson first.
 // Either way the user's stashed settings are restored and the footer unloads
 ui.views.footer.closeFavoriteEdit = (update) => {
@@ -539,7 +581,7 @@ ui.views.footer.closeFavoriteEdit = (update) => {
     if (!edit) return;
 
     const finish = () => {
-        ui.views.footer.raceSettings = edit.stash;
+        ui.views.footer.restoreEditStash(edit);
         ui.views.footer.editingFavorite = null;
         const container = document.querySelector('.footer-container');
         if (container) {
@@ -563,10 +605,14 @@ ui.views.footer.closeFavoriteEdit = (update) => {
     };
 
     if (update) {
+        const titleInput = document.getElementById('ftr-fav-title-input');
         ui.ajax({
             url: `/api/favorites/${edit.fav.id}`,
             method: 'PUT',
-            data: { configJson: JSON.stringify(ui.views.footer.raceSettings) },
+            data: {
+                title: titleInput ? titleInput.value.trim() : null,
+                configJson: JSON.stringify(ui.views.footer.raceSettings)
+            },
             complete: finish,
             error: finish
         });
@@ -741,6 +787,32 @@ ui.views.footer.initRaceTabs = () => {
     if (pickerBackdrop) {
         pickerBackdrop.addEventListener('click', (e) => {
             if (e.target === pickerBackdrop) ui.views.footer.closeCandidatePicker();
+        });
+    }
+    const trackPickerClose = document.getElementById('ftr-track-picker-close');
+    if (trackPickerClose) trackPickerClose.addEventListener('click', () => ui.views.footer.closeTrackPicker());
+    const trackPickerBackdrop = document.getElementById('ftr-track-picker');
+    if (trackPickerBackdrop) {
+        trackPickerBackdrop.addEventListener('click', (e) => {
+            if (e.target === trackPickerBackdrop) ui.views.footer.closeTrackPicker();
+        });
+    }
+
+    // Preview clicks open the pickers - selection applies normally, then
+    // the modal closes
+    const carPreview = container.querySelector('.footer-car-preview');
+    if (carPreview) {
+        carPreview.addEventListener('click', () => {
+            ui.views.footer.openCarPicker('Select Your Car', (car, skinName) => {
+                ui.views.footer.selectCar(car, skinName);
+                ui.views.footer.closeCandidatePicker();
+            });
+        });
+    }
+    const trackPreview = container.querySelector('.footer-track-preview');
+    if (trackPreview) {
+        trackPreview.addEventListener('click', () => {
+            ui.views.footer.openTrackPicker('Select Your Track');
         });
     }
 
@@ -963,37 +1035,87 @@ ui.views.footer.renderCandidates = () => {
             ui.views.footer.renderCandidates();
             ui.views.footer.saveRaceSettings();
         });
+        // Clicking a candidate opens its car details modal - the full car
+        // object comes from the loaded list, or the filter API as fallback
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('.candidate-remove')) return;
+            const car = (ui.views.cars.allCars || []).find(
+                (x) => x.id === c.id || x.path === c.carPath);
+            if (car) {
+                ui.views.cars.openDetailsModal(car, c.skinPath, c);
+                return;
+            }
+            ui.ajax({
+                url: '/api/cars/filter',
+                method: 'POST',
+                data: { Search: c.name || '', Start: 0, Length: 50 },
+                complete: (response) => {
+                    const data = JSON.parse(response.responseText || '{}');
+                    const found = (data.cars || []).find((x) => x.path === c.carPath);
+                    if (found) ui.views.cars.openDetailsModal(found, c.skinPath, c);
+                }
+            });
+        });
         row.append(name, rm);
         list.appendChild(row);
     });
 };
 
 // Opens the car picker modal - the full cars view (filters, grid, details)
-// mounted inside it; the Select Car button adds the car to the candidate
-// list. The title is configurable so the modal can be reused elsewhere
-ui.views.footer.openCandidatePicker = (title) => {
+// mounted inside it. onPick replaces the Select Car action (candidates);
+// without it the button keeps its normal footer.selectCar behavior
+ui.views.footer.openCarPicker = (title, onPick) => {
     const backdrop = document.getElementById('ftr-car-picker');
     const body = document.getElementById('ftr-car-picker-body');
     if (!backdrop || !body) return;
     const titleEl = document.getElementById('ftr-car-picker-title');
-    if (titleEl) titleEl.textContent = title || 'Select Your Vehicle Candidate';
+    if (titleEl) titleEl.textContent = title || 'Select Your Car';
     backdrop.style.display = '';
-    ui.views.cars.loadInto(body, {
-        onPick: (car, skinName) => {
-            const s = ui.views.footer.raceSettings;
-            s.candidates.push({
-                id: car.id,
-                year: car.year,
-                name: car.name || car.carName || car.path,
-                carPath: car.path,
-                skinPath: skinName || null,
-                skinName: ui.views.footer.skinDisplayName(car, skinName)
-            });
-            ui.views.footer.renderCandidates();
-            ui.views.footer.saveRaceSettings();
-            ui.views.footer.closeCandidatePicker();
+    ui.views.cars.loadInto(body, onPick ? { onPick } : {});
+};
+
+// The Candidates + button - pick an opponent car and it joins the list
+ui.views.footer.openCandidatePicker = (title) => {
+    ui.views.footer.openCarPicker(title || 'Select Your Vehicle Candidate', (car, skinName) => {
+        const s = ui.views.footer.raceSettings;
+        s.candidates.push({
+            id: car.id,
+            year: car.year,
+            name: car.name || car.carName || car.path,
+            carPath: car.path,
+            skinPath: skinName || null,
+            skinName: ui.views.footer.skinDisplayName(car, skinName)
+        });
+        ui.views.footer.renderCandidates();
+        ui.views.footer.saveRaceSettings();
+        ui.views.footer.closeCandidatePicker();
+    });
+};
+
+// Opens the track picker modal - the full tracks view (filters, grid,
+// details) mounted inside it; Select Track keeps its normal selectTrack
+// behavior so the clicked track becomes the race track
+ui.views.footer.openTrackPicker = (title) => {
+    const backdrop = document.getElementById('ftr-track-picker');
+    const body = document.getElementById('ftr-track-picker-body');
+    if (!backdrop || !body) return;
+    const titleEl = document.getElementById('ftr-track-picker-title');
+    if (titleEl) titleEl.textContent = title || 'Select Your Track';
+    backdrop.style.display = '';
+    ui.views.tracks.loadInto(body, {
+        onPick: (track, layout) => {
+            ui.views.footer.selectTrack(track, layout);
+            ui.views.footer.closeTrackPicker();
         }
     });
+};
+
+ui.views.footer.closeTrackPicker = () => {
+    ui.views.tracks.unloadFrom();
+    const backdrop = document.getElementById('ftr-track-picker');
+    if (backdrop) backdrop.style.display = 'none';
+    const body = document.getElementById('ftr-track-picker-body');
+    if (body) body.innerHTML = '';
 };
 
 ui.views.footer.closeCandidatePicker = () => {
@@ -1438,7 +1560,11 @@ ui.views.footer.openFavoriteModal = () => {
     // Reset back to the input form
     modal.querySelector('#ftr-fav-form').style.display = '';
     modal.querySelector('#ftr-fav-message').style.display = 'none';
-    modal.querySelector('#ftr-fav-name').value = '';
+    // Prefill the name like the favorite items render it - "Car at Track"
+    const effectiveTrack = ui.views.footer.getEffectiveTrack();
+    const carName = ui.views.footer.selectedCar.name || ui.views.footer.selectedCar.path || '';
+    const trackName = effectiveTrack ? (effectiveTrack.layoutName || effectiveTrack.name || '') : '';
+    modal.querySelector('#ftr-fav-name').value = `${carName} at ${trackName}`.trim();
     modal.querySelector('#ftr-fav-cancel').style.display = '';
     modal.querySelector('#ftr-fav-save').style.display = '';
     modal.querySelector('#ftr-fav-ok').style.display = 'none';

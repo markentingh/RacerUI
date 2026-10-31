@@ -69,7 +69,7 @@ namespace RacerUI.Controllers
         [HttpPut("{id}")]
         public IActionResult Update(int id, [FromBody] SaveFavoriteRequest request)
         {
-            return FavoritesRepository.Update(id, request?.ConfigJson ?? "{}") ? Ok() : NotFound();
+            return FavoritesRepository.Update(id, request?.Title, request?.ConfigJson ?? "{}") ? Ok() : NotFound();
         }
 
         /// <summary>

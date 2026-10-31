@@ -171,6 +171,22 @@ namespace RacerUI.SQL
         /// <param name="id">The ID of the car to update</param>
         /// <param name="notes">The new notes value</param>
         /// <returns>True if the update was successful</returns>
+        /// <summary>
+        /// Updates the editable car details (country, year, make, model)
+        /// </summary>
+        /// <returns>True if the update was successful</returns>
+        public static bool UpdateDetails(int id, string country, int? year, int? makeId, int? modelId, string details)
+        {
+            const string sql = @"UPDATE Cars SET Country = @Country, Year = @Year,
+                MakeId = @MakeId, ModelId = @ModelId, Details = @Details WHERE Id = @Id";
+            using (var connection = Connection.GetConnection())
+            {
+                return connection.Execute(sql,
+                    new { Country = country, Year = year, MakeId = makeId, ModelId = modelId,
+                        Details = details, Id = id }) > 0;
+            }
+        }
+
         public static bool UpdateNotes(int id, string notes)
         {
             const string sql = "UPDATE Cars SET Notes = @Notes WHERE Id = @Id";

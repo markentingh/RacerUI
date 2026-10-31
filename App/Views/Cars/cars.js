@@ -100,6 +100,99 @@ ui.views.cars.loadInto = (container, options) => {
     });
 };
 
+// Opens the car details modal for a car object - mounts a minimal grid so the
+// existing details flow renders inside the modal body
+ui.views.cars.openDetailsModal = (car, skinPath, candidate) => {
+    // Compute preview/name the same way the grid does - API-sourced cars
+    // don't come with car.preview populated. A candidate's chosen skin
+    // drives the preview instead of the first skin
+    const skin = skinPath && car.skins
+        ? car.skins.find((x) => x.path === skinPath)
+        : null;
+    car = ui.views.cars.getCarDetails(car, skin);
+    ui.view.loadComponent('Cars/car-details-modal', (html) => {
+        const existing = document.getElementById('car-details-modal');
+        if (existing) existing.remove();
+        document.body.insertAdjacentHTML('beforeend', html);
+        const backdrop = document.getElementById('car-details-modal');
+        const body = backdrop.querySelector('.car-details-body');
+
+        // Stash page state - the details flow mutates selected/scope, and
+        // getCarFromItem only resolves cars present in allCars
+        const stash = {
+            selected: ui.views.cars.selected,
+            picker: ui.views.cars.picker,
+            hadCar: ui.views.cars.allCars.some((x) => x.path === car.path),
+            car: car,
+            candidate: candidate,
+            skinPath: skinPath
+        };
+        if (!stash.hadCar) ui.views.cars.allCars.push(car);
+        ui.views.cars.picker = (c, skin) => {
+            ui.views.footer.selectCar(c, skin);
+            ui.views.cars.closeDetailsModal();
+        };
+        ui.views.cars.scope = body;
+        body.innerHTML = `<div class="cars-content"><div class="grid-view"><div class="car" data-path="${car.path}"></div></div></div>`;
+        ui.views.cars.views.grid.setup();
+        const item = body.querySelector('.car');
+        if (item) {
+            // Details open from the hover-clone's click, not the item's
+            item.dispatchEvent(new Event('mouseenter'));
+            const clone = body.querySelector('.hovered-clone');
+            if (clone) clone.click();
+        }
+        backdrop.style.display = '';
+        backdrop.querySelector('#car-details-close').onclick = () => {
+            ui.views.cars.closeDetailsModal();
+        };
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) ui.views.cars.closeDetailsModal();
+        });
+
+        // Skin changes inside the details reveal the Save Changes button -
+        // it writes the new skin back onto the candidate
+        body.addEventListener('click', () => {
+            const saveBtn = backdrop.querySelector('#car-details-save');
+            if (!saveBtn) return;
+            const sel = ui.views.cars.selected;
+            const changed = sel && sel.selectedSkin && sel.selectedSkin !== stash.skinPath;
+            saveBtn.style.display = changed ? '' : 'none';
+        });
+        const saveBtn = backdrop.querySelector('#car-details-save');
+        if (saveBtn) {
+            saveBtn.onclick = () => {
+                const sel = ui.views.cars.selected;
+                if (stash.candidate && sel && sel.selectedSkin) {
+                    stash.candidate.skinPath = sel.selectedSkin;
+                    stash.candidate.skinName = ui.views.footer.skinDisplayName(car, sel.selectedSkin);
+                    ui.views.footer.renderCandidates();
+                    ui.views.footer.saveRaceSettings();
+                }
+                ui.views.cars.closeDetailsModal();
+            };
+        }
+        ui.views.cars._detailsStash = stash;
+    });
+};
+
+// Closes the car details modal - restores page state
+ui.views.cars.closeDetailsModal = () => {
+    const backdrop = document.getElementById('car-details-modal');
+    if (backdrop) backdrop.remove();
+    const stash = ui.views.cars._detailsStash;
+    if (stash) {
+        ui.views.cars.selected = stash.selected;
+        ui.views.cars.picker = stash.picker;
+        if (stash.car && !stash.hadCar) {
+            const idx = ui.views.cars.allCars.findIndex((x) => x.path === stash.car.path);
+            if (idx > -1) ui.views.cars.allCars.splice(idx, 1);
+        }
+        ui.views.cars._detailsStash = null;
+    }
+    ui.views.cars.scope = null;
+};
+
 // Unmounts the picker - DOM lookups go back to the document and the page's
 // stashed filter/grid state is restored
 ui.views.cars.unloadFrom = () => {
@@ -1023,6 +1116,9 @@ ui.views.cars.views.grid = {
 
                 // Load the power/torque graph
                 ui.views.cars.views.grid.setupPowerGraph(car);
+
+                // Pencil icon in the details header opens the edit form
+                ui.views.cars.carEdit.init(ui.views.cars.views.grid.detailsDiv, car);
                 
                 setTimeout(() => {
                     //scroll to car details
@@ -1095,15 +1191,16 @@ ui.views.cars.views.grid = {
     },
     setupTabHandlers: () => {
         const tabButtons = ui.views.cars.qsa('.car-tab');
-        const tabContents = ui.views.cars.qsa('.car-tab-content');
-        
+
         tabButtons.forEach((button) => {
             button.addEventListener('click', () => {
                 const targetTab = button.getAttribute('data-tab');
-                
-                // Remove active class from all tabs and contents
+
+                // Remove active class from all tabs and contents - re-query
+                // contents at click time, the edit-mode panes are injected
+                // after this handler binds
                 tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabContents.forEach(content => content.classList.remove('active'));
+                ui.views.cars.qsa('.car-tab-content').forEach(content => content.classList.remove('active'));
                 
                 // Add active class to clicked tab and corresponding content
                 button.classList.add('active');
@@ -2046,6 +2143,262 @@ ui.views.cars.specialization.select = (specializationId) => {
         }
     }
     ui.views.cars.getFilteredList();
+};
+
+//#endregion
+
+//#region "CarEdit"
+
+// In-place car details editor - pencil button in the details header swaps the
+// stats/chart area for a country/year/manufacturer/model form
+ui.views.cars.carEdit = {
+    state: null,  // { detailsDiv, car, makes, models }
+
+    // Called after each details render - appends the pencil once per cell
+    init: (detailsDiv, car) => {
+        const h4 = detailsDiv && detailsDiv.querySelector('.info h4');
+        if (!h4 || h4.querySelector('.edit-car-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'edit-car-btn';
+        btn.title = 'Edit Car Details';
+        btn.innerHTML = '<svg viewBox="0 0 64 64" class="dark"><use xlink:href="#icon-pencil" x="0" y="0" width="64" height="64"></use></svg>';
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            ui.views.cars.carEdit.open(detailsDiv, car);
+        });
+        h4.appendChild(btn);
+    },
+
+    open: (detailsDiv, car) => {
+        const info = detailsDiv.querySelector('.info');
+        if (!info || info.querySelector('.car-edit-form')) return;
+        ui.views.cars.carEdit.state = { detailsDiv, car, makes: null, models: null };
+
+        // Editing mode: stats tab + stats pane hide, a Details tab shows the
+        // form as its own tab content
+        detailsDiv.classList.add('car-editing');
+        const editTab = detailsDiv.querySelector('.car-edit-tab');
+        if (editTab) editTab.style.display = '';
+
+        // Activate the edit tab/pane the same way a tab click would
+        detailsDiv.querySelectorAll('.car-tab').forEach((t) => t.classList.remove('active'));
+        detailsDiv.querySelectorAll('.car-tab-content').forEach((c) => c.classList.remove('active'));
+        if (editTab) editTab.classList.add('active');
+
+        ui.view.loadComponent('Cars/car-edit-form', (html) => {
+            info.insertAdjacentHTML('beforeend', html);
+            const form = info.querySelector('.car-edit-form');
+
+            // The Info tab shows an editable textarea instead of .car-info
+            // while editing - steal its data-content so the tab handler
+            // activates the textarea pane instead
+            const carInfo = detailsDiv.querySelector('.car-info');
+            if (carInfo) carInfo.removeAttribute('data-content');
+            const infoText = info.querySelector('#car-edit-info-text');
+            if (infoText) infoText.value = car.details || '';
+
+            ui.views.cars.carEdit.loadDropdowns(detailsDiv, car, form);
+            form.querySelector('#car-edit-add-make').addEventListener('click',
+                () => ui.views.cars.carEdit.openSubModal('make'));
+            form.querySelector('#car-edit-add-model').addEventListener('click',
+                () => ui.views.cars.carEdit.openSubModal('model'));
+            // Save/Cancel sit below the tab contents - sibling of the panes
+            info.querySelector('#car-edit-save').addEventListener('click',
+                () => ui.views.cars.carEdit.save(detailsDiv, car, form));
+            info.querySelector('#car-edit-cancel').addEventListener('click',
+                () => ui.views.cars.carEdit.close(detailsDiv));
+            form.querySelector('#car-edit-make').addEventListener('change',
+                () => ui.views.cars.carEdit.fillModels(detailsDiv, car, form));
+        });
+    },
+
+    loadDropdowns: (detailsDiv, car, form) => {
+        // Countries
+        ui.ajax({
+            url: '/api/cars/countries',
+            method: 'GET',
+            complete: (r) => {
+                const list = JSON.parse(r.responseText || '[]');
+                const sel = form.querySelector('#car-edit-country');
+                list.forEach((c) => sel.appendChild(new Option(c.name || c.Name, (c.code || c.Code || '').toLowerCase())));
+                if (car.country) sel.value = car.country.toLowerCase();
+            }
+        });
+        // Manufacturers
+        ui.ajax({
+            url: '/api/cars/makes',
+            method: 'GET',
+            complete: (r) => {
+                ui.views.cars.carEdit.state.makes = JSON.parse(r.responseText || '[]');
+                const sel = form.querySelector('#car-edit-make');
+                sel.innerHTML = '';
+                ui.views.cars.carEdit.state.makes.forEach((m) => sel.appendChild(new Option(m.name || m.Name, m.id || m.Id)));
+                if (car.makeId) sel.value = car.makeId;
+            }
+        });
+        // Models - loaded once, filtered by the chosen manufacturer
+        ui.ajax({
+            url: '/api/cars/models',
+            method: 'GET',
+            complete: (r) => {
+                ui.views.cars.carEdit.state.models = JSON.parse(r.responseText || '[]');
+                ui.views.cars.carEdit.fillModels(detailsDiv, car, form, car.modelId);
+            }
+        });
+        form.querySelector('#car-edit-year').value = car.year || '';
+    },
+
+    // Refills the model select with models of the current manufacturer
+    fillModels: (detailsDiv, car, form, selectId) => {
+        const st = ui.views.cars.carEdit.state;
+        if (!st || !st.models) return;
+        const makeId = parseInt(form.querySelector('#car-edit-make').value) || null;
+        const sel = form.querySelector('#car-edit-model');
+        sel.innerHTML = '';
+        st.models
+            .filter((m) => !makeId || (m.makeId ?? m.MakeId) === makeId)
+            .forEach((m) => sel.appendChild(new Option(m.name || m.Name, m.id || m.Id)));
+        if (selectId) sel.value = selectId;
+    },
+
+    // Small New Manufacturer / New Model popup
+    openSubModal: (type) => {
+        const st = ui.views.cars.carEdit.state;
+        if (!st) return;
+        ui.view.loadComponent('Cars/car-edit-submodal', (html) => {
+            const existing = document.getElementById('car-edit-submodal');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', html);
+            const modal = document.getElementById('car-edit-submodal');
+            const title = modal.querySelector('#ces-title');
+            const makeLabel = modal.querySelector('#ces-make-label');
+            const nameInput = modal.querySelector('#ces-name');
+            const isModel = type === 'model';
+            title.textContent = isModel ? 'New Model' : 'New Manufacturer';
+            nameInput.value = '';
+
+            // Model creation needs the manufacturer selected in the form
+            const form = st.detailsDiv.querySelector('.car-edit-form');
+            const makeSel = form.querySelector('#car-edit-make');
+            const makeName = makeSel.options.find((o) => o.value === makeSel.value)?.textContent || '';
+            makeLabel.style.display = isModel ? '' : 'none';
+            if (isModel) makeLabel.textContent = `Manufacturer: ${makeName}`;
+
+            const close = () => modal.remove();
+            modal.querySelector('#ces-cancel').onclick = close;
+            modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+            modal.querySelector('#ces-create').onclick = () => {
+                const name = nameInput.value.trim();
+                if (!name) return;
+                const data = isModel ? { Name: name, MakeId: parseInt(makeSel.value) } : { Name: name };
+                ui.ajax({
+                    url: isModel ? '/api/cars/models' : '/api/cars/makes',
+                    method: 'POST',
+                    data: data,
+                    complete: (r) => {
+                        const created = JSON.parse(r.responseText || '{}');
+                        close();
+                        ui.views.cars.carEdit.refreshAfterCreate(type, created.id);
+                    },
+                    error: close
+                });
+            };
+            modal.style.display = 'flex';
+            setTimeout(() => nameInput.focus(), 0);
+        });
+    },
+
+    // After creating a make/model: refetch the list, rebuild the dropdown,
+    // select the new record
+    refreshAfterCreate: (type, newId) => {
+        const st = ui.views.cars.carEdit.state;
+        if (!st) return;
+        const form = st.detailsDiv.querySelector('.car-edit-form');
+        if (!form) return;
+        if (type === 'make') {
+            ui.ajax({
+                url: '/api/cars/makes',
+                method: 'GET',
+                complete: (r) => {
+                    st.makes = JSON.parse(r.responseText || '[]');
+                    const sel = form.querySelector('#car-edit-make');
+                    sel.innerHTML = '';
+                    st.makes.forEach((m) => sel.appendChild(new Option(m.name || m.Name, m.id || m.Id)));
+                    sel.value = newId;
+                    ui.views.cars.carEdit.fillModels(st.detailsDiv, st.car, form);
+                }
+            });
+        } else {
+            ui.ajax({
+                url: '/api/cars/models',
+                method: 'GET',
+                complete: (r) => {
+                    st.models = JSON.parse(r.responseText || '[]');
+                    ui.views.cars.carEdit.fillModels(st.detailsDiv, st.car, form, newId);
+                }
+            });
+        }
+    },
+
+    save: (detailsDiv, car, form) => {
+        const makeSel = form.querySelector('#car-edit-make');
+        const modelSel = form.querySelector('#car-edit-model');
+        const payload = {
+            Country: form.querySelector('#car-edit-country').value || null,
+            Year: parseInt(form.querySelector('#car-edit-year').value) || null,
+            MakeId: parseInt(makeSel.value) || null,
+            ModelId: parseInt(modelSel.value) || null,
+            Details: detailsDiv.querySelector('#car-edit-info-text')?.value || null
+        };
+        ui.ajax({
+            url: `/api/cars/${car.id}`,
+            method: 'PUT',
+            data: payload,
+            complete: () => {
+                // Reflect the edit on the loaded car + the visible details
+                const makeName = makeSel.options.find((o) => o.value === makeSel.value)?.textContent || car.makeName;
+                const countrySel = form.querySelector('#car-edit-country');
+                const countryName = countrySel.options.find((o) => o.value === countrySel.value)?.textContent || car.countryName;
+                Object.assign(car, payload, { makeName, countryName });
+                ui.views.cars.carEdit.applyToDetails(detailsDiv, car);
+                ui.views.cars.carEdit.close(detailsDiv);
+            }
+        });
+    },
+
+    // Updates the read-only details row with the freshly saved values
+    applyToDetails: (detailsDiv, car) => {
+        const countrySpan = detailsDiv.querySelector('.car-country span');
+        if (countrySpan) countrySpan.textContent = car.countryName || '';
+        const flag = detailsDiv.querySelector('.car-country img.flag');
+        if (flag && car.country) flag.src = `/images/flags/80x60/${car.country.toLowerCase()}.png`;
+        const classDivs = detailsDiv.querySelectorAll('.car-origin .car-class span');
+        if (classDivs.length > 1) classDivs[classDivs.length - 1].textContent = car.makeName || '';
+        const h4 = detailsDiv.querySelector('.info h4');
+        if (h4) h4.textContent = ((car.year ? car.year + ' ' : '') + (car.name || '').replace(car.year || '', ''));
+        const infoP = detailsDiv.querySelector('.car-info p');
+        if (infoP && car.details) infoP.innerHTML = car.details.replace(/\n/g, '<br/><br/>');
+    },
+
+    close: (detailsDiv) => {
+        detailsDiv.classList.remove('car-editing');
+        detailsDiv.querySelector('.car-edit-form')?.remove();
+        detailsDiv.querySelector('.car-edit-info')?.remove();
+        detailsDiv.querySelector('.car-edit-actions')?.remove();
+        // .car-info owns data-content again once the edit textarea is gone
+        const carInfo = detailsDiv.querySelector('.car-info');
+        if (carInfo) carInfo.setAttribute('data-content', 'info');
+        const editTab = detailsDiv.querySelector('.car-edit-tab');
+        if (editTab) {
+            editTab.style.display = 'none';
+            editTab.classList.remove('active');
+        }
+        // Back to the stats view
+        detailsDiv.querySelector('.car-tab[data-tab="stats"]')?.classList.add('active');
+        detailsDiv.querySelector('.car-stats')?.classList.add('active');
+        ui.views.cars.carEdit.state = null;
+    }
 };
 
 //#endregion

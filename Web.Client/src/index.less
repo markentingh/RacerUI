@@ -1,0 +1,8 @@
+@import "styles/app.less";
+
+/* The original page renders .dash/.footer/.console as direct children of
+   <body> (grid rows). React wraps them in #root - display:contents makes the
+   wrapper transparent so the body's grid applies to the same children. */
+#root {
+    display: contents;
+}

@@ -408,5 +408,73 @@ namespace RacerUI.Controllers
 
             return new JsonResult(results, options);
         }
+
+        // Full country list for the edit form's Country dropdown
+        [HttpGet("countries")]
+        public IActionResult GetAllCountries()
+        {
+            return Ok(CountryRepository.GetAll());
+        }
+
+        // All manufacturers/models for the edit form dropdowns (unfiltered)
+        [HttpGet("makes")]
+        public IActionResult GetAllMakes()
+        {
+            return Ok(CarMakesRepository.GetAll());
+        }
+
+        [HttpGet("models")]
+        public IActionResult GetAllModels()
+        {
+            return Ok(CarModelsRepository.GetAll());
+        }
+
+        // Creates a new manufacturer from the edit form's + button
+        [HttpPost("makes")]
+        public IActionResult CreateMake([FromBody] NewMakeRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request?.Name)) return BadRequest();
+            var id = CarMakesRepository.Add(new CarMake { Name = request.Name.Trim() });
+            return Ok(new { id });
+        }
+
+        // Creates a new model under a manufacturer from the edit form's + button
+        [HttpPost("models")]
+        public IActionResult CreateModel([FromBody] NewModelRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request?.Name) || !request.MakeId.HasValue) return BadRequest();
+            var id = CarModelsRepository.Add(new CarModel { Name = request.Name.Trim(), MakeId = request.MakeId });
+            return Ok(new { id });
+        }
+
+        // Saves the editable car details (country, year, make, model)
+        [HttpPut("{id}")]
+        public IActionResult UpdateCarDetails(int id, [FromBody] CarDetailsUpdateRequest request)
+        {
+            if (request == null) return BadRequest();
+            return CarsRepository.UpdateDetails(id, request.Country, request.Year, request.MakeId,
+                request.ModelId, request.Details)
+                ? Ok() : NotFound();
+        }
+    }
+
+    public class NewMakeRequest
+    {
+        public string Name { get; set; }
+    }
+
+    public class NewModelRequest
+    {
+        public int? MakeId { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class CarDetailsUpdateRequest
+    {
+        public string Country { get; set; }
+        public int? Year { get; set; }
+        public int? MakeId { get; set; }
+        public int? ModelId { get; set; }
+        public string Details { get; set; }
     }
 }

@@ -1,0 +1,148 @@
+
+body {
+    font-family: "Noto Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings: "wdth" 87.5;
+    min-height: 100vh;
+    overflow:hidden;
+    margin:0;
+    padding:0;
+    animation: darkmode-off 0.5s ease-in-out;
+    background-image: url('/images/footer.png');
+    background-size: cover;
+    background-position: bottom left;
+    background-repeat: no-repeat;
+}
+
+.scale-ui{
+    transform-origin: top left;
+    max-width: 1920px;
+}
+
+.svg-assets{
+    display:fixed;
+    top:-99em;
+    left:-99em;
+    width:0;
+    height:0;
+}
+
+/*
+* {transition: all 0.25s ease-in-out; box-sizing: border-box;}
+*/
+
+.row, .col {
+    box-sizing: border-box;
+}
+
+.row {
+    width: 100%;
+    display: block;
+}
+
+.col {
+    display: inline-block;
+}
+
+.col.field {
+    text-align: right;
+    padding: 0.5em;
+    width: 8em;
+    cursor: default;
+}
+
+.col.field.long {
+    width: 12em;
+}
+
+.col.input {
+    padding: 0.5em;
+    width: calc(100% - 8.5em);
+}
+
+.col.input.short {
+    width: calc(100% - 12.5em);
+}
+
+.logo{
+    position:relative;
+    svg{
+        width:100%;
+    }
+}
+
+h1, h2, h3, h4, h5, h6{
+    line-height:1;
+    margin:0;
+    padding:0;
+}
+
+p{
+    font-size:1.25em;
+    line-height:1.5;
+}
+
+.right{
+    float:right;
+}
+
+.left{
+    float:left;
+}
+
+.align-right{
+    text-align:right;
+}
+
+.align-left{
+    text-align:left;
+}
+
+.align-center{
+    text-align:center;
+}
+
+
+/* logo */
+.logo .light{
+    position:absolute;
+    opacity:1;
+    animation: opacity-1 0.5s ease-in-out;
+}
+
+.logo .dark{
+    opacity:0;
+    animation: opacity-0 0.5s ease-in-out;
+}
+
+body.dark-mode .logo .light{
+    opacity:0;
+    animation: opacity-0 0.5s ease-in-out;
+}
+
+body.dark-mode .logo .dark{
+    opacity:1;
+    animation: opacity-1 0.5s ease-in-out;
+}
+
+@keyframes opacity-1 {
+    from {
+        opacity:0
+    }
+
+    to {
+        opacity:1
+    }
+}
+
+@keyframes opacity-0 {
+    from {
+        opacity:1
+    }
+
+    to {
+        opacity:0
+    }
+}

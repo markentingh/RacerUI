@@ -1,0 +1,65 @@
+.dropdown-list {
+    display: inline-block;
+    position: relative;
+    min-width: 12em;
+
+    // Raw <option> children are just the data source - never rendered directly
+    > option {
+        display: none;
+    }
+
+    .ddl-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5em;
+        padding: 0.55em 0.85em;
+        border-style: solid;
+        border-width: 2px;
+        border-radius: 0.5em;
+        cursor: pointer;
+        user-select: none;
+        box-sizing: border-box;
+        width: 100%;
+
+        .ddl-label {
+            flex: 1;
+            min-width: 0;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ddl-caret {
+            flex: 0 0 auto;
+            font-size: 1.35em;
+            line-height: 1;
+        }
+    }
+}
+
+// The open list is portaled to <body> and positioned over the toggle so it can
+// escape overflow:hidden / scrolling containers like the footer settings
+.ddl-portal {
+    position: fixed;
+    // Above the car-picker / favorites modals (z-index 20000)
+    z-index: 21000;
+    max-height: 22em;
+    overflow-y: auto;
+    border-radius: 0.5em;
+    border-style: solid;
+    border-width: 2px;
+    box-sizing: border-box;
+
+    .ddl-item {
+        margin: 0 0.25em;
+        padding: 0.8em 0.85em;
+        border-radius: 0.4em;
+        cursor: pointer;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}

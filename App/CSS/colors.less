@@ -17,14 +17,16 @@
     }
 
     input,
-    select {
+    select,
+    textarea {
         background-color: @input-bg;
         color: @input-color;
         border-color: @input-border;
     }
 
     input:focus,
-    select:focus {
+    select:focus,
+    textarea:focus {
         background-color: @input-focus-bg;
         color: @input-focus-color;
         border-color: @input-focus-border;
@@ -439,6 +441,10 @@
         .footer-track-preview {
             background-color: @view-details-bg;
 
+            &:hover {
+                box-shadow: 0 0 1.2em @footer-preview-glow;
+            }
+
             .preview-placeholder {
                 color: @submenu-item-color;
 
@@ -563,6 +569,10 @@
                     background: @race-input-bg;
                     color: @race-input-color;
 
+                    &:hover {
+                        background: @candidate-hover-bg;
+                    }
+
                     .candidate-remove {
                         color: @submenu-item-color;
 
@@ -599,6 +609,14 @@
                     fill: @view-select-car-bg;
                 }
             }
+        }
+
+        .fav-title-input {
+            background: @race-input-bg;
+            color: @race-input-color;
+            border: 1px solid @race-input-border;
+            border-radius: 0.35em;
+            padding: 0.25em 0.6em;
         }
 
         .fav-edit-actions {
@@ -706,7 +724,33 @@
     }
 
     // Candidate car-picker modal
-    .car-picker-backdrop {
+    .car-details-backdrop {
+    background: rgba(0, 0, 0, 0.5);
+
+    .car-details-modal {
+        background: @bg;
+        border: 2px solid @race-input-border;
+
+        .car-details-save {
+            background: @fav-btn-bg;
+            color: #fff;
+
+            &:hover {
+                filter: brightness(1.15);
+            }
+        }
+
+        .car-details-close {
+            color: @submenu-item-color;
+
+            &:hover {
+                color: @race-input-color;
+            }
+        }
+    }
+}
+
+.car-picker-backdrop {
         background: rgba(0, 0, 0, 0.5);
 
         .car-picker-modal {
@@ -765,6 +809,105 @@
     .fav-delete-modal {
         .fav-delete-confirm-btn {
             background: @fav-delete-btn-bg;
+            color: #fff;
+
+            &:hover {
+                filter: brightness(1.15);
+            }
+        }
+    }
+}
+// Car details edit form + submodal
+.edit-car-btn {
+    color: @car-edit-icon-color;
+    border-radius: 0.4em;
+
+    svg use {
+        color: @car-edit-icon-color;
+    }
+
+    &:hover {
+        background: rgba(128, 128, 128, 0.25) !important;
+
+        // Pin the icon color on hover - the global button:hover rule
+        // repaints svg uses otherwise
+        svg use {
+            color: @car-edit-icon-color;
+        }
+    }
+}
+
+// Inputs + the info textarea share the dropdown-list's translucent input
+// theme - scoped under .grid-details to outrank the global input rule
+.grid-details .car-edit-form input,
+.grid-details .car-edit-info textarea {
+    background-color: @race-input-bg;
+    color: @race-input-color;
+    border: 1px solid @race-input-border;
+}
+
+.car-edit-form {
+    .edit-field {
+        label {
+            color: @submenu-item-color;
+        }
+
+        .edit-add-btn {
+            color: @submenu-item-color;
+
+            &:hover {
+                color: @race-input-color;
+            }
+        }
+    }
+}
+
+// Save/Cancel live in .car-edit-actions - a sibling of the form, not inside it
+.car-edit-actions {
+    .car-edit-cancel {
+        background: rgba(128, 128, 128, 0.25);
+        color: @race-input-color;
+
+        &:hover {
+            background: rgba(128, 128, 128, 0.45);
+            color: #fff;
+        }
+    }
+
+    .car-edit-save {
+        background: @fav-btn-bg;
+        color: #fff;
+
+        &:hover {
+            filter: brightness(1.15);
+        }
+    }
+}
+
+.car-edit-submodal-backdrop {
+    background: rgba(0, 0, 0, 0.5);
+
+    .car-edit-submodal {
+        background: @bg;
+        border: 2px solid @race-input-border;
+
+        input {
+            background: @race-input-bg;
+            color: @race-input-color;
+            border: 1px solid @race-input-border;
+        }
+
+        .ces-cancel {
+            background: rgba(128, 128, 128, 0.25);
+            color: @race-input-color;
+
+            &:hover {
+                background: rgba(128, 128, 128, 0.45);
+            }
+        }
+
+        .ces-create {
+            background: @fav-btn-bg;
             color: #fff;
 
             &:hover {

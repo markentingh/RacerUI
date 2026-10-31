@@ -1,0 +1,41 @@
+<div class="car-edit-form car-tab-content active" data-content="edit">
+    <div class="edit-field-row">
+        <div class="edit-field">
+            <label>Country</label>
+            <dropdown-list id="car-edit-country"></dropdown-list>
+        </div>
+        <div class="edit-field">
+            <label>Year</label>
+            <input id="car-edit-year" type="number" min="0" step="1" />
+        </div>
+        <div class="edit-field has-add">
+            <label>Manufacturer</label>
+            <div class="edit-field-input">
+                <dropdown-list id="car-edit-make"></dropdown-list>
+                <button class="edit-add-btn" id="car-edit-add-make" title="New Manufacturer">
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-add" x="0" y="0" width="64" height="64"></use>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="edit-field has-add">
+            <label>Model</label>
+            <div class="edit-field-input">
+                <dropdown-list id="car-edit-model"></dropdown-list>
+                <button class="edit-add-btn" id="car-edit-add-model" title="New Model">
+                    <svg viewBox="0 0 64 64" class="dark">
+                        <use xlink:href="#icon-add" x="0" y="0" width="64" height="64"></use>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="car-edit-info car-tab-content" data-content="info">
+    <textarea id="car-edit-info-text" rows="8"></textarea>
+</div>
+<div class="car-edit-actions">
+    <button class="car-edit-cancel" id="car-edit-cancel">Cancel</button>
+    <button class="car-edit-save" id="car-edit-save">Save Changes</button>
+</div>

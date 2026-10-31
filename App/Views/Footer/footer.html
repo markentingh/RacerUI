@@ -21,6 +21,8 @@
             <div class="session-text">
                 <span class="no-selection">Select a car and track to play</span>
             </div>
+            <input type="text" id="ftr-fav-title-input" class="fav-title-input" maxlength="120" />
+            <div class="fav-edit-subtitle" id="ftr-fav-subtitle"></div>
             <div class="session-settings"></div>
             <div class="session-mode"></div>
         </div>
@@ -370,5 +372,19 @@
             </button>
         </div>
         <div class="car-picker-body" id="ftr-car-picker-body"></div>
+    </div>
+</div>
+
+<div class="car-picker-backdrop track-picker-backdrop scale-ui" id="ftr-track-picker" style="display: none;">
+    <div class="car-picker-modal">
+        <div class="car-picker-header">
+            <div class="car-picker-title" id="ftr-track-picker-title"></div>
+            <button class="car-picker-close" id="ftr-track-picker-close">
+                <svg viewBox="0 0 64 64" class="dark">
+                    <use xlink:href="#icon-close" x="0" y="0" width="64" height="64"></use>
+                </svg>
+            </button>
+        </div>
+        <div class="car-picker-body" id="ftr-track-picker-body"></div>
     </div>
 </div>

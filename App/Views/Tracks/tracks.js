@@ -22,15 +22,97 @@ ui.views.tracks = {
     virtualDOM: {
         topHiddenRows: 0,
         bottomHiddenRows: 0
+    },
+    scope: null,   // element DOM lookups run inside while the view is mounted in the track-picker modal
+    picker: null,  // (track, layout) => void - when set, Select Track calls this instead of footer.selectTrack
+    pickerState: null // stashed page filter/grid state while the picker modal is open
+};
+
+// DOM lookups scoped to the mounted container (picker modal) or the document
+// (cars-style scope mechanism)
+ui.views.tracks.qs = (sel) => ui.views.tracks.scope
+    ? ui.views.tracks.scope.querySelector(sel)
+    : document.querySelector(sel);
+
+ui.views.tracks.qsa = (sel) => Array.from(
+    (ui.views.tracks.scope ? ui.views.tracks.scope : document).querySelectorAll(sel));
+
+ui.views.tracks.byId = (id) => ui.views.tracks.scope
+    ? ui.views.tracks.scope.querySelector('#' + id)
+    : document.getElementById(id);
+
+// The picker's filter lives in its own localStorage slot so remembering it
+// doesn't bleed into the tracks page's filters (and vice versa)
+ui.views.tracks.filterKey = () =>
+    ui.views.tracks.scope ? 'RacerUI:tracks-filter-picker' : 'RacerUI:tracks-filter';
+
+ui.views.tracks.defaultFilter = () => ({
+    countries: ['all'],
+    types: [],
+    search: '',
+    sort: 'name',
+    start: 0,
+    length: 20,
+    view: 'grid'
+});
+
+// Mounts the tracks view inside an arbitrary container (the track-picker
+// modal) - same init steps as load() minus the page-level plumbing. The
+// page's filter/grid state is stashed and the picker works on its own
+// filter (saved under its own localStorage key). options.onPick replaces
+// the Select Track button's default action
+ui.views.tracks.loadInto = (container, options) => {
+    options = options || {};
+    ui.views.tracks.scope = container;
+    ui.views.tracks.picker = options.onPick || null;
+    ui.views.tracks.pickerState = {
+        filter: ui.views.tracks.filter,
+        results: ui.views.tracks.results,
+        allTracks: ui.views.tracks.allTracks,
+        selected: ui.views.tracks.selected,
+        hasMore: ui.views.tracks.hasMore
+    };
+    ui.views.tracks.filter = ui.views.tracks.defaultFilter();
+    ui.views.tracks.results = null;
+    ui.views.tracks.allTracks = [];
+    ui.views.tracks.selected = null;
+    ui.views.tracks.hasMore = true;
+    if (localStorage.getItem(ui.views.tracks.filterKey())) {
+        ui.views.tracks.filter = {...ui.views.tracks.filter, ...JSON.parse(localStorage.getItem(ui.views.tracks.filterKey()))};
+    }
+    ui.view.loadComponent('Tracks/tracks', (html) => {
+        container.innerHTML = html;
+        ui.views.tracks.setupSearchListener();
+        ui.views.tracks.setupSortDropdown();
+        ui.views.tracks.updateClearFilterButton();
+        ui.views.tracks.getFilteredList();
+        ui.views.tracks.resize();
+        ui.views.tracks.setupInfiniteScroll();
+        ui.utils.scaleUI();
+    });
+};
+
+// Unmounts the picker - DOM lookups go back to the document and the page's
+// stashed filter/grid state is restored
+ui.views.tracks.unloadFrom = () => {
+    ui.views.tracks.scope = null;
+    ui.views.tracks.picker = null;
+    if (ui.views.tracks.pickerState) {
+        Object.assign(ui.views.tracks, ui.views.tracks.pickerState);
+        ui.views.tracks.pickerState = null;
     }
 };
 
 ui.views.tracks.load = (e) => {
+    // Page mount - the view lives at document level again
+    ui.views.tracks.scope = null;
+    ui.views.tracks.picker = null;
+    ui.views.tracks.pickerState = null;
     // Load filter settings from local storage
-    if (localStorage.getItem('RacerUI:tracks-filter')) {
-        ui.views.tracks.filter = {...ui.views.tracks.filter, ...JSON.parse(localStorage.getItem('RacerUI:tracks-filter'))};
+    if (localStorage.getItem(ui.views.tracks.filterKey())) {
+        ui.views.tracks.filter = {...ui.views.tracks.filter, ...JSON.parse(localStorage.getItem(ui.views.tracks.filterKey()))};
     }
-    if (document.querySelector('.tracks-toolbar') == null) {
+    if (ui.views.tracks.qs('.tracks-toolbar') == null) {
         // View not loaded yet
         ui.view.loadComponent(`Tracks/tracks`, (html) => {
             ui.nav.select('tracks');
@@ -64,9 +146,9 @@ ui.views.tracks.load = (e) => {
 };
 
 ui.views.tracks.setupSearchListener = () => {
-    const searchInput = document.getElementById('search_tracks');
-    const searchClear = document.getElementById('search_clear');
-    const clearFilterBtn = document.getElementById('clear_filter_btn');
+    const searchInput = ui.views.tracks.byId('search_tracks');
+    const searchClear = ui.views.tracks.byId('search_clear');
+    const clearFilterBtn = ui.views.tracks.byId('clear_filter_btn');
     
     if (searchInput) {
         // Populate search field from cached filter
@@ -129,19 +211,19 @@ ui.views.tracks.setupSearchListener = () => {
             
             // Reset UI state of any open filter section
             // Country filter
-            document.querySelectorAll('.filter-country li').forEach((li) => {
+            ui.views.tracks.qsa('.filter-country li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-country li[data-country="all"]')?.classList.add('selected');
+            ui.views.tracks.qs('.filter-country li[data-country="all"]')?.classList.add('selected');
             
             // Type filter
-            document.querySelectorAll('.filter-type li').forEach((li) => {
+            ui.views.tracks.qsa('.filter-type li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+            ui.views.tracks.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
             
             // Reload currently open filter view if any
-            const selectedNavItem = document.querySelector('.tracks-toolbar li.selected');
+            const selectedNavItem = ui.views.tracks.qs('.tracks-toolbar li.selected');
             if (selectedNavItem) {
                 const section = selectedNavItem.className.match(/item-(\w+)/)?.[1];
                 if (section) {
@@ -170,7 +252,7 @@ ui.views.tracks.setupSearchListener = () => {
 };
 
 ui.views.tracks.setupSortDropdown = () => {
-    const sortDdl = document.getElementById('tracks_sort');
+    const sortDdl = ui.views.tracks.byId('tracks_sort');
     if (!sortDdl) return;
     const valid = ['name', 'country', 'distance', 'year', 'rating'];
     if (!valid.includes(ui.views.tracks.filter.sort)) ui.views.tracks.filter.sort = 'name';
@@ -183,20 +265,26 @@ ui.views.tracks.setupSortDropdown = () => {
 
 ui.views.tracks.unload = () => {
     window.removeEventListener('resize', ui.views.tracks.resize);
-    const container = document.querySelector('.tracks-content');
+    const container = ui.views.tracks.qs('.tracks-content');
     if (container && ui.views.tracks.scrollListener) {
         container.removeEventListener('scroll', ui.views.tracks.scrollListener);
     }
 }
 
 ui.views.tracks.resize = () => {
-    const el = document.querySelector('.tracks-content');
+    const el = ui.views.tracks.qs('.tracks-content');
     if(!el) return;
     const rect = el.getBoundingClientRect();
-    el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.tracks.footerHeight : ((ui.views.tracks.footerHeight / 1920) * window.innerWidth)}em)`;
+    if (ui.views.tracks.scope) {
+        // Mounted in the picker modal - fill the modal body instead of sizing
+        // against the viewport
+        el.style.height = '';
+    } else {
+        el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.tracks.footerHeight : ((ui.views.tracks.footerHeight / 1920) * window.innerWidth)}em)`;
+    }
     
     // Set max-height for tracks-filter div accounting for scale factor
-    const filterEl = document.querySelector('.tracks-filter');
+    const filterEl = ui.views.tracks.qs('.tracks-filter');
     if (filterEl) {
         const filterRect = filterEl.getBoundingClientRect();
         const scaleFactor = ui.utils.scaleFactor || 1;
@@ -208,17 +296,17 @@ ui.views.tracks.resize = () => {
 ui.views.tracks.nav = (e, section) => {
     e.preventDefault();
     e.stopPropagation();
-    var navItem = document.querySelector(`.tracks-toolbar li.item-${section}`);
+    var navItem = ui.views.tracks.qs(`.tracks-toolbar li.item-${section}`);
     if (navItem.classList.contains('selected')) {
         ui.views.tracks.hideFilter();
         return false;
     }
-    document.querySelectorAll('.tracks-toolbar li').forEach((li) => {
+    ui.views.tracks.qsa('.tracks-toolbar li').forEach((li) => {
         li.classList.remove('selected');
     });
     navItem.classList.add('selected');
     ui.view.loadComponent(`Tracks/filter-${section}`, (html) => {
-        document.querySelector('.tracks-filter').innerHTML = html;
+        ui.views.tracks.qs('.tracks-filter').innerHTML = html;
         switch(section) {
             case 'view':
                 ui.views.tracks.view.load();
@@ -231,21 +319,23 @@ ui.views.tracks.nav = (e, section) => {
                 break;
         }
         // Show close button
-        document.querySelector('.tracks-toolbar .close-btn').style.display = 'block';
+        ui.views.tracks.qs('.tracks-toolbar .close-btn').style.display = 'block';
     });
 };
 
 ui.views.tracks.hideFilter = () => {
-    document.querySelector('.tracks-toolbar .close-btn').style.display = 'none';
-    document.querySelector('.tracks-filter').innerHTML = '';
-    document.querySelectorAll('.tracks-toolbar li').forEach((li) => {
+    ui.views.tracks.qs('.tracks-toolbar .close-btn').style.display = 'none';
+    ui.views.tracks.qs('.tracks-filter').innerHTML = '';
+    ui.views.tracks.qsa('.tracks-toolbar li').forEach((li) => {
         li.classList.remove('selected');
     });
-    history.pushState(null, '', `/dashboard/tracks` + window.location.search);
+    if (!ui.views.tracks.scope) {
+        history.pushState(null, '', `/dashboard/tracks` + window.location.search);
+    }
 };
 
 ui.views.tracks.saveFilter = () => {
-    localStorage.setItem('RacerUI:tracks-filter', JSON.stringify(ui.views.tracks.filter));
+    localStorage.setItem(ui.views.tracks.filterKey(), JSON.stringify(ui.views.tracks.filter));
 };
 
 ui.views.tracks.hasActiveFilters = () => {
@@ -258,7 +348,7 @@ ui.views.tracks.hasActiveFilters = () => {
 };
 
 ui.views.tracks.updateClearFilterButton = () => {
-    const clearFilterBtn = document.getElementById('clear_filter_btn');
+    const clearFilterBtn = ui.views.tracks.byId('clear_filter_btn');
     if (clearFilterBtn) {
         if (ui.views.tracks.hasActiveFilters()) {
             clearFilterBtn.parentElement.style.display = 'inline-block';
@@ -318,7 +408,7 @@ ui.views.tracks.getFilteredList = (reset = true) => {
 };
 
 ui.views.tracks.setupInfiniteScroll = () => {
-    const container = document.querySelector('.tracks-content');
+    const container = ui.views.tracks.qs('.tracks-content');
     if (!container) return;
 
     // Remove existing listener if any
@@ -375,6 +465,17 @@ ui.views.tracks.setupInfiniteScroll = () => {
     window.addEventListener('resize', ui.views.tracks.resizeListener);
 };
 
+// If the grid doesn't overflow its container, no scroll event can ever fire
+// and infinite scroll stalls on the first page - keep loading until the
+// container scrolls or the results run out
+ui.views.tracks.checkOverflowLoad = () => {
+    const container = ui.views.tracks.qs('.tracks-content');
+    if (container && container.scrollHeight <= container.clientHeight
+        && ui.views.tracks.hasMore && !ui.views.tracks.isLoading) {
+        ui.views.tracks.loadMore();
+    }
+};
+
 ui.views.tracks.loadMore = () => {
     if (ui.views.tracks.isLoading || !ui.views.tracks.hasMore) return;
 
@@ -384,7 +485,7 @@ ui.views.tracks.loadMore = () => {
 };
 
 ui.views.tracks.manageVirtualDOM = () => {
-    const container = document.querySelector('.tracks-content');
+    const container = ui.views.tracks.qs('.tracks-content');
     const gridView = container?.querySelector('.grid-view');
     if (!gridView) return;
     
@@ -522,7 +623,7 @@ ui.views.tracks.manageVirtualDOM = () => {
 ui.views.tracks.view = {};
 
 ui.views.tracks.view.load = () => {
-    document.querySelectorAll('.filter-view li').forEach((li) => {
+    ui.views.tracks.qsa('.filter-view li').forEach((li) => {
         li.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -533,10 +634,10 @@ ui.views.tracks.view.load = () => {
 
 ui.views.tracks.view.select = (view) => {
     ui.views.tracks.filter.view = view;
-    document.querySelectorAll('.filter-view li').forEach((li) => {
+    ui.views.tracks.qsa('.filter-view li').forEach((li) => {
         li.classList.remove('selected');
     });
-    document.querySelectorAll('.filter-view li[data-view="' + view + '"]').forEach((li) => {
+    ui.views.tracks.qsa('.filter-view li[data-view="' + view + '"]').forEach((li) => {
         li.classList.add('selected');
     });
     ui.views.tracks.views.load();
@@ -559,7 +660,7 @@ ui.views.tracks.country.load = () => {
                 try {
                     const countries = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-country .select-list');
+                    const container = ui.views.tracks.qs('.filter-country .select-list');
                     if (!container) {
                         console.error('Container .filter-country .select-list not found');
                         return;
@@ -575,7 +676,7 @@ ui.views.tracks.country.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-country li').forEach((li) => {
+                    ui.views.tracks.qsa('.filter-country li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -584,7 +685,7 @@ ui.views.tracks.country.load = () => {
                     });
                     
                     if (ui.views.tracks.filter.countries.length > 0) {
-                        document.querySelectorAll('.filter-country li').forEach((li) => {
+                        ui.views.tracks.qsa('.filter-country li').forEach((li) => {
                             if (ui.views.tracks.filter.countries.includes(li.getAttribute('data-country'))) {
                                 li.classList.add('selected');
                             } else {
@@ -603,7 +704,7 @@ ui.views.tracks.country.load = () => {
 ui.views.tracks.country.select = (country) => {
     if (country == 'all') {
         ui.views.tracks.filter.countries = ['all'];
-        document.querySelectorAll('.filter-country li').forEach((li) => {
+        ui.views.tracks.qsa('.filter-country li').forEach((li) => {
             li.classList.remove('selected');
         });
     } else {
@@ -615,11 +716,11 @@ ui.views.tracks.country.select = (country) => {
         if (ui.views.tracks.filter.countries.indexOf('all') > -1) {
             ui.views.tracks.filter.countries.splice(ui.views.tracks.filter.countries.indexOf('all'), 1);
         }
-        document.querySelectorAll('.filter-country li[data-country="all"]').forEach((li) => {
+        ui.views.tracks.qsa('.filter-country li[data-country="all"]').forEach((li) => {
             li.classList.remove('selected');
         });
     }
-    document.querySelectorAll('.filter-country li[data-country="' + country + '"]').forEach((li) => {
+    ui.views.tracks.qsa('.filter-country li[data-country="' + country + '"]').forEach((li) => {
         li.classList.toggle('selected');
     });
     ui.views.tracks.getFilteredList();
@@ -641,7 +742,7 @@ ui.views.tracks.type.load = () => {
                 try {
                     const types = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-type .select-list');
+                    const container = ui.views.tracks.qs('.filter-type .select-list');
                     container.innerHTML = '<li data-type="0">All Types</li>';
                     
                     types.forEach(type => {
@@ -651,7 +752,7 @@ ui.views.tracks.type.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-type li').forEach((li) => {
+                    ui.views.tracks.qsa('.filter-type li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -660,7 +761,7 @@ ui.views.tracks.type.load = () => {
                     });
                     
                     if (ui.views.tracks.filter.types.length > 0) {
-                        document.querySelectorAll('.filter-type li').forEach((li) => {
+                        ui.views.tracks.qsa('.filter-type li').forEach((li) => {
                             if (ui.views.tracks.filter.types.includes(parseInt(li.getAttribute('data-type')))) {
                                 li.classList.add('selected');
                             } else {
@@ -668,7 +769,7 @@ ui.views.tracks.type.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+                        ui.views.tracks.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading types:', error);
@@ -681,25 +782,25 @@ ui.views.tracks.type.load = () => {
 ui.views.tracks.type.select = (typeId) => {
     if (typeId == 0) {
         ui.views.tracks.filter.types = [];
-        document.querySelectorAll('.filter-type li').forEach((li) => {
+        ui.views.tracks.qsa('.filter-type li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+        ui.views.tracks.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
     } else {
         if (ui.views.tracks.filter.types.includes(typeId)) {
             ui.views.tracks.filter.types.splice(ui.views.tracks.filter.types.indexOf(typeId), 1);
         } else {
             ui.views.tracks.filter.types.push(typeId);
         }
-        document.querySelectorAll('.filter-type li[data-type="0"]').forEach((li) => {
+        ui.views.tracks.qsa('.filter-type li[data-type="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-type li[data-type="' + typeId + '"]').forEach((li) => {
+        ui.views.tracks.qsa('.filter-type li[data-type="' + typeId + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no types selected, select 'All'
         if (ui.views.tracks.filter.types.length === 0) {
-            document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+            ui.views.tracks.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
         }
     }
     ui.views.tracks.getFilteredList();
@@ -771,7 +872,7 @@ ui.views.tracks.views.load = (data) => {
         data = ui.views.tracks.results;
     }
     
-    const container = document.querySelector('.tracks-content');
+    const container = ui.views.tracks.qs('.tracks-content');
     if (!container) return;
     
     // Check for empty results
@@ -797,6 +898,7 @@ ui.views.tracks.views.load = (data) => {
             break;
     }
     ui.views.tracks.isLoading = false;
+    ui.views.tracks.checkOverflowLoad();
 };
 
 ui.views.tracks.views.appendTracks = (data) => {
@@ -812,7 +914,7 @@ ui.views.tracks.views.appendTracks = (data) => {
     const viewType = ui.views.tracks.filter.view || 'grid';
     
     ui.view.loadComponent(`Tracks/${viewType}-item`, (itemTemplate) => {
-        const gridView = document.querySelector('.tracks-content .grid-view');
+        const gridView = ui.views.tracks.qs('.tracks-content .grid-view');
         if (!gridView) {
             ui.views.tracks.isLoading = false;
             return;
@@ -825,12 +927,13 @@ ui.views.tracks.views.appendTracks = (data) => {
         
         ui.views.tracks.views.grid.setup();
         ui.views.tracks.isLoading = false;
+        ui.views.tracks.checkOverflowLoad();
     });
 };
 
 ui.views.tracks.views.grid = {
     setup: () => {
-        document.querySelectorAll('.grid-view > .track').forEach((item) => {
+        ui.views.tracks.qsa('.grid-view > .track').forEach((item) => {
             item.onmouseenter = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -881,7 +984,7 @@ ui.views.tracks.views.grid = {
         // Check if the clicked track is already selected
         if (ui.views.tracks.selected && ui.views.tracks.selected.track && ui.views.tracks.selected.track.path === track.path) {
             // Hide details if the same track is clicked again
-            const detailsDiv = document.querySelector('.grid-details');
+            const detailsDiv = ui.views.tracks.qs('.grid-details');
             if (detailsDiv) {
                 detailsDiv.classList.add('hiding');
                 setTimeout(() => {
@@ -897,7 +1000,7 @@ ui.views.tracks.views.grid = {
             return;
         }
         ui.view.loadComponent('Tracks/grid-details', (html) => {
-            const detailsDiv = document.querySelector('.grid-details');
+            const detailsDiv = ui.views.tracks.qs('.grid-details');
             if (detailsDiv != null) {
                 detailsDiv.classList.add('hiding');
                 setTimeout(() => {
@@ -976,7 +1079,7 @@ ui.views.tracks.views.grid = {
             ui.views.tracks.views.grid.setupButtonHoverEffects();
             
             setTimeout(() => {
-                ui.scrollTo(document.querySelector('.tracks-content'), item, 500, 'easeInOutQuad', 0);
+                ui.scrollTo(ui.views.tracks.qs('.tracks-content'), item, 500, 'easeInOutQuad', 0);
             }, 350);
         });
     },
@@ -1000,7 +1103,7 @@ ui.views.tracks.views.grid = {
         return null;
     },
     setupLayoutsSelect: (track) => {
-        const select = document.getElementById('track_layouts_select');
+        const select = ui.views.tracks.byId('track_layouts_select');
         if (!select || !ui.views.tracks.selected) return;
 
         // The parent row is the main layout; track.layouts are the additional layouts
@@ -1041,7 +1144,7 @@ ui.views.tracks.views.grid = {
             ui.views.tracks.selected.layout = layout;
 
             // Update the outline image to the selected layout
-            const outlineImg = document.querySelector('.grid-details .track-outline-float');
+            const outlineImg = ui.views.tracks.qs('.grid-details .track-outline-float');
             if (outlineImg) {
                 let outlineUrl = `/image/assetto corsa/track-outline/${layout.path}`;
                 if (layout.subPath) {
@@ -1054,18 +1157,23 @@ ui.views.tracks.views.grid = {
     },
     setupSelectTrackHandler: () => {
         // Add event listeners to all select track buttons
-        const selectTrackBtns = document.querySelectorAll('.select-track-btn');
+        const selectTrackBtns = ui.views.tracks.qsa('.select-track-btn');
         selectTrackBtns.forEach((btn) => {
             btn.addEventListener('click', () => {
                 // Get track from ui.views.tracks.selected
                 if (ui.views.tracks.selected && ui.views.tracks.selected.track) {
-                    ui.views.footer.selectTrack(ui.views.tracks.selected.track, ui.views.tracks.selected.layout);
+                    if (ui.views.tracks.picker) {
+                        // Picker modal intercept - e.g. candidate picking
+                        ui.views.tracks.picker(ui.views.tracks.selected.track, ui.views.tracks.selected.layout);
+                    } else {
+                        ui.views.footer.selectTrack(ui.views.tracks.selected.track, ui.views.tracks.selected.layout);
+                    }
                 }
             });
         });
     },
     setupButtonHoverEffects: () => {
-        const buttons = document.querySelectorAll('.select-track-btn');
+        const buttons = ui.views.tracks.qsa('.select-track-btn');
         
         buttons.forEach((button) => {
             // Skip if already wrapped
@@ -1131,7 +1239,7 @@ ui.views.tracks.views.grid.load = (data, viewType) => {
     
     ui.view.loadComponent(`Tracks/${viewType}-view`, (template) => {
         ui.view.loadComponent(`Tracks/${viewType}-item`, (itemTemplate) => {
-            const container = document.querySelector('.tracks-content');
+            const container = ui.views.tracks.qs('.tracks-content');
             let itemsHtml = '';
             
             data.tracks.forEach(track => {

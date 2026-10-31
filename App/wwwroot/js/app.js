@@ -886,6 +886,99 @@ ui.views.cars.loadInto = (container, options) => {
     });
 };
 
+// Opens the car details modal for a car object - mounts a minimal grid so the
+// existing details flow renders inside the modal body
+ui.views.cars.openDetailsModal = (car, skinPath, candidate) => {
+    // Compute preview/name the same way the grid does - API-sourced cars
+    // don't come with car.preview populated. A candidate's chosen skin
+    // drives the preview instead of the first skin
+    const skin = skinPath && car.skins
+        ? car.skins.find((x) => x.path === skinPath)
+        : null;
+    car = ui.views.cars.getCarDetails(car, skin);
+    ui.view.loadComponent('Cars/car-details-modal', (html) => {
+        const existing = document.getElementById('car-details-modal');
+        if (existing) existing.remove();
+        document.body.insertAdjacentHTML('beforeend', html);
+        const backdrop = document.getElementById('car-details-modal');
+        const body = backdrop.querySelector('.car-details-body');
+
+        // Stash page state - the details flow mutates selected/scope, and
+        // getCarFromItem only resolves cars present in allCars
+        const stash = {
+            selected: ui.views.cars.selected,
+            picker: ui.views.cars.picker,
+            hadCar: ui.views.cars.allCars.some((x) => x.path === car.path),
+            car: car,
+            candidate: candidate,
+            skinPath: skinPath
+        };
+        if (!stash.hadCar) ui.views.cars.allCars.push(car);
+        ui.views.cars.picker = (c, skin) => {
+            ui.views.footer.selectCar(c, skin);
+            ui.views.cars.closeDetailsModal();
+        };
+        ui.views.cars.scope = body;
+        body.innerHTML = `<div class="cars-content"><div class="grid-view"><div class="car" data-path="${car.path}"></div></div></div>`;
+        ui.views.cars.views.grid.setup();
+        const item = body.querySelector('.car');
+        if (item) {
+            // Details open from the hover-clone's click, not the item's
+            item.dispatchEvent(new Event('mouseenter'));
+            const clone = body.querySelector('.hovered-clone');
+            if (clone) clone.click();
+        }
+        backdrop.style.display = '';
+        backdrop.querySelector('#car-details-close').onclick = () => {
+            ui.views.cars.closeDetailsModal();
+        };
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) ui.views.cars.closeDetailsModal();
+        });
+
+        // Skin changes inside the details reveal the Save Changes button -
+        // it writes the new skin back onto the candidate
+        body.addEventListener('click', () => {
+            const saveBtn = backdrop.querySelector('#car-details-save');
+            if (!saveBtn) return;
+            const sel = ui.views.cars.selected;
+            const changed = sel && sel.selectedSkin && sel.selectedSkin !== stash.skinPath;
+            saveBtn.style.display = changed ? '' : 'none';
+        });
+        const saveBtn = backdrop.querySelector('#car-details-save');
+        if (saveBtn) {
+            saveBtn.onclick = () => {
+                const sel = ui.views.cars.selected;
+                if (stash.candidate && sel && sel.selectedSkin) {
+                    stash.candidate.skinPath = sel.selectedSkin;
+                    stash.candidate.skinName = ui.views.footer.skinDisplayName(car, sel.selectedSkin);
+                    ui.views.footer.renderCandidates();
+                    ui.views.footer.saveRaceSettings();
+                }
+                ui.views.cars.closeDetailsModal();
+            };
+        }
+        ui.views.cars._detailsStash = stash;
+    });
+};
+
+// Closes the car details modal - restores page state
+ui.views.cars.closeDetailsModal = () => {
+    const backdrop = document.getElementById('car-details-modal');
+    if (backdrop) backdrop.remove();
+    const stash = ui.views.cars._detailsStash;
+    if (stash) {
+        ui.views.cars.selected = stash.selected;
+        ui.views.cars.picker = stash.picker;
+        if (stash.car && !stash.hadCar) {
+            const idx = ui.views.cars.allCars.findIndex((x) => x.path === stash.car.path);
+            if (idx > -1) ui.views.cars.allCars.splice(idx, 1);
+        }
+        ui.views.cars._detailsStash = null;
+    }
+    ui.views.cars.scope = null;
+};
+
 // Unmounts the picker - DOM lookups go back to the document and the page's
 // stashed filter/grid state is restored
 ui.views.cars.unloadFrom = () => {
@@ -1809,6 +1902,9 @@ ui.views.cars.views.grid = {
 
                 // Load the power/torque graph
                 ui.views.cars.views.grid.setupPowerGraph(car);
+
+                // Pencil icon in the details header opens the edit form
+                ui.views.cars.carEdit.init(ui.views.cars.views.grid.detailsDiv, car);
                 
                 setTimeout(() => {
                     //scroll to car details
@@ -1881,15 +1977,16 @@ ui.views.cars.views.grid = {
     },
     setupTabHandlers: () => {
         const tabButtons = ui.views.cars.qsa('.car-tab');
-        const tabContents = ui.views.cars.qsa('.car-tab-content');
-        
+
         tabButtons.forEach((button) => {
             button.addEventListener('click', () => {
                 const targetTab = button.getAttribute('data-tab');
-                
-                // Remove active class from all tabs and contents
+
+                // Remove active class from all tabs and contents - re-query
+                // contents at click time, the edit-mode panes are injected
+                // after this handler binds
                 tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabContents.forEach(content => content.classList.remove('active'));
+                ui.views.cars.qsa('.car-tab-content').forEach(content => content.classList.remove('active'));
                 
                 // Add active class to clicked tab and corresponding content
                 button.classList.add('active');
@@ -2836,6 +2933,262 @@ ui.views.cars.specialization.select = (specializationId) => {
 
 //#endregion
 
+//#region "CarEdit"
+
+// In-place car details editor - pencil button in the details header swaps the
+// stats/chart area for a country/year/manufacturer/model form
+ui.views.cars.carEdit = {
+    state: null,  // { detailsDiv, car, makes, models }
+
+    // Called after each details render - appends the pencil once per cell
+    init: (detailsDiv, car) => {
+        const h4 = detailsDiv && detailsDiv.querySelector('.info h4');
+        if (!h4 || h4.querySelector('.edit-car-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'edit-car-btn';
+        btn.title = 'Edit Car Details';
+        btn.innerHTML = '<svg viewBox="0 0 64 64" class="dark"><use xlink:href="#icon-pencil" x="0" y="0" width="64" height="64"></use></svg>';
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            ui.views.cars.carEdit.open(detailsDiv, car);
+        });
+        h4.appendChild(btn);
+    },
+
+    open: (detailsDiv, car) => {
+        const info = detailsDiv.querySelector('.info');
+        if (!info || info.querySelector('.car-edit-form')) return;
+        ui.views.cars.carEdit.state = { detailsDiv, car, makes: null, models: null };
+
+        // Editing mode: stats tab + stats pane hide, a Details tab shows the
+        // form as its own tab content
+        detailsDiv.classList.add('car-editing');
+        const editTab = detailsDiv.querySelector('.car-edit-tab');
+        if (editTab) editTab.style.display = '';
+
+        // Activate the edit tab/pane the same way a tab click would
+        detailsDiv.querySelectorAll('.car-tab').forEach((t) => t.classList.remove('active'));
+        detailsDiv.querySelectorAll('.car-tab-content').forEach((c) => c.classList.remove('active'));
+        if (editTab) editTab.classList.add('active');
+
+        ui.view.loadComponent('Cars/car-edit-form', (html) => {
+            info.insertAdjacentHTML('beforeend', html);
+            const form = info.querySelector('.car-edit-form');
+
+            // The Info tab shows an editable textarea instead of .car-info
+            // while editing - steal its data-content so the tab handler
+            // activates the textarea pane instead
+            const carInfo = detailsDiv.querySelector('.car-info');
+            if (carInfo) carInfo.removeAttribute('data-content');
+            const infoText = info.querySelector('#car-edit-info-text');
+            if (infoText) infoText.value = car.details || '';
+
+            ui.views.cars.carEdit.loadDropdowns(detailsDiv, car, form);
+            form.querySelector('#car-edit-add-make').addEventListener('click',
+                () => ui.views.cars.carEdit.openSubModal('make'));
+            form.querySelector('#car-edit-add-model').addEventListener('click',
+                () => ui.views.cars.carEdit.openSubModal('model'));
+            // Save/Cancel sit below the tab contents - sibling of the panes
+            info.querySelector('#car-edit-save').addEventListener('click',
+                () => ui.views.cars.carEdit.save(detailsDiv, car, form));
+            info.querySelector('#car-edit-cancel').addEventListener('click',
+                () => ui.views.cars.carEdit.close(detailsDiv));
+            form.querySelector('#car-edit-make').addEventListener('change',
+                () => ui.views.cars.carEdit.fillModels(detailsDiv, car, form));
+        });
+    },
+
+    loadDropdowns: (detailsDiv, car, form) => {
+        // Countries
+        ui.ajax({
+            url: '/api/cars/countries',
+            method: 'GET',
+            complete: (r) => {
+                const list = JSON.parse(r.responseText || '[]');
+                const sel = form.querySelector('#car-edit-country');
+                list.forEach((c) => sel.appendChild(new Option(c.name || c.Name, (c.code || c.Code || '').toLowerCase())));
+                if (car.country) sel.value = car.country.toLowerCase();
+            }
+        });
+        // Manufacturers
+        ui.ajax({
+            url: '/api/cars/makes',
+            method: 'GET',
+            complete: (r) => {
+                ui.views.cars.carEdit.state.makes = JSON.parse(r.responseText || '[]');
+                const sel = form.querySelector('#car-edit-make');
+                sel.innerHTML = '';
+                ui.views.cars.carEdit.state.makes.forEach((m) => sel.appendChild(new Option(m.name || m.Name, m.id || m.Id)));
+                if (car.makeId) sel.value = car.makeId;
+            }
+        });
+        // Models - loaded once, filtered by the chosen manufacturer
+        ui.ajax({
+            url: '/api/cars/models',
+            method: 'GET',
+            complete: (r) => {
+                ui.views.cars.carEdit.state.models = JSON.parse(r.responseText || '[]');
+                ui.views.cars.carEdit.fillModels(detailsDiv, car, form, car.modelId);
+            }
+        });
+        form.querySelector('#car-edit-year').value = car.year || '';
+    },
+
+    // Refills the model select with models of the current manufacturer
+    fillModels: (detailsDiv, car, form, selectId) => {
+        const st = ui.views.cars.carEdit.state;
+        if (!st || !st.models) return;
+        const makeId = parseInt(form.querySelector('#car-edit-make').value) || null;
+        const sel = form.querySelector('#car-edit-model');
+        sel.innerHTML = '';
+        st.models
+            .filter((m) => !makeId || (m.makeId ?? m.MakeId) === makeId)
+            .forEach((m) => sel.appendChild(new Option(m.name || m.Name, m.id || m.Id)));
+        if (selectId) sel.value = selectId;
+    },
+
+    // Small New Manufacturer / New Model popup
+    openSubModal: (type) => {
+        const st = ui.views.cars.carEdit.state;
+        if (!st) return;
+        ui.view.loadComponent('Cars/car-edit-submodal', (html) => {
+            const existing = document.getElementById('car-edit-submodal');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', html);
+            const modal = document.getElementById('car-edit-submodal');
+            const title = modal.querySelector('#ces-title');
+            const makeLabel = modal.querySelector('#ces-make-label');
+            const nameInput = modal.querySelector('#ces-name');
+            const isModel = type === 'model';
+            title.textContent = isModel ? 'New Model' : 'New Manufacturer';
+            nameInput.value = '';
+
+            // Model creation needs the manufacturer selected in the form
+            const form = st.detailsDiv.querySelector('.car-edit-form');
+            const makeSel = form.querySelector('#car-edit-make');
+            const makeName = makeSel.options.find((o) => o.value === makeSel.value)?.textContent || '';
+            makeLabel.style.display = isModel ? '' : 'none';
+            if (isModel) makeLabel.textContent = `Manufacturer: ${makeName}`;
+
+            const close = () => modal.remove();
+            modal.querySelector('#ces-cancel').onclick = close;
+            modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+            modal.querySelector('#ces-create').onclick = () => {
+                const name = nameInput.value.trim();
+                if (!name) return;
+                const data = isModel ? { Name: name, MakeId: parseInt(makeSel.value) } : { Name: name };
+                ui.ajax({
+                    url: isModel ? '/api/cars/models' : '/api/cars/makes',
+                    method: 'POST',
+                    data: data,
+                    complete: (r) => {
+                        const created = JSON.parse(r.responseText || '{}');
+                        close();
+                        ui.views.cars.carEdit.refreshAfterCreate(type, created.id);
+                    },
+                    error: close
+                });
+            };
+            modal.style.display = 'flex';
+            setTimeout(() => nameInput.focus(), 0);
+        });
+    },
+
+    // After creating a make/model: refetch the list, rebuild the dropdown,
+    // select the new record
+    refreshAfterCreate: (type, newId) => {
+        const st = ui.views.cars.carEdit.state;
+        if (!st) return;
+        const form = st.detailsDiv.querySelector('.car-edit-form');
+        if (!form) return;
+        if (type === 'make') {
+            ui.ajax({
+                url: '/api/cars/makes',
+                method: 'GET',
+                complete: (r) => {
+                    st.makes = JSON.parse(r.responseText || '[]');
+                    const sel = form.querySelector('#car-edit-make');
+                    sel.innerHTML = '';
+                    st.makes.forEach((m) => sel.appendChild(new Option(m.name || m.Name, m.id || m.Id)));
+                    sel.value = newId;
+                    ui.views.cars.carEdit.fillModels(st.detailsDiv, st.car, form);
+                }
+            });
+        } else {
+            ui.ajax({
+                url: '/api/cars/models',
+                method: 'GET',
+                complete: (r) => {
+                    st.models = JSON.parse(r.responseText || '[]');
+                    ui.views.cars.carEdit.fillModels(st.detailsDiv, st.car, form, newId);
+                }
+            });
+        }
+    },
+
+    save: (detailsDiv, car, form) => {
+        const makeSel = form.querySelector('#car-edit-make');
+        const modelSel = form.querySelector('#car-edit-model');
+        const payload = {
+            Country: form.querySelector('#car-edit-country').value || null,
+            Year: parseInt(form.querySelector('#car-edit-year').value) || null,
+            MakeId: parseInt(makeSel.value) || null,
+            ModelId: parseInt(modelSel.value) || null,
+            Details: detailsDiv.querySelector('#car-edit-info-text')?.value || null
+        };
+        ui.ajax({
+            url: `/api/cars/${car.id}`,
+            method: 'PUT',
+            data: payload,
+            complete: () => {
+                // Reflect the edit on the loaded car + the visible details
+                const makeName = makeSel.options.find((o) => o.value === makeSel.value)?.textContent || car.makeName;
+                const countrySel = form.querySelector('#car-edit-country');
+                const countryName = countrySel.options.find((o) => o.value === countrySel.value)?.textContent || car.countryName;
+                Object.assign(car, payload, { makeName, countryName });
+                ui.views.cars.carEdit.applyToDetails(detailsDiv, car);
+                ui.views.cars.carEdit.close(detailsDiv);
+            }
+        });
+    },
+
+    // Updates the read-only details row with the freshly saved values
+    applyToDetails: (detailsDiv, car) => {
+        const countrySpan = detailsDiv.querySelector('.car-country span');
+        if (countrySpan) countrySpan.textContent = car.countryName || '';
+        const flag = detailsDiv.querySelector('.car-country img.flag');
+        if (flag && car.country) flag.src = `/images/flags/80x60/${car.country.toLowerCase()}.png`;
+        const classDivs = detailsDiv.querySelectorAll('.car-origin .car-class span');
+        if (classDivs.length > 1) classDivs[classDivs.length - 1].textContent = car.makeName || '';
+        const h4 = detailsDiv.querySelector('.info h4');
+        if (h4) h4.textContent = ((car.year ? car.year + ' ' : '') + (car.name || '').replace(car.year || '', ''));
+        const infoP = detailsDiv.querySelector('.car-info p');
+        if (infoP && car.details) infoP.innerHTML = car.details.replace(/\n/g, '<br/><br/>');
+    },
+
+    close: (detailsDiv) => {
+        detailsDiv.classList.remove('car-editing');
+        detailsDiv.querySelector('.car-edit-form')?.remove();
+        detailsDiv.querySelector('.car-edit-info')?.remove();
+        detailsDiv.querySelector('.car-edit-actions')?.remove();
+        // .car-info owns data-content again once the edit textarea is gone
+        const carInfo = detailsDiv.querySelector('.car-info');
+        if (carInfo) carInfo.setAttribute('data-content', 'info');
+        const editTab = detailsDiv.querySelector('.car-edit-tab');
+        if (editTab) {
+            editTab.style.display = 'none';
+            editTab.classList.remove('active');
+        }
+        // Back to the stats view
+        detailsDiv.querySelector('.car-tab[data-tab="stats"]')?.classList.add('active');
+        detailsDiv.querySelector('.car-stats')?.classList.add('active');
+        ui.views.cars.carEdit.state = null;
+    }
+};
+
+//#endregion
+
 //#region "Footer"
 
 ui.views.footer = {
@@ -2993,6 +3346,9 @@ ui.views.footer.load = () => {
 // Removes the footer on views that don't show it (everything except Cars and
 // Tracks). Selection/expanded state is kept so the next load restores it.
 ui.views.footer.unload = () => {
+    // An open favorite edit is abandoned on unload - restore the user's
+    // stashed settings before the DOM goes away
+    ui.views.footer.discardFavoriteEdit();
     const container = document.querySelector('.footer-container');
     if (container) container.remove();
     const modal = document.getElementById('ftr-fav-modal');
@@ -3096,6 +3452,9 @@ ui.views.footer.toggleDetails = () => {
 
 // Collapses the footer when expanded (e.g. on dash nav clicks) - no-op otherwise
 ui.views.footer.collapseDetails = () => {
+    // Navigating mid-edit discards the favorite edit - the footer must show
+    // the user's own quick-race settings, not the favorite's
+    ui.views.footer.discardFavoriteEdit();
     if (ui.views.footer.expanded) {
         ui.views.footer.toggleDetails();
     }
@@ -3304,7 +3663,11 @@ ui.views.footer.refreshSettingsControls = () => {
 ui.views.footer.openFavoriteEdit = (fav) => {
     ui.views.footer.editingFavorite = {
         fav: fav,
-        stash: JSON.parse(JSON.stringify(ui.views.footer.raceSettings))
+        stash: JSON.parse(JSON.stringify(ui.views.footer.raceSettings)),
+        car: ui.views.footer.selectedCar,
+        skin: ui.views.footer.selectedSkin,
+        track: ui.views.footer.selectedTrack,
+        layout: ui.views.footer.selectedLayout
     };
 
     const mount = () => {
@@ -3345,6 +3708,12 @@ ui.views.footer.openFavoriteEdit = (fav) => {
             });
         }
 
+        // Populate the editable title + the car/track subtitle
+        const titleInput = document.getElementById('ftr-fav-title-input');
+        if (titleInput) titleInput.value = fav.title || '';
+        const subtitle = document.getElementById('ftr-fav-subtitle');
+        if (subtitle) subtitle.textContent = `${fav.carName || ''} at ${fav.trackName || ''}`;
+
         const footerEl = document.querySelector('.footer-container');
         footerEl.classList.add('editing-fav');
         if (!ui.views.footer.expanded) ui.views.footer.toggleDetails();
@@ -3370,6 +3739,32 @@ ui.views.footer.openFavoriteEdit = (fav) => {
     }
 };
 
+// Restores the stashed user state captured before a favorite edit - in
+// place so bound event handlers keep writing to the same settings object
+ui.views.footer.restoreEditStash = (edit) => {
+    Object.assign(ui.views.footer.raceSettings, edit.stash);
+    ui.views.footer.selectedCar = edit.car;
+    ui.views.footer.selectedSkin = edit.skin;
+    ui.views.footer.selectedTrack = edit.track;
+    ui.views.footer.selectedLayout = edit.layout;
+};
+
+// Discards an in-progress favorite edit - restores the user's settings and
+// resyncs the footer controls. Called when the footer collapses or unloads
+// mid-edit (e.g. nav clicks) instead of through Cancel/Update
+ui.views.footer.discardFavoriteEdit = () => {
+    const edit = ui.views.footer.editingFavorite;
+    if (!edit) return;
+    ui.views.footer.restoreEditStash(edit);
+    ui.views.footer.editingFavorite = null;
+    const container = document.querySelector('.footer-container');
+    if (container) {
+        container.classList.remove('editing-fav');
+        ui.views.footer.refreshSettingsControls();
+        ui.views.footer.updateDisplay();
+    }
+};
+
 // Closes favorite-edit mode. update=true PUTs the edited configJson first.
 // Either way the user's stashed settings are restored and the footer unloads
 ui.views.footer.closeFavoriteEdit = (update) => {
@@ -3377,7 +3772,7 @@ ui.views.footer.closeFavoriteEdit = (update) => {
     if (!edit) return;
 
     const finish = () => {
-        ui.views.footer.raceSettings = edit.stash;
+        ui.views.footer.restoreEditStash(edit);
         ui.views.footer.editingFavorite = null;
         const container = document.querySelector('.footer-container');
         if (container) {
@@ -3401,10 +3796,14 @@ ui.views.footer.closeFavoriteEdit = (update) => {
     };
 
     if (update) {
+        const titleInput = document.getElementById('ftr-fav-title-input');
         ui.ajax({
             url: `/api/favorites/${edit.fav.id}`,
             method: 'PUT',
-            data: { configJson: JSON.stringify(ui.views.footer.raceSettings) },
+            data: {
+                title: titleInput ? titleInput.value.trim() : null,
+                configJson: JSON.stringify(ui.views.footer.raceSettings)
+            },
             complete: finish,
             error: finish
         });
@@ -3579,6 +3978,32 @@ ui.views.footer.initRaceTabs = () => {
     if (pickerBackdrop) {
         pickerBackdrop.addEventListener('click', (e) => {
             if (e.target === pickerBackdrop) ui.views.footer.closeCandidatePicker();
+        });
+    }
+    const trackPickerClose = document.getElementById('ftr-track-picker-close');
+    if (trackPickerClose) trackPickerClose.addEventListener('click', () => ui.views.footer.closeTrackPicker());
+    const trackPickerBackdrop = document.getElementById('ftr-track-picker');
+    if (trackPickerBackdrop) {
+        trackPickerBackdrop.addEventListener('click', (e) => {
+            if (e.target === trackPickerBackdrop) ui.views.footer.closeTrackPicker();
+        });
+    }
+
+    // Preview clicks open the pickers - selection applies normally, then
+    // the modal closes
+    const carPreview = container.querySelector('.footer-car-preview');
+    if (carPreview) {
+        carPreview.addEventListener('click', () => {
+            ui.views.footer.openCarPicker('Select Your Car', (car, skinName) => {
+                ui.views.footer.selectCar(car, skinName);
+                ui.views.footer.closeCandidatePicker();
+            });
+        });
+    }
+    const trackPreview = container.querySelector('.footer-track-preview');
+    if (trackPreview) {
+        trackPreview.addEventListener('click', () => {
+            ui.views.footer.openTrackPicker('Select Your Track');
         });
     }
 
@@ -3801,37 +4226,87 @@ ui.views.footer.renderCandidates = () => {
             ui.views.footer.renderCandidates();
             ui.views.footer.saveRaceSettings();
         });
+        // Clicking a candidate opens its car details modal - the full car
+        // object comes from the loaded list, or the filter API as fallback
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('.candidate-remove')) return;
+            const car = (ui.views.cars.allCars || []).find(
+                (x) => x.id === c.id || x.path === c.carPath);
+            if (car) {
+                ui.views.cars.openDetailsModal(car, c.skinPath, c);
+                return;
+            }
+            ui.ajax({
+                url: '/api/cars/filter',
+                method: 'POST',
+                data: { Search: c.name || '', Start: 0, Length: 50 },
+                complete: (response) => {
+                    const data = JSON.parse(response.responseText || '{}');
+                    const found = (data.cars || []).find((x) => x.path === c.carPath);
+                    if (found) ui.views.cars.openDetailsModal(found, c.skinPath, c);
+                }
+            });
+        });
         row.append(name, rm);
         list.appendChild(row);
     });
 };
 
 // Opens the car picker modal - the full cars view (filters, grid, details)
-// mounted inside it; the Select Car button adds the car to the candidate
-// list. The title is configurable so the modal can be reused elsewhere
-ui.views.footer.openCandidatePicker = (title) => {
+// mounted inside it. onPick replaces the Select Car action (candidates);
+// without it the button keeps its normal footer.selectCar behavior
+ui.views.footer.openCarPicker = (title, onPick) => {
     const backdrop = document.getElementById('ftr-car-picker');
     const body = document.getElementById('ftr-car-picker-body');
     if (!backdrop || !body) return;
     const titleEl = document.getElementById('ftr-car-picker-title');
-    if (titleEl) titleEl.textContent = title || 'Select Your Vehicle Candidate';
+    if (titleEl) titleEl.textContent = title || 'Select Your Car';
     backdrop.style.display = '';
-    ui.views.cars.loadInto(body, {
-        onPick: (car, skinName) => {
-            const s = ui.views.footer.raceSettings;
-            s.candidates.push({
-                id: car.id,
-                year: car.year,
-                name: car.name || car.carName || car.path,
-                carPath: car.path,
-                skinPath: skinName || null,
-                skinName: ui.views.footer.skinDisplayName(car, skinName)
-            });
-            ui.views.footer.renderCandidates();
-            ui.views.footer.saveRaceSettings();
-            ui.views.footer.closeCandidatePicker();
+    ui.views.cars.loadInto(body, onPick ? { onPick } : {});
+};
+
+// The Candidates + button - pick an opponent car and it joins the list
+ui.views.footer.openCandidatePicker = (title) => {
+    ui.views.footer.openCarPicker(title || 'Select Your Vehicle Candidate', (car, skinName) => {
+        const s = ui.views.footer.raceSettings;
+        s.candidates.push({
+            id: car.id,
+            year: car.year,
+            name: car.name || car.carName || car.path,
+            carPath: car.path,
+            skinPath: skinName || null,
+            skinName: ui.views.footer.skinDisplayName(car, skinName)
+        });
+        ui.views.footer.renderCandidates();
+        ui.views.footer.saveRaceSettings();
+        ui.views.footer.closeCandidatePicker();
+    });
+};
+
+// Opens the track picker modal - the full tracks view (filters, grid,
+// details) mounted inside it; Select Track keeps its normal selectTrack
+// behavior so the clicked track becomes the race track
+ui.views.footer.openTrackPicker = (title) => {
+    const backdrop = document.getElementById('ftr-track-picker');
+    const body = document.getElementById('ftr-track-picker-body');
+    if (!backdrop || !body) return;
+    const titleEl = document.getElementById('ftr-track-picker-title');
+    if (titleEl) titleEl.textContent = title || 'Select Your Track';
+    backdrop.style.display = '';
+    ui.views.tracks.loadInto(body, {
+        onPick: (track, layout) => {
+            ui.views.footer.selectTrack(track, layout);
+            ui.views.footer.closeTrackPicker();
         }
     });
+};
+
+ui.views.footer.closeTrackPicker = () => {
+    ui.views.tracks.unloadFrom();
+    const backdrop = document.getElementById('ftr-track-picker');
+    if (backdrop) backdrop.style.display = 'none';
+    const body = document.getElementById('ftr-track-picker-body');
+    if (body) body.innerHTML = '';
 };
 
 ui.views.footer.closeCandidatePicker = () => {
@@ -4276,7 +4751,11 @@ ui.views.footer.openFavoriteModal = () => {
     // Reset back to the input form
     modal.querySelector('#ftr-fav-form').style.display = '';
     modal.querySelector('#ftr-fav-message').style.display = 'none';
-    modal.querySelector('#ftr-fav-name').value = '';
+    // Prefill the name like the favorite items render it - "Car at Track"
+    const effectiveTrack = ui.views.footer.getEffectiveTrack();
+    const carName = ui.views.footer.selectedCar.name || ui.views.footer.selectedCar.path || '';
+    const trackName = effectiveTrack ? (effectiveTrack.layoutName || effectiveTrack.name || '') : '';
+    modal.querySelector('#ftr-fav-name').value = `${carName} at ${trackName}`.trim();
     modal.querySelector('#ftr-fav-cancel').style.display = '';
     modal.querySelector('#ftr-fav-save').style.display = '';
     modal.querySelector('#ftr-fav-ok').style.display = 'none';
@@ -4954,15 +5433,97 @@ ui.views.tracks = {
     virtualDOM: {
         topHiddenRows: 0,
         bottomHiddenRows: 0
+    },
+    scope: null,   // element DOM lookups run inside while the view is mounted in the track-picker modal
+    picker: null,  // (track, layout) => void - when set, Select Track calls this instead of footer.selectTrack
+    pickerState: null // stashed page filter/grid state while the picker modal is open
+};
+
+// DOM lookups scoped to the mounted container (picker modal) or the document
+// (cars-style scope mechanism)
+ui.views.tracks.qs = (sel) => ui.views.tracks.scope
+    ? ui.views.tracks.scope.querySelector(sel)
+    : document.querySelector(sel);
+
+ui.views.tracks.qsa = (sel) => Array.from(
+    (ui.views.tracks.scope ? ui.views.tracks.scope : document).querySelectorAll(sel));
+
+ui.views.tracks.byId = (id) => ui.views.tracks.scope
+    ? ui.views.tracks.scope.querySelector('#' + id)
+    : document.getElementById(id);
+
+// The picker's filter lives in its own localStorage slot so remembering it
+// doesn't bleed into the tracks page's filters (and vice versa)
+ui.views.tracks.filterKey = () =>
+    ui.views.tracks.scope ? 'RacerUI:tracks-filter-picker' : 'RacerUI:tracks-filter';
+
+ui.views.tracks.defaultFilter = () => ({
+    countries: ['all'],
+    types: [],
+    search: '',
+    sort: 'name',
+    start: 0,
+    length: 20,
+    view: 'grid'
+});
+
+// Mounts the tracks view inside an arbitrary container (the track-picker
+// modal) - same init steps as load() minus the page-level plumbing. The
+// page's filter/grid state is stashed and the picker works on its own
+// filter (saved under its own localStorage key). options.onPick replaces
+// the Select Track button's default action
+ui.views.tracks.loadInto = (container, options) => {
+    options = options || {};
+    ui.views.tracks.scope = container;
+    ui.views.tracks.picker = options.onPick || null;
+    ui.views.tracks.pickerState = {
+        filter: ui.views.tracks.filter,
+        results: ui.views.tracks.results,
+        allTracks: ui.views.tracks.allTracks,
+        selected: ui.views.tracks.selected,
+        hasMore: ui.views.tracks.hasMore
+    };
+    ui.views.tracks.filter = ui.views.tracks.defaultFilter();
+    ui.views.tracks.results = null;
+    ui.views.tracks.allTracks = [];
+    ui.views.tracks.selected = null;
+    ui.views.tracks.hasMore = true;
+    if (localStorage.getItem(ui.views.tracks.filterKey())) {
+        ui.views.tracks.filter = {...ui.views.tracks.filter, ...JSON.parse(localStorage.getItem(ui.views.tracks.filterKey()))};
+    }
+    ui.view.loadComponent('Tracks/tracks', (html) => {
+        container.innerHTML = html;
+        ui.views.tracks.setupSearchListener();
+        ui.views.tracks.setupSortDropdown();
+        ui.views.tracks.updateClearFilterButton();
+        ui.views.tracks.getFilteredList();
+        ui.views.tracks.resize();
+        ui.views.tracks.setupInfiniteScroll();
+        ui.utils.scaleUI();
+    });
+};
+
+// Unmounts the picker - DOM lookups go back to the document and the page's
+// stashed filter/grid state is restored
+ui.views.tracks.unloadFrom = () => {
+    ui.views.tracks.scope = null;
+    ui.views.tracks.picker = null;
+    if (ui.views.tracks.pickerState) {
+        Object.assign(ui.views.tracks, ui.views.tracks.pickerState);
+        ui.views.tracks.pickerState = null;
     }
 };
 
 ui.views.tracks.load = (e) => {
+    // Page mount - the view lives at document level again
+    ui.views.tracks.scope = null;
+    ui.views.tracks.picker = null;
+    ui.views.tracks.pickerState = null;
     // Load filter settings from local storage
-    if (localStorage.getItem('RacerUI:tracks-filter')) {
-        ui.views.tracks.filter = {...ui.views.tracks.filter, ...JSON.parse(localStorage.getItem('RacerUI:tracks-filter'))};
+    if (localStorage.getItem(ui.views.tracks.filterKey())) {
+        ui.views.tracks.filter = {...ui.views.tracks.filter, ...JSON.parse(localStorage.getItem(ui.views.tracks.filterKey()))};
     }
-    if (document.querySelector('.tracks-toolbar') == null) {
+    if (ui.views.tracks.qs('.tracks-toolbar') == null) {
         // View not loaded yet
         ui.view.loadComponent(`Tracks/tracks`, (html) => {
             ui.nav.select('tracks');
@@ -4996,9 +5557,9 @@ ui.views.tracks.load = (e) => {
 };
 
 ui.views.tracks.setupSearchListener = () => {
-    const searchInput = document.getElementById('search_tracks');
-    const searchClear = document.getElementById('search_clear');
-    const clearFilterBtn = document.getElementById('clear_filter_btn');
+    const searchInput = ui.views.tracks.byId('search_tracks');
+    const searchClear = ui.views.tracks.byId('search_clear');
+    const clearFilterBtn = ui.views.tracks.byId('clear_filter_btn');
     
     if (searchInput) {
         // Populate search field from cached filter
@@ -5061,19 +5622,19 @@ ui.views.tracks.setupSearchListener = () => {
             
             // Reset UI state of any open filter section
             // Country filter
-            document.querySelectorAll('.filter-country li').forEach((li) => {
+            ui.views.tracks.qsa('.filter-country li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-country li[data-country="all"]')?.classList.add('selected');
+            ui.views.tracks.qs('.filter-country li[data-country="all"]')?.classList.add('selected');
             
             // Type filter
-            document.querySelectorAll('.filter-type li').forEach((li) => {
+            ui.views.tracks.qsa('.filter-type li').forEach((li) => {
                 li.classList.remove('selected');
             });
-            document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+            ui.views.tracks.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
             
             // Reload currently open filter view if any
-            const selectedNavItem = document.querySelector('.tracks-toolbar li.selected');
+            const selectedNavItem = ui.views.tracks.qs('.tracks-toolbar li.selected');
             if (selectedNavItem) {
                 const section = selectedNavItem.className.match(/item-(\w+)/)?.[1];
                 if (section) {
@@ -5102,7 +5663,7 @@ ui.views.tracks.setupSearchListener = () => {
 };
 
 ui.views.tracks.setupSortDropdown = () => {
-    const sortDdl = document.getElementById('tracks_sort');
+    const sortDdl = ui.views.tracks.byId('tracks_sort');
     if (!sortDdl) return;
     const valid = ['name', 'country', 'distance', 'year', 'rating'];
     if (!valid.includes(ui.views.tracks.filter.sort)) ui.views.tracks.filter.sort = 'name';
@@ -5115,20 +5676,26 @@ ui.views.tracks.setupSortDropdown = () => {
 
 ui.views.tracks.unload = () => {
     window.removeEventListener('resize', ui.views.tracks.resize);
-    const container = document.querySelector('.tracks-content');
+    const container = ui.views.tracks.qs('.tracks-content');
     if (container && ui.views.tracks.scrollListener) {
         container.removeEventListener('scroll', ui.views.tracks.scrollListener);
     }
 }
 
 ui.views.tracks.resize = () => {
-    const el = document.querySelector('.tracks-content');
+    const el = ui.views.tracks.qs('.tracks-content');
     if(!el) return;
     const rect = el.getBoundingClientRect();
-    el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.tracks.footerHeight : ((ui.views.tracks.footerHeight / 1920) * window.innerWidth)}em)`;
+    if (ui.views.tracks.scope) {
+        // Mounted in the picker modal - fill the modal body instead of sizing
+        // against the viewport
+        el.style.height = '';
+    } else {
+        el.style.height = `calc(${window.innerHeight - rect.top}px - ${window.innerWidth <= 1920 ? ui.views.tracks.footerHeight : ((ui.views.tracks.footerHeight / 1920) * window.innerWidth)}em)`;
+    }
     
     // Set max-height for tracks-filter div accounting for scale factor
-    const filterEl = document.querySelector('.tracks-filter');
+    const filterEl = ui.views.tracks.qs('.tracks-filter');
     if (filterEl) {
         const filterRect = filterEl.getBoundingClientRect();
         const scaleFactor = ui.utils.scaleFactor || 1;
@@ -5140,17 +5707,17 @@ ui.views.tracks.resize = () => {
 ui.views.tracks.nav = (e, section) => {
     e.preventDefault();
     e.stopPropagation();
-    var navItem = document.querySelector(`.tracks-toolbar li.item-${section}`);
+    var navItem = ui.views.tracks.qs(`.tracks-toolbar li.item-${section}`);
     if (navItem.classList.contains('selected')) {
         ui.views.tracks.hideFilter();
         return false;
     }
-    document.querySelectorAll('.tracks-toolbar li').forEach((li) => {
+    ui.views.tracks.qsa('.tracks-toolbar li').forEach((li) => {
         li.classList.remove('selected');
     });
     navItem.classList.add('selected');
     ui.view.loadComponent(`Tracks/filter-${section}`, (html) => {
-        document.querySelector('.tracks-filter').innerHTML = html;
+        ui.views.tracks.qs('.tracks-filter').innerHTML = html;
         switch(section) {
             case 'view':
                 ui.views.tracks.view.load();
@@ -5163,21 +5730,23 @@ ui.views.tracks.nav = (e, section) => {
                 break;
         }
         // Show close button
-        document.querySelector('.tracks-toolbar .close-btn').style.display = 'block';
+        ui.views.tracks.qs('.tracks-toolbar .close-btn').style.display = 'block';
     });
 };
 
 ui.views.tracks.hideFilter = () => {
-    document.querySelector('.tracks-toolbar .close-btn').style.display = 'none';
-    document.querySelector('.tracks-filter').innerHTML = '';
-    document.querySelectorAll('.tracks-toolbar li').forEach((li) => {
+    ui.views.tracks.qs('.tracks-toolbar .close-btn').style.display = 'none';
+    ui.views.tracks.qs('.tracks-filter').innerHTML = '';
+    ui.views.tracks.qsa('.tracks-toolbar li').forEach((li) => {
         li.classList.remove('selected');
     });
-    history.pushState(null, '', `/dashboard/tracks` + window.location.search);
+    if (!ui.views.tracks.scope) {
+        history.pushState(null, '', `/dashboard/tracks` + window.location.search);
+    }
 };
 
 ui.views.tracks.saveFilter = () => {
-    localStorage.setItem('RacerUI:tracks-filter', JSON.stringify(ui.views.tracks.filter));
+    localStorage.setItem(ui.views.tracks.filterKey(), JSON.stringify(ui.views.tracks.filter));
 };
 
 ui.views.tracks.hasActiveFilters = () => {
@@ -5190,7 +5759,7 @@ ui.views.tracks.hasActiveFilters = () => {
 };
 
 ui.views.tracks.updateClearFilterButton = () => {
-    const clearFilterBtn = document.getElementById('clear_filter_btn');
+    const clearFilterBtn = ui.views.tracks.byId('clear_filter_btn');
     if (clearFilterBtn) {
         if (ui.views.tracks.hasActiveFilters()) {
             clearFilterBtn.parentElement.style.display = 'inline-block';
@@ -5250,7 +5819,7 @@ ui.views.tracks.getFilteredList = (reset = true) => {
 };
 
 ui.views.tracks.setupInfiniteScroll = () => {
-    const container = document.querySelector('.tracks-content');
+    const container = ui.views.tracks.qs('.tracks-content');
     if (!container) return;
 
     // Remove existing listener if any
@@ -5307,6 +5876,17 @@ ui.views.tracks.setupInfiniteScroll = () => {
     window.addEventListener('resize', ui.views.tracks.resizeListener);
 };
 
+// If the grid doesn't overflow its container, no scroll event can ever fire
+// and infinite scroll stalls on the first page - keep loading until the
+// container scrolls or the results run out
+ui.views.tracks.checkOverflowLoad = () => {
+    const container = ui.views.tracks.qs('.tracks-content');
+    if (container && container.scrollHeight <= container.clientHeight
+        && ui.views.tracks.hasMore && !ui.views.tracks.isLoading) {
+        ui.views.tracks.loadMore();
+    }
+};
+
 ui.views.tracks.loadMore = () => {
     if (ui.views.tracks.isLoading || !ui.views.tracks.hasMore) return;
 
@@ -5316,7 +5896,7 @@ ui.views.tracks.loadMore = () => {
 };
 
 ui.views.tracks.manageVirtualDOM = () => {
-    const container = document.querySelector('.tracks-content');
+    const container = ui.views.tracks.qs('.tracks-content');
     const gridView = container?.querySelector('.grid-view');
     if (!gridView) return;
     
@@ -5454,7 +6034,7 @@ ui.views.tracks.manageVirtualDOM = () => {
 ui.views.tracks.view = {};
 
 ui.views.tracks.view.load = () => {
-    document.querySelectorAll('.filter-view li').forEach((li) => {
+    ui.views.tracks.qsa('.filter-view li').forEach((li) => {
         li.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -5465,10 +6045,10 @@ ui.views.tracks.view.load = () => {
 
 ui.views.tracks.view.select = (view) => {
     ui.views.tracks.filter.view = view;
-    document.querySelectorAll('.filter-view li').forEach((li) => {
+    ui.views.tracks.qsa('.filter-view li').forEach((li) => {
         li.classList.remove('selected');
     });
-    document.querySelectorAll('.filter-view li[data-view="' + view + '"]').forEach((li) => {
+    ui.views.tracks.qsa('.filter-view li[data-view="' + view + '"]').forEach((li) => {
         li.classList.add('selected');
     });
     ui.views.tracks.views.load();
@@ -5491,7 +6071,7 @@ ui.views.tracks.country.load = () => {
                 try {
                     const countries = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-country .select-list');
+                    const container = ui.views.tracks.qs('.filter-country .select-list');
                     if (!container) {
                         console.error('Container .filter-country .select-list not found');
                         return;
@@ -5507,7 +6087,7 @@ ui.views.tracks.country.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-country li').forEach((li) => {
+                    ui.views.tracks.qsa('.filter-country li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -5516,7 +6096,7 @@ ui.views.tracks.country.load = () => {
                     });
                     
                     if (ui.views.tracks.filter.countries.length > 0) {
-                        document.querySelectorAll('.filter-country li').forEach((li) => {
+                        ui.views.tracks.qsa('.filter-country li').forEach((li) => {
                             if (ui.views.tracks.filter.countries.includes(li.getAttribute('data-country'))) {
                                 li.classList.add('selected');
                             } else {
@@ -5535,7 +6115,7 @@ ui.views.tracks.country.load = () => {
 ui.views.tracks.country.select = (country) => {
     if (country == 'all') {
         ui.views.tracks.filter.countries = ['all'];
-        document.querySelectorAll('.filter-country li').forEach((li) => {
+        ui.views.tracks.qsa('.filter-country li').forEach((li) => {
             li.classList.remove('selected');
         });
     } else {
@@ -5547,11 +6127,11 @@ ui.views.tracks.country.select = (country) => {
         if (ui.views.tracks.filter.countries.indexOf('all') > -1) {
             ui.views.tracks.filter.countries.splice(ui.views.tracks.filter.countries.indexOf('all'), 1);
         }
-        document.querySelectorAll('.filter-country li[data-country="all"]').forEach((li) => {
+        ui.views.tracks.qsa('.filter-country li[data-country="all"]').forEach((li) => {
             li.classList.remove('selected');
         });
     }
-    document.querySelectorAll('.filter-country li[data-country="' + country + '"]').forEach((li) => {
+    ui.views.tracks.qsa('.filter-country li[data-country="' + country + '"]').forEach((li) => {
         li.classList.toggle('selected');
     });
     ui.views.tracks.getFilteredList();
@@ -5573,7 +6153,7 @@ ui.views.tracks.type.load = () => {
                 try {
                     const types = JSON.parse(response.responseText);
                     
-                    const container = document.querySelector('.filter-type .select-list');
+                    const container = ui.views.tracks.qs('.filter-type .select-list');
                     container.innerHTML = '<li data-type="0">All Types</li>';
                     
                     types.forEach(type => {
@@ -5583,7 +6163,7 @@ ui.views.tracks.type.load = () => {
                         container.innerHTML += itemHtml;
                     });
                     
-                    document.querySelectorAll('.filter-type li').forEach((li) => {
+                    ui.views.tracks.qsa('.filter-type li').forEach((li) => {
                         li.onclick = (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -5592,7 +6172,7 @@ ui.views.tracks.type.load = () => {
                     });
                     
                     if (ui.views.tracks.filter.types.length > 0) {
-                        document.querySelectorAll('.filter-type li').forEach((li) => {
+                        ui.views.tracks.qsa('.filter-type li').forEach((li) => {
                             if (ui.views.tracks.filter.types.includes(parseInt(li.getAttribute('data-type')))) {
                                 li.classList.add('selected');
                             } else {
@@ -5600,7 +6180,7 @@ ui.views.tracks.type.load = () => {
                             }
                         });
                     } else {
-                        document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+                        ui.views.tracks.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
                     }
                 } catch (error) {
                     console.error('Error loading types:', error);
@@ -5613,25 +6193,25 @@ ui.views.tracks.type.load = () => {
 ui.views.tracks.type.select = (typeId) => {
     if (typeId == 0) {
         ui.views.tracks.filter.types = [];
-        document.querySelectorAll('.filter-type li').forEach((li) => {
+        ui.views.tracks.qsa('.filter-type li').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+        ui.views.tracks.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
     } else {
         if (ui.views.tracks.filter.types.includes(typeId)) {
             ui.views.tracks.filter.types.splice(ui.views.tracks.filter.types.indexOf(typeId), 1);
         } else {
             ui.views.tracks.filter.types.push(typeId);
         }
-        document.querySelectorAll('.filter-type li[data-type="0"]').forEach((li) => {
+        ui.views.tracks.qsa('.filter-type li[data-type="0"]').forEach((li) => {
             li.classList.remove('selected');
         });
-        document.querySelectorAll('.filter-type li[data-type="' + typeId + '"]').forEach((li) => {
+        ui.views.tracks.qsa('.filter-type li[data-type="' + typeId + '"]').forEach((li) => {
             li.classList.toggle('selected');
         });
         // If no types selected, select 'All'
         if (ui.views.tracks.filter.types.length === 0) {
-            document.querySelector('.filter-type li[data-type="0"]')?.classList.add('selected');
+            ui.views.tracks.qs('.filter-type li[data-type="0"]')?.classList.add('selected');
         }
     }
     ui.views.tracks.getFilteredList();
@@ -5703,7 +6283,7 @@ ui.views.tracks.views.load = (data) => {
         data = ui.views.tracks.results;
     }
     
-    const container = document.querySelector('.tracks-content');
+    const container = ui.views.tracks.qs('.tracks-content');
     if (!container) return;
     
     // Check for empty results
@@ -5729,6 +6309,7 @@ ui.views.tracks.views.load = (data) => {
             break;
     }
     ui.views.tracks.isLoading = false;
+    ui.views.tracks.checkOverflowLoad();
 };
 
 ui.views.tracks.views.appendTracks = (data) => {
@@ -5744,7 +6325,7 @@ ui.views.tracks.views.appendTracks = (data) => {
     const viewType = ui.views.tracks.filter.view || 'grid';
     
     ui.view.loadComponent(`Tracks/${viewType}-item`, (itemTemplate) => {
-        const gridView = document.querySelector('.tracks-content .grid-view');
+        const gridView = ui.views.tracks.qs('.tracks-content .grid-view');
         if (!gridView) {
             ui.views.tracks.isLoading = false;
             return;
@@ -5757,12 +6338,13 @@ ui.views.tracks.views.appendTracks = (data) => {
         
         ui.views.tracks.views.grid.setup();
         ui.views.tracks.isLoading = false;
+        ui.views.tracks.checkOverflowLoad();
     });
 };
 
 ui.views.tracks.views.grid = {
     setup: () => {
-        document.querySelectorAll('.grid-view > .track').forEach((item) => {
+        ui.views.tracks.qsa('.grid-view > .track').forEach((item) => {
             item.onmouseenter = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -5813,7 +6395,7 @@ ui.views.tracks.views.grid = {
         // Check if the clicked track is already selected
         if (ui.views.tracks.selected && ui.views.tracks.selected.track && ui.views.tracks.selected.track.path === track.path) {
             // Hide details if the same track is clicked again
-            const detailsDiv = document.querySelector('.grid-details');
+            const detailsDiv = ui.views.tracks.qs('.grid-details');
             if (detailsDiv) {
                 detailsDiv.classList.add('hiding');
                 setTimeout(() => {
@@ -5829,7 +6411,7 @@ ui.views.tracks.views.grid = {
             return;
         }
         ui.view.loadComponent('Tracks/grid-details', (html) => {
-            const detailsDiv = document.querySelector('.grid-details');
+            const detailsDiv = ui.views.tracks.qs('.grid-details');
             if (detailsDiv != null) {
                 detailsDiv.classList.add('hiding');
                 setTimeout(() => {
@@ -5908,7 +6490,7 @@ ui.views.tracks.views.grid = {
             ui.views.tracks.views.grid.setupButtonHoverEffects();
             
             setTimeout(() => {
-                ui.scrollTo(document.querySelector('.tracks-content'), item, 500, 'easeInOutQuad', 0);
+                ui.scrollTo(ui.views.tracks.qs('.tracks-content'), item, 500, 'easeInOutQuad', 0);
             }, 350);
         });
     },
@@ -5932,7 +6514,7 @@ ui.views.tracks.views.grid = {
         return null;
     },
     setupLayoutsSelect: (track) => {
-        const select = document.getElementById('track_layouts_select');
+        const select = ui.views.tracks.byId('track_layouts_select');
         if (!select || !ui.views.tracks.selected) return;
 
         // The parent row is the main layout; track.layouts are the additional layouts
@@ -5973,7 +6555,7 @@ ui.views.tracks.views.grid = {
             ui.views.tracks.selected.layout = layout;
 
             // Update the outline image to the selected layout
-            const outlineImg = document.querySelector('.grid-details .track-outline-float');
+            const outlineImg = ui.views.tracks.qs('.grid-details .track-outline-float');
             if (outlineImg) {
                 let outlineUrl = `/image/assetto corsa/track-outline/${layout.path}`;
                 if (layout.subPath) {
@@ -5986,18 +6568,23 @@ ui.views.tracks.views.grid = {
     },
     setupSelectTrackHandler: () => {
         // Add event listeners to all select track buttons
-        const selectTrackBtns = document.querySelectorAll('.select-track-btn');
+        const selectTrackBtns = ui.views.tracks.qsa('.select-track-btn');
         selectTrackBtns.forEach((btn) => {
             btn.addEventListener('click', () => {
                 // Get track from ui.views.tracks.selected
                 if (ui.views.tracks.selected && ui.views.tracks.selected.track) {
-                    ui.views.footer.selectTrack(ui.views.tracks.selected.track, ui.views.tracks.selected.layout);
+                    if (ui.views.tracks.picker) {
+                        // Picker modal intercept - e.g. candidate picking
+                        ui.views.tracks.picker(ui.views.tracks.selected.track, ui.views.tracks.selected.layout);
+                    } else {
+                        ui.views.footer.selectTrack(ui.views.tracks.selected.track, ui.views.tracks.selected.layout);
+                    }
                 }
             });
         });
     },
     setupButtonHoverEffects: () => {
-        const buttons = document.querySelectorAll('.select-track-btn');
+        const buttons = ui.views.tracks.qsa('.select-track-btn');
         
         buttons.forEach((button) => {
             // Skip if already wrapped
@@ -6063,7 +6650,7 @@ ui.views.tracks.views.grid.load = (data, viewType) => {
     
     ui.view.loadComponent(`Tracks/${viewType}-view`, (template) => {
         ui.view.loadComponent(`Tracks/${viewType}-item`, (itemTemplate) => {
-            const container = document.querySelector('.tracks-content');
+            const container = ui.views.tracks.qs('.tracks-content');
             let itemsHtml = '';
             
             data.tracks.forEach(track => {

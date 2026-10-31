@@ -1,0 +1,617 @@
+.content.tracks .coming-soon {
+    padding: 2em;
+    text-align: center;
+    width: 100%;
+
+    p {
+        padding: 2em 0;
+    }
+}
+
+body.footer-expanded .tracks-filter {
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0s;
+}
+
+body.footer-expanded .tracks-toolbar {
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0.4s;
+}
+
+.tracks-toolbar {
+    transition: opacity 0.4s ease;
+
+    nav {
+        ul.menu {
+            li.search-input {
+                padding-top: 0.35em;
+                vertical-align: top;
+                position: relative;
+
+                input {
+                    max-width: 15vw;
+                    padding-right: 2.5em;
+                }
+                
+                svg.search-arrow {
+                    position: absolute;
+                    right: -1.5em;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 1.5em;
+                    height: 1.5em;
+                    pointer-events: none;
+                }
+                
+                svg.search-clear { 
+                    position: absolute;
+                    right: 1em;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 0.8em;
+                    height: 0.8em;
+                    opacity: 0.5;
+                    cursor: pointer;
+                    transition: opacity 0.25s ease-in-out;
+                    
+                    &:hover {
+                        opacity: 1;
+                    }
+                }
+            }
+            
+            li.clear-filter-btn {
+                padding-top: 0.35em;
+                vertical-align: top;
+                margin-left: 1em;
+                display: none;
+                &:hover{
+                    background:none !important;
+                }
+                
+                button {
+                    padding: 0.5em 1em;
+                    border-radius: 0.3em;
+                    cursor: pointer;
+                    font-size: 0.7em;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5em;
+                    transition: all 0.25s ease-in-out;
+                    
+                    svg {
+                        width: 1em;
+                        height: 1em;
+                    }
+                }
+            }
+        }
+    }
+
+    .close-btn {
+        width: 2em;
+        margin: 0.75em 2em 0 0;
+        opacity: 0.3;
+        cursor: pointer;
+        transition: opacity 0.25s ease-in-out;
+    }
+
+    .close-btn:hover {
+        opacity: 1;
+    }
+}
+
+.tracks-toolbar {
+    nav {
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+
+        ul.menu li {
+            vertical-align: bottom;
+        }
+    }
+
+    .right {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75em;
+        padding-right: 1.5em;
+
+        .dropdown-list {
+            min-width: 10em;
+        }
+
+        .close-btn {
+            margin: 0;
+        }
+    }
+}
+
+.tracks-filter {
+    position: absolute;
+    // Below .footer-container (100) so an expanded footer sits on top; above
+    // the dash nav (50) and grid content (1)
+    z-index: 90;
+    // Delayed fade-in so it only reappears after the footer's collapse
+    // animation (0.4s) finishes; the expanded rule overrides the delay to 0
+    transition: opacity 0.4s 0.4s;
+    width: 100%;
+    overflow-y:auto;
+    max-height: calc(100vh - 5em);
+
+    &::-webkit-scrollbar {
+        width: 0.5em;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: 3px;
+    }
+}
+
+.filter-country, .filter-type {
+    ul.select-list {
+        padding: 0 2em 0 2em;
+
+        li {
+            padding: 1em 1.5em;
+            height: 1em;
+
+            img {
+                width: 1.5em;
+                padding: 0 0.5em 0 0;
+                vertical-align: middle;
+            }
+        }
+    }
+}
+
+.tracks-content {
+    position: relative;
+    z-index: 1;
+    width: 100vw;
+    height: calc(100vh - 15em);
+    max-height: calc(100vh - 1em);
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-top: 0.5em;
+    transition: height 0.4s ease;
+
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+    }
+
+    .grid-view {
+        width: 100vw;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1em;
+        padding: 1em;
+        box-sizing: border-box;
+        grid-auto-flow: dense;
+
+        .track {
+            aspect-ratio: 16/9;
+            width: 100%;
+            top: 0%;
+            position: relative;
+            border-width: 0;
+            box-shadow: none;
+            background-size: cover;
+            background-position: center;
+            border-radius: 0.5em;
+            transition: opacity 0.3s ease-in-out;
+
+            &.selected {
+                opacity: 0.15;
+                pointer-events: none;
+            }
+
+            &.selected .hovered-clone {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            .track-outline {
+                position: absolute;
+                bottom: 0.5em;
+                right: 0.5em;
+                height: 40%;
+                width: auto;
+                pointer-events: none;
+                transition: all 0.4s ease-in-out 0.1s;
+                transform: translate(0, 0);
+            }
+
+            &:hover .track-outline {
+                height: 90%;
+                bottom: 50%;
+                right: 50%;
+                transform: translate(50%, 50%);
+            }
+
+            .info-top {
+                position: absolute;
+                top: 0.5em;
+                right: 0.5em;
+                font-size: 0.875em;
+                text-align: right;
+                white-space: nowrap;
+
+                .track-length, .track-type {
+                    display: inline-block;
+                    padding: 0.25em 0.5em;
+                    border-radius: 0.5em;
+                    margin-left: 0.25em;
+                    line-height: 1.25;
+                }
+            }
+
+            .info {
+                position: absolute;
+                bottom: 0.6em;
+                left: 0.6em;
+                white-space: nowrap;
+                vertical-align: top;
+                display: inline-block;
+
+                .track-name, .city  {
+                    font-size: 1em;
+                    font-weight: normal;
+                    line-height: 1.25;
+                    opacity: 0.75;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    display: inline-block;
+                    padding: 0.25em 0.5em;
+                    margin-right:0.5em;
+                    border-radius: 0.5em;
+                }
+            }
+
+            .flag {
+                position: relative;
+                display: inline-block;
+                vertical-align: top;
+                width: 2em;
+                margin-right: 0.5em;
+
+                img {
+                    width: 100%;
+                    border-radius: 0.2em;
+                }
+            }
+
+            &.hovered-clone {
+                z-index: 15;
+                margin: 0 auto;
+                position: absolute;
+                border-style: solid;
+                border-radius: 0.5em;
+                animation: hover-grow 0.2s ease-in-out forwards;
+
+                .track-outline {
+                    position: absolute;
+                    bottom: 0.5em;
+                    right: 0.5em;
+                    height: 40%;
+                    width: auto;
+                    pointer-events: none;
+                    transform: translate(0, 0);
+                    transition: all 0.4s ease-in-out 0.1s;
+                    }
+
+                &:hover .track-outline {
+                    height: 90%;
+                    bottom: 50%;
+                    right: 50%;
+                    transform: translate(50%, 50%);
+                }
+            }
+
+            &.hovered-clone.hiding {
+                z-index: 9;
+                animation: hover-shrink 0.4s ease-in-out forwards;
+            }
+        }
+
+        &.xl {
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        }
+
+        &.sm {
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        }
+    }
+
+    .grid-details {
+        grid-column-start: 1;
+        grid-column-end: -1;
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        animation: show-details 0.3334s ease-out forwards;
+        overflow: hidden;
+
+        .preview {
+            width: 40vw;
+            aspect-ratio: 16/9;
+            background-size: cover;
+            background-position: center;
+            border-radius: 0.5em;
+            position: relative;
+
+            .track-outline {
+                position: absolute;
+                bottom: 0.5em;
+                right: 0.5em;
+                max-width: 5vw;
+                height: auto;
+                opacity: 0.8;
+                pointer-events: none;
+            }
+        }
+
+        .info {
+            padding: 0 0 0 1em;
+            line-height: 1.5em;
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+            overflow: hidden;
+
+            .title{
+                border-radius: 0.15em;
+            }
+
+            h4 {
+                font-size: 1.8em;
+                font-weight: normal;
+                margin: 0 0 0.25em 0;
+                padding: 0.25em 0.5em 0.3em 0.5em;
+                border-radius: 0.15em;
+            }
+
+            .track-header {
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+                flex-wrap: wrap;
+                margin-bottom:0.4em;
+            }
+
+            .select-track-btn {
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+                padding: 0.65em 1.5em;
+                border-radius: 0.15em;
+                cursor: pointer;
+                font-size: 0.9em;
+                transition: background 0.2s ease;
+                white-space: nowrap;
+
+                svg {
+                    width: 1.2em;
+                    height: 1.2em;
+                }
+            }
+
+            .track-outline-float {
+                float: right;
+                max-width: 30%;
+                height: auto;
+                margin: 0 0 1em 1em;
+                border-radius: 0.15em;
+            }
+
+            .track-layouts {
+                display: flex;
+                align-items: center;
+                margin-left: auto;
+
+                select {
+                    padding: 0.4em 0.75em;
+                    border-radius: 0.15em;
+                    font-size: 0.9em;
+                    max-width: 22em;
+                    cursor: pointer;
+                }
+            }
+
+            .track-origin {
+                display: flex;
+                align-items: center;
+                flex: 1;
+
+                &>div {
+                    display: flex;
+                    align-items: center;
+                    padding: 0.3em 0.5em 0.4em 0.5em;
+                    border-radius: 0.15em;
+                    margin-right: 0.5em;
+                }
+
+                .flag {
+                    vertical-align: top;
+                    width: 1.5em;
+                    margin: 0.25em 0.5em 0 0;
+                    align-self: flex-start;
+                }
+            }
+
+            .track-stats {
+                white-space: nowrap;
+                padding: 0.25em 0.5em;
+                border-radius: 0.15em;
+                margin-bottom: 0.4em;
+
+                &>div {
+                    display: inline-block;
+                    padding: 0 0.5em 0 0;
+
+                    span {
+                        display: inline-block;
+                        padding: 0 0.4em;
+                        border-radius: 0.15em;
+                        margin-right: 0.5em;
+                    }
+                }
+            }
+
+            .track-description {
+                padding: 0.5em;
+                border-radius: 0.15em;
+                margin-bottom: 0.4em;
+                overflow-y:auto;
+
+                &::-webkit-scrollbar {
+                    width: 10px;
+                }
+
+                &::-webkit-scrollbar-thumb {
+                    border-radius: 10px;
+                }
+
+                p {
+                    margin: 0 0 2em 0;
+                    line-height: 1.4em;
+                }
+            }
+
+            .track-author {
+                padding: 0.3em 0.5em;
+                border-radius: 0.15em;
+            }
+
+            .track-info-container {
+                width: 100%;
+            }
+        }
+
+        &.hiding {
+            animation: hide-details 0.3334s ease-out forwards;
+        }
+    }
+
+    @keyframes show-details {
+        from {
+            max-height: 0vh;
+        }
+
+        to {
+            max-height: 40vh;
+        }
+    }
+
+    @keyframes hide-details {
+        from {
+            max-height: 40vh;
+        }
+
+        to {
+            max-height: 0vh;
+        }
+    }
+
+    @keyframes hover-grow {
+        from {
+            width: 100%;
+            top: 0%;
+            left: 0%;
+        }
+
+        to {
+            width: 120%;
+            top: -10%;
+            left: -10%;
+        }
+    }
+
+    @keyframes hover-shrink {
+        from {
+            width: 120%;
+            top: -10%;
+            left: -10%;
+        }
+
+        to {
+            width: 100%;
+            top: 0%;
+            left: 0%;
+        }
+    }
+
+    @keyframes outline-to-center {
+        from {
+            height: 40%;
+            bottom: 0.5em;
+            right: 0.5em;
+            transform: translate(0, 0);
+        }
+
+        to {
+            height: 90%;
+            bottom: 50%;
+            right: 50%;
+            transform: translate(50%, 50%);
+        }
+    }
+
+    .button-wrapper {
+        position: relative;
+        display: inline-flex;
+        width: auto;
+    }
+
+    .button-hovered-clone {
+        position: absolute;
+        top: 0;
+        left: 0;
+        box-sizing: border-box;
+        pointer-events: none;
+        display: none;
+        z-index: 100;
+        transform-origin: center center;
+
+        &.growing {
+            animation: button-hover-grow 0.3s ease-out forwards;
+        }
+
+        &.shrinking {
+            animation: button-hover-shrink 0.3s ease-out forwards;
+        }
+    }
+
+    @keyframes button-hover-grow {
+        from {
+            transform: skewX(-10deg) scale(1);
+        }
+
+        to {
+            transform: skewX(-10deg) scale(1.1);
+        }
+    }
+
+    @keyframes button-hover-shrink {
+        from {
+            transform: skewX(-10deg) scale(1.1);
+        }
+
+        to {
+            transform: skewX(-10deg) scale(1);
+        }
+    }
+}

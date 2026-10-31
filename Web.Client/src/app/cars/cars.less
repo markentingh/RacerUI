@@ -1,0 +1,1179 @@
+body.footer-expanded .cars-filter {
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0s;
+}
+
+body.footer-expanded .cars-toolbar {
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0.4s;
+}
+
+.content.cars .coming-soon {
+    padding: 2em;
+    text-align: center;
+    width: 100%;
+
+    p {
+        padding: 2em 0;
+    }
+}
+
+.cars-toolbar {
+    transition: opacity 0.4s ease;
+
+    nav {
+        ul.menu {
+            li.search-input {
+                padding-top: 0.35em;
+                vertical-align: top;
+                position: relative;
+
+                input {
+                    max-width: 15vw;
+                    padding-right: 2.5em;
+                }
+
+                svg.search-arrow {
+                    position: absolute;
+                    right: -1.5em;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 1.5em;
+                    height: 1.5em;
+                    pointer-events: none;
+                }
+
+                svg.search-clear {
+                    position: absolute;
+                    right: 1em;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 0.8em;
+                    height: 0.8em;
+                    opacity: 0.5;
+                    cursor: pointer;
+                    transition: opacity 0.25s ease-in-out;
+
+                    &:hover {
+                        opacity: 1;
+                    }
+                }
+            }
+
+            li.clear-filter-btn {
+                padding-top: 0.35em;
+                vertical-align: top;
+                margin-left: 1em;
+                display: none;
+
+                &:hover {
+                    background: none !important;
+                }
+
+                button {
+                    padding: 0.5em 1em;
+                    border-radius: 0.3em;
+                    cursor: pointer;
+                    font-size: 0.7em;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5em;
+                    transition: all 0.25s ease-in-out;
+
+                    svg {
+                        width: 1em;
+                        height: 1em;
+                    }
+                }
+            }
+        }
+    }
+
+    .close-btn {
+        width: 2em;
+        margin: 0.75em 2em 0 0;
+        opacity: 0.3;
+        cursor: pointer;
+        transition: opacity 0.25s ease-in-out;
+    }
+
+    .close-btn:hover {
+        opacity: 1;
+    }
+}
+
+.cars-toolbar {
+    nav {
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+
+        ul.menu li {
+            vertical-align: bottom;
+        }
+    }
+
+    .right {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75em;
+        padding-right: 1.5em;
+
+        .dropdown-list {
+            min-width: 10em;
+        }
+
+        .close-btn {
+            margin: 0;
+        }
+    }
+}
+
+.cars-filter {
+    position: absolute;
+    // Below .footer-container (100) so an expanded footer sits on top; above
+    // the dash nav (50) and grid content (1)
+    z-index: 90;
+    // Delayed fade-in so it only reappears after the footer's collapse
+    // animation (0.4s) finishes; the expanded rule overrides the delay to 0
+    transition: opacity 0.4s 0.4s;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    &::-webkit-scrollbar {
+        width: 0.5em;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: 3px;
+    }
+}
+
+.filter-view {
+    ul.select-list {
+        padding: 0 2em 0 2em;
+
+        li {
+            padding: 1em 1.5em;
+            height: 1em;
+
+            img {
+                width: 1.5em;
+                padding: 0 0.5em 0 0;
+                vertical-align: middle;
+            }
+        }
+    }
+}
+
+.filter-country {
+    ul.select-list {
+        padding: 0 2em 0 2em;
+
+        li {
+            padding: 1em 1.5em;
+            height: 1em;
+
+            img {
+                width: 1.5em;
+                padding: 0 0.5em 0 0;
+                vertical-align: middle;
+            }
+        }
+    }
+}
+
+.filter-manufacturer {
+    ul.select-list {
+        padding: 0 2em 0 2em;
+
+        li {
+            padding: 1em 1.5em;
+
+            img {
+                width: 1.5em;
+                padding: 0 0.5em 0 0;
+                vertical-align: middle;
+            }
+        }
+    }
+}
+
+.filter-model {
+    ul.select-list {
+        padding: 0 2em 0 2em;
+
+        li {
+            padding: 1em 1.5em;
+
+            img {
+                width: 1.5em;
+                padding: 0 0.5em 0 0;
+                vertical-align: middle;
+            }
+        }
+    }
+}
+
+.filter-year {
+    ul.select-list {
+        padding: 0 2em 0 2em;
+
+        li {
+            padding: 1em 1.5em;
+
+            img {
+                width: 1.5em;
+                padding: 0 0.5em 0 0;
+                vertical-align: middle;
+            }
+        }
+    }
+}
+
+.filter-type {
+    ul.select-list {
+        padding: 0 2em 0 2em;
+
+        li {
+            padding: 1em 1.5em;
+
+            img {
+                width: 1.5em;
+                padding: 0 0.5em 0 0;
+                vertical-align: middle;
+            }
+        }
+    }
+}
+
+.filter-class {
+    .class-category {
+        h4 {
+            margin: 1em 0 0.25em 0.5em;
+            font-size: 1.25em;
+            font-weight: normal;
+        }
+
+        ul.class-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+
+            li {
+                padding: 1em 1em 0 1em;
+                height: 1em;
+            }
+        }
+    }
+}
+
+.filter-style {
+    ul.select-list {
+        padding: 0 2em 0 2em;
+
+        li {
+            padding: 1em 1.5em;
+
+            img {
+                width: 1.5em;
+                padding: 0 0.5em 0 0;
+                vertical-align: middle;
+            }
+        }
+    }
+}
+
+.filter-specialization {
+    ul.select-list {
+        padding: 0 2em 0 2em;
+
+        li {
+            padding: 1em 1.5em;
+
+            img {
+                width: 1.5em;
+                padding: 0 0.5em 0 0;
+                vertical-align: middle;
+            }
+        }
+    }
+}
+
+.cars-content {
+    position: relative;
+    z-index: 1;
+    width: 100vw;
+    height: calc(100vh - 15em);
+    max-height: calc(100vh - 1em);
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-top: 0.5em;
+    transition: height 0.4s ease;
+
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+    }
+
+    .grid-view {
+        width: 100vw;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1em;
+        padding: 1em;
+        box-sizing: border-box;
+        grid-auto-flow: dense;
+
+        .car {
+            aspect-ratio: 16/9;
+            width: 100%;
+            top: 0%;
+            position: relative;
+            border-width: 0;
+            box-shadow: none;
+            transition: opacity 0.3s ease-in-out;
+            border-radius: 0.5em;
+
+            img {
+                width: 100%;
+                border-radius: 0.5em;
+            }
+
+            &.selected {
+                opacity: 0.15;
+                pointer-events: none;
+            }
+
+            &.selected .hovered-clone {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            .info-top {
+                position: absolute;
+                top: 0.5em;
+                right: 0.5em;
+                font-size: 0.875em;
+
+                .car-class {
+                    padding: 0.25em 0.5em;
+                    border-radius: 0.5em;
+                    margin-left: 0.5em;
+                    line-height: 1.25;
+                }
+            }
+
+            .info {
+                margin: -2.4em 0 0 0.6em;
+                white-space: nowrap;
+                vertical-align: top;
+
+                h2 {
+                    font-size: 1em;
+                    font-weight: normal;
+                    line-height: 1.25;
+                    opacity: 0.75;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    display: inline-block;
+                    padding: 0.25em 0.5em;
+                    border-radius: 0.5em;
+
+                    .name {
+                        font-size: 1em;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        display: inline-block;
+                        padding: 0.25em 0.5em;
+                        border-radius: 0.5em;
+                    }
+                }
+            }
+
+            .flag {
+                position: relative;
+                display: inline-block;
+                vertical-align: top;
+                width: 2em;
+                margin-right: 0.5em;
+
+                img {
+                    width: 100%;
+                    border-radius: 0.2em;
+                }
+            }
+
+            &.hovered-clone {
+                z-index: 10;
+                margin: 0 auto;
+                position: absolute;
+                border-style: solid;
+                border-radius: 0.5em;
+                animation: hover-grow 0.25s ease-in-out forwards;
+            }
+
+            &.hovered-clone.hiding {
+                z-index: 9;
+                animation: hover-shrink 0.25s ease-in-out forwards;
+            }
+        }
+
+        &.xl {
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        }
+
+        &.sm {
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        }
+    }
+
+    .grid-details {
+        grid-column-start: 1;
+        grid-column-end: -1;
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        animation: show-details 0.3334s ease-out forwards;
+        overflow: hidden;
+
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5em;
+            position: relative;
+            overflow:hidden;
+            width: calc(40vw / var(--scale-factor));
+        }
+
+        .preview {
+            width:100%;
+            aspect-ratio: 16/9;
+            background-size: cover;
+            background-position: center;
+            border-radius: 0.5em;
+            position: relative;
+            z-index: 9;
+
+            &.preview-fade-in {
+                position: absolute;
+                top: 0;
+                left: 0;
+                opacity: 0;
+                transition: opacity 0.5s ease-in-out;
+                z-index: 10;
+
+                &.visible {
+                    opacity: 1;
+                }
+            }
+        }
+
+        .skins-container {
+            overflow-y: auto;
+
+            &::-webkit-scrollbar {
+                width: 0.5em;
+            }
+
+            &::-webkit-scrollbar-thumb {
+                border-radius: 3px;
+            }
+        }
+
+        .skins {
+            display: flex;
+            gap: 0.5em;
+            flex-wrap: wrap;
+            padding: 0.5em;
+            border-radius: 0.5em;
+
+            &::-webkit-scrollbar {
+                width: 0.5em;
+            }
+
+            &::-webkit-scrollbar-thumb {
+                border-radius: 3px;
+            }
+
+            .skin-item {
+                width: 3em;
+                height: 3em;
+                object-fit: cover;
+                border-radius: 0.25em;
+                cursor: pointer;
+                transition: opacity 0.2s ease-in-out, outline 0.2s ease-in-out;
+                position: relative;
+
+                &:hover {
+                    opacity: 0.7;
+                }
+
+                &.selected {
+                    outline: 0.25em solid #4a9eff;
+                    outline-offset: 0;
+                }
+            }
+
+            .skin-hovered-clone {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 3em;
+                height: 3em;
+                object-fit: cover;
+                border-radius: 0.25em;
+                pointer-events: none;
+                display: none;
+                z-index: 100;
+                transform-origin: center center;
+
+                &.growing {
+                    animation: skin-hover-grow 0.3s ease-out forwards;
+                }
+
+                &.shrinking {
+                    animation: skin-hover-shrink 0.3s ease-out forwards;
+                }
+            }
+        }
+
+        .info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5em;
+            padding: 0 0 0 1em;
+            line-height: 1.5em;
+            width: 100%;
+            box-sizing: border-box;
+
+            h4 {
+                font-size: 1.8em;
+                font-weight: normal;
+                padding: 0.25em 0.5em 0.3em 0.5em;
+                border-radius: 0.15em;
+            }
+
+            .car-header {
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+                flex-wrap: wrap;
+            }
+
+            .select-car-btn {
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+                padding: 0.65em 1.5em;
+                border-radius: 0.15em;
+                cursor: pointer;
+                font-size: 0.9em;
+                transition: background 0.2s ease;
+                white-space: nowrap;
+
+                svg {
+                    width: 1.2em;
+                    height: 1.2em;
+                }
+            }
+
+            .car-tabs {
+                display: flex;
+                gap: 0.5em;
+                margin-right:1em;
+
+                .car-tab {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5em;
+                    padding: 0.65em 1.5em;
+                    border: none;
+                    border-radius: 0.15em;
+                    cursor: pointer;
+                    font-size: 0.9em;
+                    transition: background 0.2s ease;
+                    white-space: nowrap;
+
+                    svg {
+                        width: 1.2em;
+                        height: 1.2em;
+                    }
+
+                }
+            }
+
+            .car-tab-content {
+                display: none;
+
+                &.active {
+                    display: block;
+                }
+            }
+        }
+
+        .car-origin {
+            display: flex;
+            align-items: center;
+            flex: 1;
+
+            &>div {
+                display: flex;
+                align-items: center;
+                padding: 0.3em 0.5em 0.4em 0.5em;
+                border-radius: 0.15em;
+                margin-right: 0.5em;
+            }
+
+            .flag {
+                vertical-align: top;
+                width: 1.5em;
+                margin: 0.25em 0.5em 0 0;
+                align-self: flex-start;
+            }
+
+            .car-class, .car-country{
+                cursor: pointer;
+            }
+
+            .car-class:hover, .car-country:hover{
+                border-radius: 0.15em;
+            }
+        }
+
+        .car-stats {
+            white-space: nowrap;
+            padding: 0.25em 0.5em;
+            border-radius: 0.15em;
+
+            &>div {
+                display: inline-block;
+                padding: 0 0.5em 0 0;
+
+                span {
+                    display: inline-block;
+                    padding: 0 0.4em;
+                    border-radius: 0.15em;
+                    margin-right: 0.5em;
+                }
+            }
+
+            .car-graph {
+                display: block;
+                white-space: normal;
+                width: 100%;
+                box-sizing: border-box;
+                padding: 0.5em 0 0.25em 0;
+
+                svg {
+                    width: 100%;
+                    height: auto;
+                    display: block;
+                }
+
+                .pt-line {
+                    fill: none;
+                    stroke-width: 2.5;
+                    stroke-linejoin: round;
+                    stroke-linecap: round;
+                }
+
+                .pt-axis {
+                    fill: none;
+                    stroke-width: 1;
+                }
+
+                .pt-grid {
+                    fill: none;
+                    stroke-width: 0.5;
+                }
+
+                .pt-label {
+                    font-size: 11px;
+                }
+            }
+        }
+
+        .car-info {
+            padding: 0.5em;
+            border-radius: 0.15em;
+            margin-bottom: 0.4em;
+            overflow-y: auto;
+
+            &::-webkit-scrollbar {
+                width: 10px;
+            }
+
+            &::-webkit-scrollbar-thumb {
+                border-radius: 10px;
+            }
+
+            p {
+                margin: 0 0 2em 0;
+                line-height: 1.4em;
+            }
+        }
+
+        .car-shifter {
+            svg {
+                width: 1em;
+                margin: 0.25em 0.5em 0 0;
+                align-self: flex-start;
+            }
+
+            span {
+                display: inline-block;
+                padding-right: 0.25em;
+            }
+        }
+    }
+
+    .grid-details.hiding {
+        animation: hide-details 0.3334s ease-out forwards;
+    }
+
+    @keyframes show-details {
+        from {
+            height: 0vh;
+        }
+
+        to {
+            height: calc((40vw * 9 / 16) + 8em);
+        }
+    }
+
+    @keyframes hide-details {
+        from {
+            height: calc((40vw * 9 / 16) + 8em);
+        }
+
+        to {
+            height: 0vh;
+        }
+    }
+
+    @media (min-width: 1921px) {
+        @keyframes show-details {
+            from {
+                height: 0vh;
+            }
+
+            to {
+                height: calc((40vw / var(--scale-factor)) * 9 / 16 + 8em);
+            }
+        }
+
+        @keyframes hide-details {
+            from {
+                height: calc((40vw / var(--scale-factor)) * 9 / 16 + 8em);
+            }
+
+            to {
+                height: 0vh;
+            }
+        }
+    }
+
+    @keyframes hover-grow {
+        from {
+            width: 100%;
+            top: 0%;
+            left: 0%;
+        }
+
+        to {
+            width: 120%;
+            top: -10%;
+            left: -10%;
+        }
+    }
+
+    @keyframes hover-shrink {
+        from {
+            width: 120%;
+            top: -10%;
+            left: -10%;
+        }
+
+        to {
+            width: 100%;
+            top: 0%;
+            left: 0%;
+        }
+    }
+
+    @keyframes skin-hover-grow {
+        from {
+            transform: scale(1);
+        }
+
+        to {
+            transform: scale(1.25);
+        }
+    }
+
+    @keyframes skin-hover-shrink {
+        from {
+            transform: scale(1.25);
+        }
+
+        to {
+            transform: scale(1);
+        }
+    }
+
+    .button-wrapper {
+        position: relative;
+        display: inline-flex;
+        width: auto;
+    }
+
+    .button-hovered-clone {
+        position: absolute;
+        top: 0;
+        left: 0;
+        box-sizing: border-box;
+        pointer-events: none;
+        display: none;
+        z-index: 100;
+        transform-origin: center center;
+
+        &.growing {
+            animation: button-hover-grow 0.3s ease-out forwards;
+        }
+
+        &.shrinking {
+            animation: button-hover-shrink 0.3s ease-out forwards;
+        }
+    }
+
+    @keyframes button-hover-grow {
+        from {
+            transform: skewX(-10deg) scale(1);
+        }
+
+        to {
+            transform: skewX(-10deg) scale(1.1);
+        }
+    }
+
+    @keyframes button-hover-shrink {
+        from {
+            transform: skewX(-10deg) scale(1.1);
+        }
+
+        to {
+            transform: skewX(-10deg) scale(1);
+        }
+    }
+
+    .gallery-view {
+        .gallery-selected {
+            text-align: center;
+            width: 100%;
+
+            img.preview {
+                max-width: calc(75vw);
+                aspect-ratio: 16 / 9;
+                max-height: 40vh;
+            }
+
+            .info {
+                margin: -5em 0 0 12vw;
+
+                h2 {
+                    font-size: 2em;
+                    font-weight: normal;
+                    margin: 0.25em 0 0.5em 0;
+                    line-height: 1.25;
+                    opacity: 0.75;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    background-color: rgba(0, 0, 0, 0.75);
+                    padding: 0.25em 0.5em;
+                    border-radius: 0.5em;
+                    float: left;
+                }
+            }
+        }
+
+        .gallery-footer {
+            position: relative;
+            width: 100%;
+        }
+
+        .gallery-items {
+            padding: 1em 0;
+            width: calc(100vw - 2em);
+            margin: 0 1em;
+            overflow: hidden;
+
+            .car {
+                display: inline-block;
+                aspect-ratio: 16/9;
+                overflow: hidden;
+                width: calc((100vw / 4) - 4em);
+                margin: 0 0.5em;
+                border-radius: 0.5em;
+
+                img {
+                    width: 100%;
+                }
+            }
+        }
+
+        .gallery-scroller {
+            white-space: nowrap;
+            position: relative;
+            left: 40vw;
+        }
+
+        .gallery-target {
+            margin: 5.25em 0 0 0.6em;
+            width: calc((100vw / 4) - 3em);
+            aspect-ratio: 16/9;
+            border: 7px solid rgba(255, 255, 255, 0.3);
+            position: absolute;
+            top: 0;
+            left: 40vw;
+            z-index: 10;
+            border-radius: 0.5em;
+        }
+    }
+}
+
+@media screen and (max-width: 1300px) {
+    .cars-toolbar nav {
+        height: 7.4em !important;
+    }
+
+    .dash .sub-menu {
+        height: calc(7.4em * var(--scale-factor)) !important;
+    }
+}
+
+@media screen and (max-width: 1920px) {
+    .cars-toolbar nav>ul.menu li {
+        font-size: 0.8em;
+        margin-top: 0.15em;
+    }
+
+    .cars-toolbar nav>ul.menu li:not(.search-input) {
+        margin-top: 0.2em;
+    }
+}
+// Edit car details - pencil sits on the title row (h4), right-aligned
+.info h4 {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.edit-car-btn {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    // Padding makes the box a rounded square bigger than the icon
+    padding: 0.15em;
+    border: none;
+    cursor: pointer;
+    // colors.less sets a global button background - this must override it
+    background: none !important;
+    flex-shrink: 0;
+
+    svg {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+// Editing state - stats tab + stats pane hide, the form lives on its own
+// Details tab; select button, origin row and chart stay hidden too
+.grid-details.car-editing {
+    .select-car-btn,
+    .car-origin,
+    .car-graph,
+    .car-stats,
+    .car-tab[data-tab="stats"],
+    .edit-car-btn {
+        display: none !important;
+    }
+}
+
+.car-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9em;
+    margin-top: 1em;
+    width: 100%;
+
+    .edit-field-row {
+        display: flex;
+        gap: 1em;
+        flex-wrap: nowrap;
+    }
+
+    .edit-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35em;
+        flex: 1;
+        min-width: 0;
+
+        label {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.4em 0.6em;
+            border-radius: 0.35em;
+            font-size: 0.95em;
+        }
+
+        .dropdown-list {
+            width: 100%;
+            font-size: 0.95em;
+        }
+
+        // Hide the native number spinners - year is typed
+        input[type="number"] {
+            appearance: textfield;
+            -moz-appearance: textfield;
+
+            &::-webkit-outer-spin-button,
+            &::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+        }
+
+        .edit-field-input {
+            display: flex;
+            gap: 0.4em;
+            align-items: stretch;
+
+            .dropdown-list {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .edit-add-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 2em;
+                padding: 0;
+                border: none;
+                border-radius: 0.35em;
+                cursor: pointer;
+                // colors.less sets a global button background - override it
+                background: none !important;
+                flex-shrink: 0;
+
+                svg {
+                    width: 1em;
+                    height: 1em;
+                }
+            }
+        }
+    }
+
+}
+
+// Save/Cancel row - a sibling below the tab panes, not inside a tab
+.car-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6em;
+    padding-top: 1em;
+
+    .car-edit-cancel,
+    .car-edit-save {
+        border: none;
+        border-radius: 0.35em;
+        padding: 0.5em 1.4em;
+        font-size: 0.95em;
+        cursor: pointer;
+    }
+}
+
+// Editable info textarea pane
+.car-edit-info {
+    textarea {
+        width: 100%;
+        min-height: 8em;
+        border-radius: 0.35em;
+        padding: 0.5em 0.7em;
+        font-size: 0.95em;
+        font-family: inherit;
+        resize: vertical;
+        box-sizing: border-box;
+    }
+}
+
+// New Manufacturer / New Model popup
+.car-edit-submodal-backdrop {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    z-index: 23000;
+
+    .car-edit-submodal {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8em;
+        width: 22em;
+        max-width: 90vw;
+        padding: 1.5em;
+        border-radius: 1em;
+
+        h4 {
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .ces-make-label {
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        input {
+            padding: 0.5em 0.7em;
+            border-radius: 0.35em;
+            font-size: 1em;
+        }
+
+        .ces-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.6em;
+
+            button {
+                border: none;
+                border-radius: 0.35em;
+                padding: 0.45em 1.2em;
+                font-size: 0.95em;
+                cursor: pointer;
+            }
+        }
+    }
+}

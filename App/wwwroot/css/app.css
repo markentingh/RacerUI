@@ -255,6 +255,8 @@ body .game-loaded {
 .dash {
   user-select: none;
   grid-row: 1;
+  display: flex;
+  flex-direction: column;
 }
 .dash nav {
   /*max-width: calc(1920px * var(--scale-factor));*/
@@ -1126,11 +1128,15 @@ body.footer-expanded .content.history .history-content {
 .content.history {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 .content.history .history-content {
   flex: 1;
   overflow-y: auto;
   padding: 1.5em 2em 10em;
+  display: flex;
+  flex-direction: column;
   transition: opacity 0.4s;
 }
 .content.history .coming-soon {
@@ -1147,6 +1153,8 @@ body.footer-expanded .content.history .history-content {
   gap: 1em;
   max-width: 80em;
   margin: 0 auto;
+  width: 100%;
+  transform-origin: top center;
 }
 .content.history .favorite-item {
   display: grid;
@@ -1358,6 +1366,8 @@ body.footer-expanded .content.history .history-content {
 }
 .footer-container .footer-car-preview,
 .footer-container .footer-track-preview {
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
   position: absolute;
   top: 1em;
   left: 1em;
@@ -1487,6 +1497,19 @@ body.footer-expanded .content.history .history-content {
   font-size: 0.75em;
   opacity: 0.7;
   transition: opacity 0.4s ease 0.4s, visibility 0s;
+}
+.footer-container .footer-session-info .fav-title-input {
+  display: none;
+  font-size: 1.2em;
+  font-weight: 600;
+  min-width: 0;
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+.footer-container .footer-session-info .fav-edit-subtitle {
+  display: none;
+  font-size: 0.75em;
+  opacity: 0.7;
 }
 .footer-container .footer-session-info .session-mode {
   font-size: 0.9em;
@@ -1842,6 +1865,7 @@ body.footer-expanded .content.history .history-content {
   padding: 0.35em 0.6em;
   border-radius: 0.35em;
   font-size: 0.9em;
+  cursor: pointer;
 }
 .footer-container .footer-settings .candidates-section .candidates-list .candidate-item .candidate-name {
   min-width: 0;
@@ -1862,7 +1886,7 @@ body.footer-expanded .content.history .history-content {
   background: none;
   cursor: pointer;
   flex-shrink: 0;
-  opacity: 0.5;
+  opacity: 0.15;
   transition: opacity 0.15s ease;
 }
 .footer-container .footer-settings .candidates-section .candidates-list .candidate-item .candidate-remove svg {
@@ -1907,6 +1931,15 @@ body.footer-expanded .content.history .history-content {
 .footer-container.fav-edit-closing {
   opacity: 0;
   transition: height 0.4s ease, opacity 0.4s ease;
+}
+.footer-container.editing-fav .footer-session-info .session-text {
+  display: none;
+}
+.footer-container.editing-fav .footer-session-info .fav-title-input {
+  display: block;
+}
+.footer-container.editing-fav .footer-session-info .fav-edit-subtitle {
+  display: block;
 }
 .footer-container.editing-fav .setting-actions,
 .footer-container.editing-fav .details-btn,
@@ -2113,6 +2146,92 @@ body.footer-expanded .content.history .history-content {
   font-weight: 400;
   transition: all 0.2s ease;
 }
+.car-details-backdrop {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  z-index: 22000;
+}
+.car-details-backdrop .car-details-modal {
+  position: relative;
+  width: 85%;
+  max-width: 100em;
+  height: 32em;
+  border-radius: 1em;
+  box-shadow: 0 2em 4em rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.car-details-backdrop .car-details-modal .car-details-close {
+  position: absolute;
+  top: 0.75em;
+  right: 0.75em;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2em;
+  height: 2em;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: transparent;
+}
+.car-details-backdrop .car-details-modal .car-details-close svg {
+  width: 1em;
+  height: 1em;
+}
+.car-details-backdrop .car-details-modal .car-details-save {
+  position: absolute;
+  bottom: 1em;
+  right: 1em;
+  z-index: 10;
+  border: none;
+  border-radius: 0.35em;
+  padding: 0.5em 1.4em;
+  font-size: 1em;
+  cursor: pointer;
+}
+.car-details-backdrop .car-details-modal .car-details-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.car-details-backdrop .car-details-modal .car-details-body .cars-content {
+  height: 100%;
+  max-height: none;
+  width: 100%;
+}
+.car-details-backdrop .car-details-modal .car-details-body .cars-content .grid-view {
+  width: 100%;
+}
+.car-details-backdrop .car-details-modal .car-details-body .cars-content .grid-view > .car,
+.car-details-backdrop .car-details-modal .car-details-body .cars-content .grid-view .hovered-clone {
+  display: none !important;
+}
+.car-details-backdrop .car-details-modal .car-details-body .cars-content .grid-details {
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  animation: none;
+}
+.car-details-backdrop .car-details-modal .car-details-body .cars-content .grid-details .select-car-btn {
+  display: none;
+}
+.car-details-backdrop .car-details-modal .car-details-body .cars-content .grid-details .info,
+.car-details-backdrop .car-details-modal .car-details-body .cars-content .grid-details .car-info {
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.car-details-backdrop .car-details-modal .car-details-body .cars-content .grid-details .preview-container .preview {
+  min-height: 15em;
+}
 .car-picker-backdrop {
   position: fixed;
   inset: 0;
@@ -2164,17 +2283,20 @@ body.footer-expanded .content.history .history-content {
   position: relative;
   overflow: hidden;
 }
-.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu {
+.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu,
+.car-picker-backdrop .car-picker-modal .car-picker-body .tracks-toolbar.sub-menu {
   font-size: 0.8em;
   height: 48px;
   margin-bottom: calc(48px * (var(--scale-factor, 1) - 1));
+  transform-origin: top center;
   opacity: 1;
   pointer-events: auto;
   flex-shrink: 0;
   position: relative;
   z-index: 2;
 }
-.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu nav {
+.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu nav,
+.car-picker-backdrop .car-picker-modal .car-picker-body .tracks-toolbar.sub-menu nav {
   background-image: url("/images/submenu-bg.png");
   background-repeat: no-repeat;
   background-size: 100%;
@@ -2187,14 +2309,16 @@ body.footer-expanded .content.history .history-content {
   display: flex;
   align-items: flex-end;
 }
-.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu nav ul.menu {
+.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu nav ul.menu,
+.car-picker-backdrop .car-picker-modal .car-picker-body .tracks-toolbar.sub-menu nav ul.menu {
   list-style: none;
   font-size: 1.6em;
   padding: 0 2em;
   margin: 0;
   vertical-align: top;
 }
-.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu nav ul.menu li {
+.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu nav ul.menu li,
+.car-picker-backdrop .car-picker-modal .car-picker-body .tracks-toolbar.sub-menu nav ul.menu li {
   display: inline-block;
   vertical-align: bottom;
   padding: 0.5em 1em;
@@ -2203,36 +2327,44 @@ body.footer-expanded .content.history .history-content {
   transition: all 0.25s ease-in-out;
   transform: skewX(-10deg);
 }
-.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu nav ul.menu li svg {
+.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu nav ul.menu li svg,
+.car-picker-backdrop .car-picker-modal .car-picker-body .tracks-toolbar.sub-menu nav ul.menu li svg {
   width: 1em;
   margin-right: 0.5em;
   vertical-align: middle;
 }
-.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu nav ul.menu li a {
+.car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu nav ul.menu li a,
+.car-picker-backdrop .car-picker-modal .car-picker-body .tracks-toolbar.sub-menu nav ul.menu li a {
   text-decoration: none;
 }
-.car-picker-backdrop .car-picker-modal .car-picker-body .cars-filter {
+.car-picker-backdrop .car-picker-modal .car-picker-body .cars-filter,
+.car-picker-backdrop .car-picker-modal .car-picker-body .tracks-filter {
   top: calc(48px * var(--scale-factor, 1));
   opacity: 1;
   pointer-events: auto;
 }
 @media screen and (max-width: 1300px) {
-  .car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar nav {
+  .car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar nav,
+  .car-picker-backdrop .car-picker-modal .car-picker-body .tracks-toolbar nav {
     height: 7.4em !important;
   }
-  .car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu {
+  .car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar.sub-menu,
+  .car-picker-backdrop .car-picker-modal .car-picker-body .tracks-toolbar.sub-menu {
     height: calc(7.4em * var(--scale-factor)) !important;
   }
-  .car-picker-backdrop .car-picker-modal .car-picker-body .cars-filter {
+  .car-picker-backdrop .car-picker-modal .car-picker-body .cars-filter,
+  .car-picker-backdrop .car-picker-modal .car-picker-body .tracks-filter {
     top: calc(7.4em * var(--scale-factor, 1));
   }
 }
 @media screen and (max-width: 1920px) {
-  .car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar nav > ul.menu li {
+  .car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar nav > ul.menu li,
+  .car-picker-backdrop .car-picker-modal .car-picker-body .tracks-toolbar nav > ul.menu li {
     font-size: 0.8em;
     margin-top: 0.15em;
   }
-  .car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar nav > ul.menu li:not(.search-input) {
+  .car-picker-backdrop .car-picker-modal .car-picker-body .cars-toolbar nav > ul.menu li:not(.search-input),
+  .car-picker-backdrop .car-picker-modal .car-picker-body .tracks-toolbar nav > ul.menu li:not(.search-input) {
     margin-top: 0.2em;
   }
 }
@@ -2250,14 +2382,16 @@ body.footer-expanded .content.history .history-content {
 .car-picker-backdrop .car-picker-modal .car-picker-body ul.select-list li a {
   text-decoration: none;
 }
-.car-picker-backdrop .car-picker-modal .car-picker-body .cars-content {
+.car-picker-backdrop .car-picker-modal .car-picker-body .cars-content,
+.car-picker-backdrop .car-picker-modal .car-picker-body .tracks-content {
   height: auto;
   max-height: none;
   flex: 1;
   min-height: 0;
   width: 100%;
 }
-.car-picker-backdrop .car-picker-modal .car-picker-body .cars-content .grid-view {
+.car-picker-backdrop .car-picker-modal .car-picker-body .cars-content .grid-view,
+.car-picker-backdrop .car-picker-modal .car-picker-body .tracks-content .grid-view {
   width: 100%;
 }
 .footer-content .button-wrapper {
@@ -3084,4 +3218,167 @@ body.footer-expanded .cars-toolbar {
   .cars-toolbar nav > ul.menu li:not(.search-input) {
     margin-top: 0.2em;
   }
+}
+.info h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.edit-car-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  padding: 0.15em;
+  border: none;
+  cursor: pointer;
+  background: none !important;
+  flex-shrink: 0;
+}
+.edit-car-btn svg {
+  width: 100%;
+  height: 100%;
+}
+.grid-details.car-editing .select-car-btn,
+.grid-details.car-editing .car-origin,
+.grid-details.car-editing .car-graph,
+.grid-details.car-editing .car-stats,
+.grid-details.car-editing .car-tab[data-tab="stats"],
+.grid-details.car-editing .edit-car-btn {
+  display: none !important;
+}
+.car-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+  margin-top: 1em;
+  width: 100%;
+}
+.car-edit-form .edit-field-row {
+  display: flex;
+  gap: 1em;
+  flex-wrap: nowrap;
+}
+.car-edit-form .edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  flex: 1;
+  min-width: 0;
+}
+.car-edit-form .edit-field label {
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+.car-edit-form .edit-field input {
+  width: 100%;
+  padding: 0.4em 0.6em;
+  border-radius: 0.35em;
+  font-size: 0.95em;
+}
+.car-edit-form .edit-field dropdown-list {
+  width: 100%;
+  font-size: 0.95em;
+}
+.car-edit-form .edit-field input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.car-edit-form .edit-field input[type="number"]::-webkit-outer-spin-button,
+.car-edit-form .edit-field input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.car-edit-form .edit-field .edit-field-input {
+  display: flex;
+  gap: 0.4em;
+  align-items: stretch;
+}
+.car-edit-form .edit-field .edit-field-input dropdown-list {
+  flex: 1;
+  min-width: 0;
+}
+.car-edit-form .edit-field .edit-field-input .edit-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2em;
+  padding: 0;
+  border: none;
+  border-radius: 0.35em;
+  cursor: pointer;
+  background: none !important;
+  flex-shrink: 0;
+}
+.car-edit-form .edit-field .edit-field-input .edit-add-btn svg {
+  width: 1em;
+  height: 1em;
+}
+.car-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6em;
+  padding-top: 1em;
+}
+.car-edit-actions .car-edit-cancel,
+.car-edit-actions .car-edit-save {
+  border: none;
+  border-radius: 0.35em;
+  padding: 0.5em 1.4em;
+  font-size: 0.95em;
+  cursor: pointer;
+}
+.car-edit-info textarea {
+  width: 100%;
+  min-height: 8em;
+  border-radius: 0.35em;
+  padding: 0.5em 0.7em;
+  font-size: 0.95em;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.car-edit-submodal-backdrop {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  z-index: 23000;
+}
+.car-edit-submodal-backdrop .car-edit-submodal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+  width: 22em;
+  max-width: 90vw;
+  padding: 1.5em;
+  border-radius: 1em;
+}
+.car-edit-submodal-backdrop .car-edit-submodal h4 {
+  margin: 0;
+  font-size: 1.1em;
+}
+.car-edit-submodal-backdrop .car-edit-submodal .ces-make-label {
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+.car-edit-submodal-backdrop .car-edit-submodal input {
+  padding: 0.5em 0.7em;
+  border-radius: 0.35em;
+  font-size: 1em;
+}
+.car-edit-submodal-backdrop .car-edit-submodal .ces-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6em;
+}
+.car-edit-submodal-backdrop .car-edit-submodal .ces-actions button {
+  border: none;
+  border-radius: 0.35em;
+  padding: 0.45em 1.2em;
+  font-size: 0.95em;
+  cursor: pointer;
 }

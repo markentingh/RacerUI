@@ -11,6 +11,7 @@
     "RacerUI": {
       "commandName": "Project",
       "launchBrowser": false,
+      "hotReloadEnabled": false,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
